@@ -5,14 +5,16 @@
   ALIA EX PROPRIO …  — optional hymns (Dies iræ, Salve dies …), Saturday memorial of the BVM (a full office)
 
 Each 16.6pt chapter heading (or a bare "Ad Invitatorium") starts a chapter with day key ORD.<chapter> or
-PROP.<chapter>. A chapter that contains hour headers is split into real hours (OR, LAUDS, …) of that day;
-otherwise the whole chapter is one pseudo-hour with code APPX. All are parsed with the normal HourParser.
+PROP.<chapter> (a plug-in may map a chapter to a real day: lh/sources/pa.py APPENDIX_DAYS → MEM.BVM_SATURDAY).
+A chapter that contains hour headers is split into real hours (OR, LAUDS, …) of that day; otherwise the whole
+chapter is one pseudo-hour with code APPX. Lines after an hour's "Conclusio" link become an APPX fragment labelled
+by its first line (copy), e.g. the BVM second readings after Lauds. All are parsed with the normal HourParser.
 """
 from __future__ import annotations
 
 from lh.extract.lines import HOUR_HEADERS, Line
 from lh.model.canon import slug
-from lh.parse.hour import Hour, parse_hour
+from lh.parse.hour import Hour, HourParser
 
 ORD_KEYS = {
     "Ad Invitatorium": "ORD.INVITATORY",
@@ -74,9 +76,18 @@ def split_appendices(lines: list[Line]) -> list[Hour]:
         for j, i in enumerate(hour_idx):
             end = hour_idx[j + 1] if j + 1 < len(hour_idx) else len(body)
             hl = body[i]
-            h = Hour("", section, ch["title"], [], hl.text, HOUR_HEADERS[hl.text], lines=body[i:end])
+            # texts printed after the hour's conclusion belong to the chapter, not to that hour (BVM on Saturday:
+            # the alternative second readings of the Office of Readings follow Lauds, PA 6280-6290)
+            concl = next((k for k in range(i, end) if body[k].kind == "link" and body[k].text.startswith("Conclusio")),
+                         None)
+            tail = concl + 1 if concl is not None and concl + 1 < end else end
+            h = Hour("", section, ch["title"], [], hl.text, HOUR_HEADERS[hl.text], lines=body[i:tail])
             h.day_key, h.day_title = key, ch["title"]
             hours.append(h)
+            if tail < end:
+                h = Hour("", section, ch["title"], [], body[tail].text, "APPX", lines=body[tail:end])
+                h.day_key, h.day_title, h.copy, h.first = key, ch["title"], body[tail].text, 0
+                hours.append(h)
     return hours
 
 
@@ -84,5 +95,7 @@ def parse_appendices(lines: list[Line], pdf: str) -> list[Hour]:
     hours = split_appendices(lines)
     for h in hours:
         h.pdf = pdf
-        parse_hour(h)
+        p = HourParser(h)
+        p.i = getattr(h, "first", 1)      # 0: a fragment without a header line of its own
+        h.elements = p.parse()
     return hours

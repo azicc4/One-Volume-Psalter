@@ -147,11 +147,22 @@ REQUIRED["COMPLINE1"] = REQUIRED["COMPLINE"]
 def check_structure(con) -> dict:
     slots: dict[int, set] = collections.defaultdict(set)
     subs: dict[int, collections.Counter] = collections.defaultdict(collections.Counter)
-    for r in con.execute("SELECT hour_id, slot, sub, source_text FROM occurrence"):
+    for r in con.execute("SELECT hour_id, type, slot, sub, source_text FROM occurrence"):
         slots[r["hour_id"]].add(r["slot"])
         if r["sub"]:
             subs[r["hour_id"]][r["slot"]] += 1
         t = r["source_text"] or ""
+        # memorials take parts from the current day: "Antiphonæ, psalmi, versus et lectio prior cum suo responsorio,
+        # de sabbato currente." (BVM on Saturday, PA 6271); a reading given by link carries its responsory
+        if r["type"] == "rubric" and re.search(r"\bde (?:sabbato|feria) currente\b", t):
+            if re.match(r"^Antiphonæ(?:,| et) psalmi", t):
+                slots[r["hour_id"]].update(("PS1", "PS2", "PS3"))
+            if "versus" in t:
+                slots[r["hour_id"]].add("OR_VERSE")
+            if "lectio prior" in t:
+                slots[r["hour_id"]].update(("LECT1", "RESP1"))
+        if r["type"] == "link" and r["slot"] in ("LECT1", "LECT2"):
+            slots[r["hour_id"]].add("RESP" + r["slot"][-1])
         # GILH substitutions: Easter Octave / Triduum replace the short responsory with an antiphon
         # ("Loco responsorii dicitur: Hæc dies / Christus factus est"); in Eastertide the Regina cæli is printed inline
         if t.startswith("Loco responsorii"):

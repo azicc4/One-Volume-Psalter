@@ -67,7 +67,18 @@ CREATE TABLE occurrence (              -- one printing of an object inside an ho
 CREATE INDEX occ_obj ON occurrence(object_id);
 CREATE INDEX occ_hour ON occurrence(hour_id);
 
-CREATE TABLE psalm (                   -- the 150 psalms, Hebrew numbering primary
+CREATE TABLE link_target (             -- what a printed link (blue: "Vel alter", "Ad libitum dici potest hymnus Dies iræ.",
+                                       -- "Memoria ad libitum Sanctæ Mariæ", "Conclusio Horæ…") points to in its source PDF
+    occurrence_id INTEGER PRIMARY KEY REFERENCES occurrence(id),
+    page INTEGER,                      -- target page (the PDF stores pages only, not positions)
+    hour_id INTEGER REFERENCES hour_instance(id),     -- hour instance printed at the target
+    target_occ INTEGER REFERENCES occurrence(id),     -- element at the target
+    object_id TEXT REFERENCES object(id),             -- its object (e.g. the hymn named by an ad libitum link)
+    how TEXT                           -- text: the link names the element (incipit / reading source) · page: first
+                                       -- element on the target page (in an hour of the same kind when there is one)
+);
+
+CREATE TABLE psalm (                 -- the 150 psalms, Hebrew numbering primary
     num INTEGER PRIMARY KEY, vulgate TEXT, title TEXT, n_verses INTEGER
 );
 

@@ -10,10 +10,10 @@ from pathlib import Path
 
 from lh.config import DB_PATH
 from lh.extract.spans import open_l1
-from lh.model.canon import canon, incipit, object_id, plain_text, psalm_base, unit_verses
+from lh.model.canon import canon, fold, incipit, object_id, plain_text, psalm_base, unit_verses
 from lh.model.days import day_info, hour_code, short_name
 from lh.parse.run import parse_pdf
-from lh.sources import copy_label
+from lh.sources import copy_label, plugin
 
 SCHEMA = Path(__file__).with_name("schema.sql")
 REF_TYPES = {"lectio_brevis", "responsory", "resp_breve"}
@@ -42,8 +42,11 @@ def build(sources: list[str], db_path: Path = DB_PATH) -> None:
         con.executemany("INSERT INTO source_line VALUES (?,?,?,?,?,?,?,?)",
                         [(src, o.line.l1_ids[0], o.line.l1_ids[-1], o.line.page, o.role, o.section, o.day, o.line.text)
                          for o in outside])
+        appendix_days = getattr(plugin(src), "APPENDIX_DAYS", {})   # appendix chapters that are real days
         for hr in hours:
-            if getattr(hr, "day_key", None):
+            if getattr(hr, "day_key", None) and hr.day_title in appendix_days:
+                info = dict(appendix_days[hr.day_title])
+            elif getattr(hr, "day_key", None):
                 key = hr.day_key if src == "PA" else f"{src}.{hr.day_key}"
                 info = {"key": key, "season": "ORD" if hr.day_key.startswith("ORD") else "PROP", "week": None,
                         "weekday": None, "psalter_week": None, "title": hr.day_title, "rank": "appendix", "precedence": None}
@@ -51,7 +54,8 @@ def build(sources: list[str], db_path: Path = DB_PATH) -> None:
                 info = day_info(src, hr.section, hr.day)
             days.setdefault(info["key"], info)
             code = hour_code(hr.code, hr.subtitle)
-            vol_copy = copy_label(src, hr.page_start)          # e.g. Advent start-date copy "28 Nov"
+            # e.g. Advent start-date copy "28 Nov"; or an appendix fragment's own label ("LECTIO ALTERA")
+            vol_copy = getattr(hr, "copy", None) or copy_label(src, hr.page_start)
             n_seen = seen_hours.get((info["key"], code, vol_copy), 0)
             seen_hours[(info["key"], code, vol_copy)] = n_seen + 1
             dup = f"#{n_seen + 1}" if n_seen else None          # e.g. Ascension's two tracks
@@ -111,6 +115,7 @@ def build(sources: list[str], db_path: Path = DB_PATH) -> None:
     con.execute("INSERT INTO object_fts (id, type, plain) SELECT id, type, plain FROM object")
     build_psalm_use(con)
     build_hour_refs(con)
+    build_link_targets(con)
     from lh.model.overrides import apply as apply_overrides
     n_over = apply_overrides(con)          # reviewed corrections (data/overrides/*.yaml)
     if n_over:
@@ -138,6 +143,53 @@ def build_psalm_use(con: sqlite3.Connection) -> None:
         rows.append((occ, psalm_base(p["psalm"]), oid, json.dumps(verses), verses[0] if verses else None,
                      verses[-1] if verses else None, x.get("section", ""), day_key, hour, slot, pw, wd))
     con.executemany("INSERT INTO psalm_use VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", rows)
+
+
+LINK_PREFIX_RE = re.compile(r"^(?:Ad libitum(?: dici potest hymnus)?|Memoria ad libitum)\s+")
+
+
+def _words(s: str) -> list[str]:
+    return re.findall(r"[a-z0-9]+", fold(s or ""))
+
+
+def build_link_targets(con: sqlite3.Connection) -> None:
+    """Resolve each printed link to what is printed at its target page in the same PDF (table link_target).
+
+    A link that names its target (a hymn incipit — "Ad libitum dici potest hymnus Salve dies." —, a reading's source
+    "Ex Sermónibus sancti Procli…", an invitatory psalm "Venite, exsultemus Domino") resolves to that element on the
+    target page or the next (how = 'text'); otherwise to the first element on the page, preferring an hour of the link's own kind
+    (Conclusio → the dismissal of that hour; "Memoria ad libitum Sanctæ Mariæ" → the memorial's hour) (how = 'page')."""
+    by_page: dict = {}
+    for r in con.execute("""SELECT o.id, o.hour_id, h.source, h.hour, o.page, o.object_id, ob.plain
+                            FROM occurrence o JOIN hour_instance h ON h.id = o.hour_id JOIN object ob ON ob.id = o.object_id
+                            WHERE o.type NOT IN ('rubric', 'link') ORDER BY o.id"""):
+        by_page.setdefault((r[2], r[4]), []).append(r)
+    hours = con.execute("SELECT id, source, hour, page_start, page_end FROM hour_instance ORDER BY id").fetchall()
+    rows = []
+    for occ, src, code, extra, text in con.execute(
+            """SELECT o.id, h.source, h.hour, o.extra, o.source_text FROM occurrence o
+               JOIN hour_instance h ON h.id = o.hour_id WHERE o.type = 'link' ORDER BY o.id""").fetchall():
+        page = json.loads(extra or "{}").get("target")
+        if not page:
+            continue
+        cands = by_page.get((src, page), [])
+        want = _words(LINK_PREFIX_RE.sub("", text))
+        # the named element may start on the next page (its label is at the foot of the target page)
+        near = cands + by_page.get((src, page + 1), [])
+        hit = next((c for c in near if len(want) >= 2
+                    and _words(re.sub(r"^\([^)]*\)\s*", "", c[6]))[:len(want)] == want), None)
+        how = "text"
+        if hit is None:
+            how = "page"
+            hit = next((c for c in cands if c[3] == code), None) or (cands[0] if cands else None)
+        if hit is not None:
+            rows.append((occ, page, hit[1], hit[0], hit[5], how))
+            continue
+        cover = [h for h in hours if h[1] == src and h[3] <= page <= h[4]]
+        hr = next((h for h in cover if h[2] == code), None) or (cover[0] if cover else None)
+        if hr is not None:
+            rows.append((occ, page, hr[0], None, None, how))
+    con.executemany("INSERT INTO link_target VALUES (?,?,?,?,?,?)", rows)
 
 
 ORDINARY_ANCHOR = {"INV": "ord:invitatory", "OR": "ord:or", "LAUDS": "ord:lauds", "MIDDAY": "ord:midday",

@@ -88,4 +88,7 @@ Christmas & Ascension dual tracks · heading typos (`FERIA II HEBDOMADA XXVIII`,
 `ALIA EX PROPIO`, `QUARESIMÆ`) · black em dash inside psalm text (PA 732) · wrapped preces first halves at
 x=72 (SPA 2000) · verse number on a continuation line (Ps 7:9) · `(19)` omitted-verse label (PA 124) ·
 chapter,verse labels (`5,9`) · optional `[24-32]` (L/E 1136) · alleluia canticle layout (PA 291) ·
-numbered repeat antiphon (SPA 631) · two-line day titles (Adv 514).
+numbered repeat antiphon (SPA 631) · two-line day titles (Adv 514) · preces without their PRECES label (L/E 2522) or
+resumed after "Vel aliæ:" (PA 6277) · numbered alternatives: red "1 " + black text, classified rubric (PA 6272, 6276) ·
+alternative short reading introduced by "Vel (Ap 12, 1):" instead of a label (PA 6275) · texts after an appendix hour's
+"Conclusio" (BVM second readings, PA 6280–6290) · Salve dies / Dies ætásque printed without a heading (PA 6267–6268).
