@@ -80,8 +80,47 @@ STRUCTURE_EXCEPTIONS = {
         "reason": "COM 1304: the Saturday BVM Lauds ends with the orations, no 'Conclusio Horæ' (GILH 54); the same "
                   "office in PA (6279) has it. TODO §3 T-COM-1."},
 }
-# No index check: the volume's index pages (3, 4, 417, 818, 1208, 1641) list the Commons by name only, without the
-# hour codes check_index reads; the outline (level 3 = hours of each Common) is checked by tests/test_com.py.
+
+
+def check_index(con, source: str, record) -> dict:
+    """Index check (hook of lh/verify/checks.py). The printed index pages (3, 4, 417, 818, 1208, 1641) list the Commons
+    by name only, so the PDF outline is the volume's own table of hours: level 1 = seasonal copy (or OFFICIUM
+    DEFUNCTORUM), level 2 = Common, level 3 = its hours. Every (Common, copy) must have exactly those hours."""
+    import collections
+
+    from lh.extract.lines import HOUR_HEADERS
+    from lh.extract.spans import open_l1
+    from lh.sources import copy_label
+    l1 = open_l1(source)
+    rows = l1.execute("SELECT level, title, page FROM outline ORDER BY seq").fetchall()
+    l1.close()
+    titles = {k.replace(" / ", " "): v[0] for k, v in COMMONS.items()}
+    titles["MEMORIA SANCTÆ MARIÆ IN SABBATO"] = "MEM.BVM_SATURDAY"
+    exp: dict = collections.defaultdict(set)
+    day, prev = None, ""
+    for level, title, page in rows:
+        if level == 1:
+            day = "DEAD" if title == "OFFICIUM DEFUNCTORUM" else None
+        elif title in HOUR_HEADERS and day:
+            code = HOUR_HEADERS[title]
+            if code == "COMPLINE" and prev == "V1":
+                code = "COMPLINE1"
+            exp[(day, copy_label(source, page))].add(code)
+            prev = code
+        elif level == 2:
+            day, prev = titles.get(title), ""
+    got: dict = collections.defaultdict(set)
+    for day_key, copy, hour in con.execute("SELECT day_key, copy, hour FROM hour_instance WHERE source = ?", (source,)):
+        if not day_key.startswith("COM.ORD."):
+            got[(day_key, copy)].add(hour)
+    mism = []
+    for key in sorted(set(exp) | set(got), key=str):
+        if exp.get(key, set()) != got.get(key, set()):
+            missing, unexpected = sorted(exp.get(key, set()) - got.get(key, set())), sorted(got.get(key, set()) - exp.get(key, set()))
+            mism.append((f"{key[0]} {key[1] or ''}".strip(), missing, unexpected))
+            record(con, "index", f"{key[0]} {key[1] or ''}".strip(), "fail", {"missing": missing, "unexpected": unexpected})
+    record(con, "index", source, "pass" if not mism else "fail", f"{len(exp) - len(mism)}/{len(exp)} days match")
+    return {"days_in_index": len(exp), "mismatches": mism[:20], "n_mismatch": len(mism)}
 
 
 def classify_lines(lines) -> None:

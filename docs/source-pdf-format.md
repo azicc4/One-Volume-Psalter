@@ -74,6 +74,13 @@ Trap: `Ad Tertiam` appears twice (hymn sub-header and reading section).
 Advent ×7 by start date (27 Nov 4–1198 · 28 Nov 1199–2462 · 29 Nov 2463–3731 · 30 Nov 3732–5002 ·
 1 Dec 5003–6273 · 2 Dec 6274–7396 · 3 Dec 7397–8387); Communia ×4 by season (Adv 4–416, Lent 417–817,
 Easter 818–1207, Per annum 1208–1640); Office of the Dead Communia 1641–1675; Sanctis overlaps across files.
+Communia (`lh/sources/com.py`, WS3): each copy opens with a one-page index (links + two general rubrics); the Per annum
+copy alone has the Saturday BVM memorial (1289–1304, same office as PA 6269, key `MEM.BVM_SATURDAY`); the Office of
+the Dead has no 16.6pt title; ALIA EX ORDINARIO 1676–1699 (its substitute complementary psalms are headed
+"Psalmus 121 (122), vel 128 (129)", red + blue link). Sub-variants are red rubrics ("Pro papa:") before a hymn stanza,
+reading, oration or short responsory, or inline before an antiphon ("Pro virgine: Veni, sponsa Christi…", no "Ant.").
+The red name placeholder "N." can open a line of prayer text (COM 1595). What differs between the four copies is
+listed in `reports/com_copies.md` (`python -m lh.sources.com`).
 
 Ascension tracks in L/E (index p.5 lists Easter week VI twice; `lh/sources/lqp.py` COPIES):
 *Ascension Sun* (transferred to Sunday VII) = Wed Vespers/Compline 2206–2215, Thu 2216, Fri 2242, Sat 2267, then the

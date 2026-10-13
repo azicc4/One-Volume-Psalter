@@ -454,6 +454,8 @@ class HourParser:
         data = {"num": num, "text": text}
         if not m and red:
             data["lead"] = red            # inline sub-variant "Pro virgine: …" printed without "Ant."
+        if bare:
+            data["bare"] = True
         vcond = {}
         sv = subvariant(prefix or red) if (prefix or red).endswith(":") else None
         if sv:
