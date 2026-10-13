@@ -25,3 +25,6 @@ reference/
 
 # Cached third-party web sources (re-download with: python -m lh fetch); URLs + hashes in sources/manifest.json
 sources/web/
+
+# Claude Code agent worktrees (each is its own checkout)
+.claude/worktrees/
