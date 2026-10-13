@@ -74,6 +74,8 @@ def main(argv=None):
               f"near-duplicates: {out['variants']['pairs']}")
         cov = {k[9:]: v["gaps"] for k, v in out.items() if k.startswith("coverage:")}
         print(f"  coverage gaps per source: {cov}  (reports/coverage_<KEY>.md)")
+        if "sanctis_overlaps" in out:
+            print(f"  Sanctis overlaps: {out['sanctis_overlaps']}  (reports/sanctis_overlaps.md)")
     elif args.cmd == "psalter":
         from lh.psalter.compare import compare
         from lh.psalter.felix import import_felix

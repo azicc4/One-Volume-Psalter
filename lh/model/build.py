@@ -51,11 +51,12 @@ def build(sources: list[str], db_path: Path = DB_PATH) -> None:
                 info = {"key": key, "season": "ORD" if hr.day_key.startswith("ORD") else "PROP", "week": None,
                         "weekday": None, "psalter_week": None, "title": hr.day_title, "rank": "appendix", "precedence": None}
             else:
-                info = day_info(src, hr.section, hr.day)
+                info = day_info(src, hr.section, hr.day, hr.day_extra)
             days.setdefault(info["key"], info)
             code = hour_code(hr.code, hr.subtitle)
-            # e.g. Advent start-date copy "28 Nov"; or an appendix fragment's own label ("LECTIO ALTERA")
-            vol_copy = getattr(hr, "copy", None) or copy_label(src, hr.page_start)
+            # e.g. Advent start-date copy "28 Nov"; or an appendix fragment's own label ("LECTIO ALTERA"); or a
+            # per-printing form set by a plug-in's day_info (Sanctis "commemoratio")
+            vol_copy = getattr(hr, "copy", None) or info.get("copy") or copy_label(src, hr.page_start)
             n_seen = seen_hours.get((info["key"], code, vol_copy), 0)
             seen_hours[(info["key"], code, vol_copy)] = n_seen + 1
             dup = f"#{n_seen + 1}" if n_seen else None          # e.g. Ascension's two tracks

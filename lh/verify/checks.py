@@ -104,6 +104,10 @@ def hours_seen(h):
 
 
 def check_index(con, source: str) -> dict:
+    from lh.sources import plugin
+    hook = getattr(plugin(source), "check_index", None)
+    if hook:                  # volumes whose index differs from Per annum's (Sanctis: lh/sources/sanctis_seasons.py)
+        return hook(con, source, record)
     exp = expected_from_index(source)
     got: dict[str, set[str]] = collections.defaultdict(set)
     for r in con.execute("SELECT DISTINCT section, day_title, day_key, hour FROM hour_instance WHERE source=?", (source,)):
@@ -184,6 +188,8 @@ def check_structure(con) -> dict:
         if r["type"] == "rubric" and re.search(r"\bde (?:sabbato|feria) currente\b", t):
             if re.match(r"^Antiphonæ(?:,| et) psalmi", t):
                 slots[r["hour_id"]].update(("PS1", "PS2", "PS3"))
+                # the versicle goes with the psalmody ("Antiphonæ, psalmi et lectio prior … de feria currente.", SP 130)
+                slots[r["hour_id"]].add("OR_VERSE")
             if "versus" in t:
                 slots[r["hour_id"]].add("OR_VERSE")
             if "lectio prior" in t:
@@ -191,10 +197,14 @@ def check_structure(con) -> dict:
         if r["type"] == "link" and r["slot"] in ("LECT1", "LECT2"):
             slots[r["hour_id"]].add("RESP" + r["slot"][-1])
         # RB / MARIAN substitutions (Loco responsorii, Regína cæli) are modelled by the parser — see above
+    from lh.sources import MODULES, plugin
     bad, excused = [], []
-    for h in con.execute("SELECT id, source, day_key, hour, page_start FROM hour_instance "
+    for h in con.execute("SELECT id, source, day_key, hour, copy, page_start FROM hour_instance "
                          "WHERE day_key NOT LIKE '%ORD.%' AND day_key NOT LIKE '%PROP.%'"):   # appendix fragments
         req = TEMPLATE_EXCEPTIONS.get((h["day_key"], h["hour"])) or REQUIRED.get(h["hour"], [])
+        hook = getattr(plugin(h["source"]), "required_slots", None) if h["source"] in MODULES else None
+        if hook:          # printed forms with their own template, e.g. Sanctis commemorations (sanctis_seasons.py)
+            req = hook(h["day_key"], h["hour"], h["copy"], req)
         missing = [s for s in req if s not in slots[h["id"]]]
         if h["hour"] == "MIDDAY" and "LINK" in slots[h["id"]]:      # complementary psalmody given by reference
             missing = [s for s in missing if s not in ("PS1", "PS2", "PS3")]
@@ -301,4 +311,7 @@ def run_all(sources=("PA",), db=DB_PATH) -> dict:
     from lh.verify.coverage import coverage
     for s in built:                       # every source in the database, not only those with an index check
         out[f"coverage:{s}"] = coverage(s, db)
+    if set(built) & {"SP", "SQ", "SADV"}:  # saints printed in several Sanctis volumes -> reports/sanctis_overlaps.md
+        from lh.verify.sanctis_overlaps import sanctis_overlaps
+        out["sanctis_overlaps"] = sanctis_overlaps(db)
     return out

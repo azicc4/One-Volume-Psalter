@@ -69,6 +69,8 @@ def preces(p: dict) -> str:
         out.append(tex(p["intro"]))
     if p.get("response"):
         out.append(r"\textit{" + tex(p["response"]) + "}")
+    if p.get("response_alt"):                      # "Vel: …" alternative response (Sanctis, SP 287)
+        out.append(tex(p["response_alt"]))
     for pet in p.get("petitions", []):
         alt = r"\condlabel{(vel:)}" if pet.get("alt") else ""
         out.append(r"\noindent\hangindent=1em " + alt + tex(pet["a"]) + r"\\ \hspace*{0.6em}{\color{rubric}—} " + tex(pet["b"]))

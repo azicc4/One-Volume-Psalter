@@ -44,8 +44,13 @@ antiphon number, intonation dagger, printed Gloria Patri, heading lines, strophe
 `LENT.N.DOW` · `HOLY.DOW` · `TRIDUUM.THU/FRI/SAT` · `EAS.1.SUN` · `EAS.OCT.DOW` · `EAS.N.DOW` · `SOL.<NAME>` ·
 `FEAST.<NAME>` · `ORD.<CHAPTER>` (Ordinary appendix; other sources prefixed `LQP.ORD.…`) · `PROP.<CHAPTER>` (proper
 appendix, e.g. `PROP.HYMNS_AD_LIBITUM`) · `MEM.BVM_SATURDAY` (Saturday memorial of the BVM, PA 6269; appendix chapters
-that are real days are mapped in the plug-in's `APPENDIX_DAYS`) · planned: `COMMON.<NAME>[.<variant>]`,
-`SANCT.MM-DD.<litcal_key>`. DOW = SUN MON TUE WED THU FRI SAT.
+that are real days are mapped in the plug-in's `APPENDIX_DAYS`) · `SANCT.MM-DD.<slug>` (Proper of Saints; WS4b uses
+a title slug — `SANCT.02-05.agathae` — until LitCal keys land; saints the Proper of Time prints keep its key:
+`SOL.IMMACULATE_CONCEPTION`, `CHR.DEC26`) · planned: `COMMON.<NAME>[.<variant>]`. DOW = SUN MON TUE WED THU FRI SAT.
+
+Sanctis printings of one day are told apart by `hour_instance.source` and `copy`: `commemoratio` (Lenten / late-Advent
+/ Christmas-octave commemoration, its own structure template), `propria` (proper parts only), `altera <label>`
+(unoutlined ALTERA alternative offices, labelled as in the volume's index), `sollemnitas` (SADV 26-28 Dec Vespers).
 
 ## Slot codes
 

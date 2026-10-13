@@ -119,7 +119,7 @@ def _canon(e) -> tuple[str, dict, str, dict] | None:
             breaks.append(i)
         return "hymn", {"stanzas": stanzas}, "\n".join(flat), {"breaks": breaks, "page_breaks": d.get("page_breaks", [])}
     if t == "ant":
-        extra = {k: d[k] for k in ("num", "prefix", "repeat", "dagger") if d.get(k)}
+        extra = {k: d[k] for k in ("num", "prefix", "repeat", "dagger", "lead") if d.get(k)}
         return "ant", {"text": d["text"]}, d["text"], extra
     if t == "psalm":
         lines, daggers, brk = [], [], {}
@@ -240,6 +240,8 @@ def plain_text(otype: str, payload: dict) -> str:
         return " ".join([plain(x) for x in payload["intro"] + payload["meta"]] + [plain(p) for p in paragraphs(payload["lines"])])
     if otype == "preces":
         parts = [plain(payload.get("intro", "")), plain(payload.get("response", ""))]
+        if payload.get("response_alt"):
+            parts.append(plain(payload["response_alt"]))
         parts += [f"{plain(p['a'])} — {plain(p['b'])}" for p in payload.get("petitions", [])]
         return " ".join(parts)
     if otype == "te_deum":
@@ -258,7 +260,7 @@ def restore(otype: str, payload: dict, extra: dict, slot: str = "") -> str:
     if otype == "hymn":
         return " ".join(l for st in payload["stanzas"] for l in st)
     if otype == "ant":
-        head = "Ant."
+        head = extra.get("lead") or "Ant."          # "Vel:" for an inline alternative antiphon (Sanctis)
         if extra.get("num"):
             head += f" {extra['num']}"
         if extra.get("prefix"):
@@ -289,6 +291,8 @@ def restore(otype: str, payload: dict, extra: dict, slot: str = "") -> str:
         return " ".join(t for _, t in payload["lines"])
     if otype == "preces":
         parts = [payload.get("intro", ""), payload.get("response", "")]
+        if payload.get("response_alt"):
+            parts.append(payload["response_alt"])
         for p in payload.get("petitions", []):
             if p.get("alt"):
                 parts.append("(vel:")
