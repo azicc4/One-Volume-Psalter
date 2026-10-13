@@ -1,0 +1,20 @@
+# Fixed Ordinary texts that the source PDFs only abbreviate (e.g. "Pater noster.", "Dómine, lábia.", "Per Dóminum.").
+# Standard Latin liturgical texts (Liturgia Horarum, Ordinarium). Marked source: supplement in the book build so they
+# are distinguishable from text extracted from the PDFs. Verify against the printed Ordinarium before publication.
+opening:
+  - [V, "Deus, in adiutórium meum inténde."]
+  - [R, "Dómine, ad adiuvándum me festína."]
+gloria_short: "Glória Patri, et Fílio, et Spirítui Sancto. Sicut erat in princípio, et nunc et semper, et in sǽcula sæculórum. Amen."
+alleluia_rubric: "Allelúia (omitted in Lent)."
+invitatory_opening:
+  - [V, "Dómine, lábia mea apéries."]
+  - [R, "Et os meum annuntiábit laudem tuam."]
+pater_noster: >-
+  Pater noster, qui es in cælis, sanctificétur nomen tuum; advéniat regnum tuum; fiat volúntas tua, sicut in cælo,
+  et in terra. Panem nostrum cotidiánum da nobis hódie; et dimítte nobis débita nostra, sicut et nos dimíttimus
+  debitóribus nostris; et ne nos indúcas in tentatiónem; sed líbera nos a malo.
+conclusions:
+  "Per Dóminum.": "Per Dóminum nostrum Iesum Christum, Fílium tuum, qui tecum vivit et regnat in unitáte Spíritus Sancti, Deus, per ómnia sǽcula sæculórum."
+  "Per Christum.": "Per Christum Dóminum nostrum."
+  "Qui vivis.": "Qui vivis et regnas in sǽcula sæculórum."
+  "Qui tecum vivit.": "Qui tecum vivit et regnat in unitáte Spíritus Sancti, Deus, per ómnia sǽcula sæculórum."

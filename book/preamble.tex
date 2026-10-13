@@ -1,0 +1,97 @@
+% One-Volume Psalter — shared preamble (LuaLaTeX).  Build: python -m lh book
+\documentclass[10pt,twoside,openany]{memoir}
+
+% ---------------------------------------------------------------- page: 5.5 x 8.5 in, wide outer margin for notes
+\setstocksize{8.5in}{5.5in}
+\settrimmedsize{\stockheight}{\stockwidth}{*}
+\setlrmarginsandblock{0.55in}{1.1in}{*}        % inner (spine), outer (margin notes)
+\setulmarginsandblock{0.62in}{0.7in}{*}
+\setmarginnotes{0.1in}{0.92in}{4pt}
+\setheadfoot{\baselineskip}{0.35in}
+\setheaderspaces{*}{0.18in}{*}
+\checkandfixthelayout
+
+% ---------------------------------------------------------------- fonts & languages
+\usepackage{fontspec}
+\setmainfont{EBGaramond}[Extension=.otf, UprightFont=*-Regular, ItalicFont=*-Italic,
+  BoldFont=*-Bold, BoldItalicFont=*-BoldItalic, Numbers=OldStyle]
+\newfontfamily\liningfont{EBGaramond}[Extension=.otf, UprightFont=*-Regular, ItalicFont=*-Italic, Numbers=Lining]
+\usepackage[latin.ecclesiastic,english]{babel}   % Latin with accent-aware ecclesiastical hyphenation
+\usepackage{xcolor}
+\definecolor{rubric}{RGB}{176,20,20}
+\usepackage{marginnote}
+\renewcommand*{\marginfont}{\footnotesize\raggedright}
+\usepackage[hidelinks]{hyperref}
+\usepackage{needspace}
+\usepackage{enumitem}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\linespread{1.04}
+\frenchspacing
+\clubpenalty=2000 \widowpenalty=2000
+
+% ---------------------------------------------------------------- headings
+\renewcommand{\chaptitlefont}{\normalfont\LARGE\scshape\color{rubric}\centering}
+\renewcommand{\chapnamefont}{\normalfont\small\scshape\centering}
+\renewcommand{\chapnumfont}{\normalfont\small\scshape}
+\renewcommand{\printchaptername}{}\renewcommand{\chapternamenum}{}\renewcommand{\printchapternum}{}
+\setlength{\beforechapskip}{0pt}\setlength{\afterchapskip}{1.2\baselineskip}
+\setsecheadstyle{\normalfont\large\scshape\centering\color{rubric}}
+\setbeforesecskip{-1.4\baselineskip}\setaftersecskip{0.5\baselineskip}
+\setsubsecheadstyle{\normalfont\normalsize\scshape\color{rubric}}
+\setbeforesubsecskip{-1\baselineskip}\setaftersubsecskip{0.3\baselineskip}
+\setsecnumdepth{none}
+\settocdepth{section}
+
+\makepagestyle{breviary}
+\makeevenhead{breviary}{\liningfont\thepage}{\small\scshape\leftmark}{}
+\makeoddhead{breviary}{}{\small\scshape\rightmark}{\liningfont\thepage}
+\makepsmarks{breviary}{%
+  \def\chaptermark##1{\markboth{##1}{##1}}%
+  \def\sectionmark##1{\markright{##1}}}
+\pagestyle{breviary}
+\aliaspagestyle{chapter}{empty}
+
+% ---------------------------------------------------------------- liturgical macros
+\newcommand{\rubric}[1]{{\color{rubric}#1}}
+\newcommand{\rubr}[1]{{\color{rubric}\small\foreignlanguage{english}{#1}}}     % English rubric (instruction)
+\newcommand{\Vs}{{\color{rubric}℣.}\ }
+\newcommand{\Rs}{{\color{rubric}℟.}\ }
+\newcommand{\flex}{{\color{rubric}†}}
+\newcommand{\mediant}{{\color{rubric}*}}
+\newcommand{\vinline}[1]{\textsuperscript{\color{rubric}\liningfont\scriptsize #1}}
+\newcommand{\objlabel}[1]{\phantomsection\label{#1}}
+\newcommand{\pgref}[1]{p.\,\pageref{#1}}
+\newcommand{\seepage}[1]{{\color{rubric}\footnotesize p.\,\pageref{#1}}}
+
+% psalm verse lines: first line of a verse (number in red), continuation lines hang under it
+\newlength{\vnowidth}\setlength{\vnowidth}{1.5em}
+\newlength{\pshang}\setlength{\pshang}{2.6em}
+\newcommand{\vno}[1]{\makebox[\vnowidth][l]{\color{rubric}\liningfont\scriptsize #1}}
+\newcommand{\psl}[2]{\par\noindent\hangindent=\pshang\hangafter=1\vno{#1}#2\par}        % new verse
+\newcommand{\psc}[1]{\par\noindent\hangindent=\pshang\hangafter=1\hspace*{\vnowidth}#1\par}   % new couplet, same verse
+\newcommand{\psk}[1]{\par\noindent\hangindent=\pshang\hangafter=0\hspace*{\pshang}#1\par}  % continuation (2nd half)
+\newcommand{\psbreak}{\par\vspace{0.45\baselineskip}}
+\newenvironment{unused}{\par\footnotesize\color{black!75}}{\par}
+\newcommand{\pstitle}[1]{\par{\centering\footnotesize\itshape #1\par}}
+\newcommand{\psepigraph}[1]{\par{\footnotesize\itshape #1\par}\vspace{0.3\baselineskip}}
+\newcommand{\psalmhead}[2]{\needspace{6\baselineskip}\par\vspace{0.6\baselineskip}%
+  {\centering\large\scshape\liningfont\color{rubric}#1\par}{\centering\itshape #2\par}\vspace{0.2\baselineskip}}
+\newcommand{\usemark}[1]{\marginnote{\color{rubric}\raggedright #1}}
+\newcommand{\gloria}{\par\vspace{0.2\baselineskip}{\footnotesize\rubric{Glória Patri.}}\par}
+
+% hymns
+\newenvironment{hymn}{\par\begin{list}{}{\leftmargin=1.2em\itemsep=0pt\parsep=0pt\topsep=2pt}\item[]}{\end{list}}
+\newcommand{\stanza}{\par\vspace{0.35\baselineskip}}
+
+% propers grid
+\newcommand{\hourhead}[2]{\par\needspace{5\baselineskip}\vspace{0.7\baselineskip}%
+  {\scshape\color{rubric}#1}\ifx&#2&\else\hfill{\footnotesize #2}\fi\par\vspace{0.15\baselineskip}}
+\newcommand{\slotname}[1]{\par\vspace{0.2\baselineskip}\noindent{\footnotesize\scshape\color{rubric}#1}\par}
+\newcommand{\variant}[2]{\par\noindent\hangindent=1em\hangafter=1{\footnotesize\color{rubric}\scshape #1}\enspace #2\par}
+\newcommand{\condlabel}[1]{{\color{rubric}\itshape #1}\ }
+\newcommand{\ant}[1]{\rubric{Ant.}\ #1}
+
+\newcommand{\partpage}[2]{\cleardoublepage\thispagestyle{empty}\vspace*{2.2in}%
+  {\centering\Huge\scshape\color{rubric}#1\par\vspace{1em}\normalsize\itshape #2\par}\cleardoublepage}
