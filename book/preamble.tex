@@ -1,14 +1,14 @@
 % One-Volume Psalter — shared preamble (LuaLaTeX).  Build: python -m lh book
 \documentclass[10pt,twoside,openany]{memoir}
 
-% ---------------------------------------------------------------- page: 5.5 x 8.5 in, wide outer margin for notes
-\setstocksize{8.5in}{5.5in}
+% ---------------------------------------------------------------- page: 6 x 9.25 in, wide outer margin for notes
+\setstocksize{9.25in}{6in}
 \settrimmedsize{\stockheight}{\stockwidth}{*}
-\setlrmarginsandblock{0.55in}{1.1in}{*}        % inner (spine), outer (margin notes)
-\setulmarginsandblock{0.62in}{0.7in}{*}
-\setmarginnotes{0.1in}{0.92in}{4pt}
+\setlrmarginsandblock{0.6in}{1.25in}{*}        % inner (spine), outer (margin notes)
+\setulmarginsandblock{0.7in}{0.8in}{*}
+\setmarginnotes{0.12in}{1.02in}{4pt}           % sep, width, push: \marginpar stacks notes instead of overlapping
 \setheadfoot{\baselineskip}{0.35in}
-\setheaderspaces{*}{0.18in}{*}
+\setheaderspaces{*}{0.2in}{*}
 \checkandfixthelayout
 
 % ---------------------------------------------------------------- fonts & languages
@@ -19,8 +19,6 @@
 \usepackage[latin.ecclesiastic,english]{babel}   % Latin with accent-aware ecclesiastical hyphenation
 \usepackage{xcolor}
 \definecolor{rubric}{RGB}{176,20,20}
-\usepackage{marginnote}
-\renewcommand*{\marginfont}{\footnotesize\raggedright}
 \usepackage[hidelinks]{hyperref}
 \usepackage{needspace}
 \usepackage{enumitem}
@@ -58,40 +56,52 @@
 \newcommand{\rubr}[1]{{\color{rubric}\small\foreignlanguage{english}{#1}}}     % English rubric (instruction)
 \newcommand{\Vs}{{\color{rubric}℣.}\ }
 \newcommand{\Rs}{{\color{rubric}℟.}\ }
-\newcommand{\flex}{{\color{rubric}†}}
-\newcommand{\mediant}{{\color{rubric}*}}
+% pointing marks always sit after a space (babel-latin's punctuation filter may otherwise drop it)
+\newcommand{\flex}{\unskip\ {\color{rubric}†}}
+\newcommand{\mediant}{\unskip\ {\color{rubric}*}}
 \newcommand{\vinline}[1]{\textsuperscript{\color{rubric}\liningfont\scriptsize #1}}
 \newcommand{\objlabel}[1]{\phantomsection\label{#1}}
 \newcommand{\pgref}[1]{p.\,\pageref{#1}}
+\newcommand{\pg}[1]{\pageref{#1}}
 \newcommand{\seepage}[1]{{\color{rubric}\footnotesize p.\,\pageref{#1}}}
 
-% psalm verse lines: first line of a verse (number in red), continuation lines hang under it
-\newlength{\vnowidth}\setlength{\vnowidth}{1.5em}
-\newlength{\pshang}\setlength{\pshang}{2.6em}
+% ---------------------------------------------------------------- psalter
+% Every text line starts at the same left edge (after the verse-number gutter); source line breaks are kept.
+\newlength{\vnowidth}\setlength{\vnowidth}{1.6em}
 \newcommand{\vno}[1]{\makebox[\vnowidth][l]{\color{rubric}\liningfont\scriptsize #1}}
-\newcommand{\psl}[2]{\par\noindent\hangindent=\pshang\hangafter=1\vno{#1}#2\par}        % new verse
-\newcommand{\psc}[1]{\par\noindent\hangindent=\pshang\hangafter=1\hspace*{\vnowidth}#1\par}   % new couplet, same verse
-\newcommand{\psk}[1]{\par\noindent\hangindent=\pshang\hangafter=0\hspace*{\pshang}#1\par}  % continuation (2nd half)
-\newcommand{\psbreak}{\par\vspace{0.45\baselineskip}}
+\newcommand{\psl}[2]{\par\noindent\hangindent=\vnowidth\hangafter=1\vno{#1}#2\par}   % line with a verse number
+\newcommand{\psc}[1]{\par\noindent\hangindent=\vnowidth\hangafter=0 #1\par}          % new couplet, same verse
+\newcommand{\psk}[1]{\par\noindent\hangindent=\vnowidth\hangafter=0 #1\par}          % continuation (2nd half)
+\newcommand{\psbreak}{\par\vspace{0.45\baselineskip}}                                % strophe gap (couplet starts only)
 \newenvironment{unused}{\par\footnotesize\color{black!75}}{\par}
 \newcommand{\pstitle}[1]{\par{\centering\footnotesize\itshape #1\par}}
-\newcommand{\psepigraph}[1]{\par{\footnotesize\itshape #1\par}\vspace{0.3\baselineskip}}
-\newcommand{\psalmhead}[2]{\needspace{6\baselineskip}\par\vspace{0.6\baselineskip}%
-  {\centering\large\scshape\liningfont\color{rubric}#1\par}{\centering\itshape #2\par}\vspace{0.2\baselineskip}}
-\newcommand{\usemark}[1]{\marginnote{\color{rubric}\raggedright #1}}
+% \psalmhead[lines needed]{heading}{title}: start on this page if the heading and one whole verse fit
+\newcommand{\psalmhead}[3][5]{\needspace{#1\baselineskip}\par\vspace{0.5\baselineskip}%
+  {\centering\large\scshape\liningfont\color{rubric}#2\par}{\centering\itshape #3\par}\vspace{0.15\baselineskip}}
+% margin notes: outer margin, stacked by memoir so they never overlap
+\newcommand{\usemark}[1]{\marginpar[{\footnotesize\color{rubric}\raggedleft #1\par}]{\footnotesize\color{rubric}\raggedright #1\par}}
+\newcommand{\otheruses}{\par\vspace{1pt}\hrule height 0.3pt\vspace{1pt}}
 \newcommand{\gloria}{\par\vspace{0.2\baselineskip}{\footnotesize\rubric{Glória Patri.}}\par}
 
 % hymns
 \newenvironment{hymn}{\par\begin{list}{}{\leftmargin=1.2em\itemsep=0pt\parsep=0pt\topsep=2pt}\item[]}{\end{list}}
 \newcommand{\stanza}{\par\vspace{0.35\baselineskip}}
 
-% propers grid
+% ---------------------------------------------------------------- propers grid: indentation shows the hierarchy
+%  level 0 hour heading (flush left, ribbon pages at right) · level 1 slot name (0em) ·
+%  level 2 variant label (1.2em) with its text hanging at 2.4em · level 3 conditions / further items (2.4em)
+\newlength{\lvtwo}\setlength{\lvtwo}{1.2em}
+\newlength{\lvthree}\setlength{\lvthree}{2.4em}
 \newcommand{\hourhead}[2]{\par\needspace{5\baselineskip}\vspace{0.7\baselineskip}%
-  {\scshape\color{rubric}#1}\ifx&#2&\else\hfill{\footnotesize #2}\fi\par\vspace{0.15\baselineskip}}
-\newcommand{\slotname}[1]{\par\vspace{0.2\baselineskip}\noindent{\footnotesize\scshape\color{rubric}#1}\par}
-\newcommand{\variant}[2]{\par\noindent\hangindent=1em\hangafter=1{\footnotesize\color{rubric}\scshape #1}\enspace #2\par}
+  \noindent{\scshape\color{rubric}#1}\ifx&#2&\else\hfill{\footnotesize\liningfont #2}\fi\par\vspace{0.15\baselineskip}}
+\newcommand{\slotname}[2]{\par\vspace{0.25\baselineskip}\noindent{\footnotesize\scshape\color{rubric}#1}%
+  \ifx&#2&\else\enspace{\footnotesize #2}\fi\par}
+\newcommand{\variant}[3]{\par{\leftskip=\lvthree\noindent\hspace*{-\lvtwo}{\footnotesize\color{rubric}\scshape #1}%
+  \ifx&#2&\else\ {\footnotesize #2}\fi\enspace #3\par}}
 \newcommand{\condlabel}[1]{{\color{rubric}\itshape #1}\ }
+\newcommand{\sublabel}[1]{\par\vspace{2pt}\noindent{\scshape\footnotesize\color{rubric}#1}\par}
 \newcommand{\ant}[1]{\rubric{Ant.}\ #1}
+\newcommand{\ribbon}[2]{\rubric{#1}\,#2}      % ribbon/page pair in hour heads, e.g. \ribbon{P}{12, 15}
 
-\newcommand{\partpage}[2]{\cleardoublepage\thispagestyle{empty}\vspace*{2.2in}%
-  {\centering\Huge\scshape\color{rubric}#1\par\vspace{1em}\normalsize\itshape #2\par}\cleardoublepage}
+\newcommand{\partpage}[2]{\cleardoublepage\thispagestyle{empty}\vspace*{2.4in}%
+  {\centering\Huge\scshape\color{rubric}#1\par\vspace{1em}\normalsize\itshape\foreignlanguage{english}{#2}\par}\cleardoublepage}

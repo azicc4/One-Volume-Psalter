@@ -25,6 +25,13 @@ def write_report(out: dict, db=DB_PATH) -> str:
         if k.startswith("index:"):
             L.append(f"| PDF index ({k[6:]}): parsed hours match the PDF's own index | "
                      f"{'PASS' if not v['n_mismatch'] else 'FAIL'}: {v['days_in_index'] - v['n_mismatch']}/{v['days_in_index']} days |")
+        if k.startswith("coverage:"):
+            excl = sum(v["excluded"].values())
+            L.append(f"| Coverage ({k[9:]}): every source line is in the database (`reports/coverage_{k[9:]}.md`) | "
+                     f"{'PASS' if not v['gaps'] else 'FAIL'}: {v['lines'] - excl - v['gaps']:,}/{v['lines'] - excl:,} "
+                     f"content lines; {v['gaps']} gap(s); {excl:,} non-content lines excluded |")
+    if rt.get("overridden"):
+        L.append(f"| Overrides applied (`data/overrides/`, skipped by round-trip) | {rt['overridden']} occurrences |")
     L += [f"| Structure (every hour has its GILH-required slots) | {'PASS' if not st['incomplete'] else 'FAIL'}: {st['hours'] - st['incomplete']}/{st['hours']} hours |",
           f"| Psalm text consensus (every printing of a verse line agrees) | {ps['lines'] - ps['divergent']}/{ps['lines']} lines unanimous; {ps['divergent']} lines need review |",
           f"| Near-duplicate texts (possible source typos/variants) | {va['pairs']} pairs to review |", "",

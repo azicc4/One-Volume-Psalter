@@ -67,10 +67,19 @@ class Hour:
 
 # --------------------------------------------------------------------------------------------- segmentation
 
-def segment(lines: list[Line], pdf: str) -> tuple[list[Hour], list[Line]]:
-    """Split the line stream into hour instances. Returns (hours, lines outside any hour)."""
+@dataclass
+class Outside:
+    """A line that belongs to no hour: a heading, a day's preamble (rank, occasion, biography) or front matter."""
+    line: Line
+    role: str          # heading | day_extra | front
+    section: str
+    day: str
+
+
+def segment(lines: list[Line], pdf: str) -> tuple[list[Hour], list[Outside]]:
+    """Split the line stream into hour instances. Returns (hours, lines outside any hour, with their role)."""
     hours: list[Hour] = []
-    outside: list[Line] = []
+    outside: list[Outside] = []
     section, day, day_extra = "", "", []
     cur: Hour | None = None
     prev_kind = ""
@@ -79,19 +88,19 @@ def segment(lines: list[Line], pdf: str) -> tuple[list[Hour], list[Line]]:
         if k == "week":
             section = f"{section} {L.text}" if prev_kind == "week" else L.text   # wrapped 20pt heading
             cur = None
-            outside.append(L)
+            outside.append(Outside(L, "heading", section, day))
         elif k == "day":
             day = f"{day} / {L.text}" if prev_kind == "day" else L.text
             day_extra = []
             cur = None
-            outside.append(L)
+            outside.append(Outside(L, "heading", section, day))
         elif k == "hour":
             cur = Hour(pdf, section, day, list(day_extra), L.text, HOUR_HEADERS[L.text], lines=[L])
             hours.append(cur)
         elif cur is None:
             if day:
                 day_extra.append(L.text)
-            outside.append(L)
+            outside.append(Outside(L, "day_extra" if day else "front", section, day))
         else:
             cur.lines.append(L)
         prev_kind = k

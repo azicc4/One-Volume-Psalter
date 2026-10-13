@@ -67,10 +67,10 @@ def split_appendices(lines: list[Line]) -> list[Hour]:
             h.day_key, h.day_title = key, ch["title"]
             hours.append(h)
             continue
-        if hour_idx[0] > 0:            # chapter preface before the first hour
-            h = Hour("", section, ch["title"], [], ch["title"], "APPX", lines=ch["head"] + body[:hour_idx[0]])
-            h.day_key, h.day_title = key, ch["title"]
-            hours.append(h)
+        # chapter heading (+ any preface before the first hour) as its own pseudo-hour, so no line is left uncovered
+        h = Hour("", section, ch["title"], [], ch["title"], "APPX", lines=ch["head"] + body[:hour_idx[0]])
+        h.day_key, h.day_title = key, ch["title"]
+        hours.append(h)
         for j, i in enumerate(hour_idx):
             end = hour_idx[j + 1] if j + 1 < len(hour_idx) else len(body)
             hl = body[i]

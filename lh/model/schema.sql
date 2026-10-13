@@ -2,13 +2,29 @@
 -- Every printed thing in the sources is an OCCURRENCE (with page provenance) of a canonical OBJECT.
 
 CREATE TABLE source (
-    key TEXT PRIMARY KEY, pdf TEXT, sha256 TEXT, pages INTEGER
+    key TEXT PRIMARY KEY, pdf TEXT, sha256 TEXT, pages INTEGER,
+    p0 INTEGER, p1 INTEGER             -- page scope parsed (NULL = whole PDF), e.g. ADV:4-1198
+);
+
+CREATE TABLE source_line (             -- lines outside any hour: headings, day preambles (rank, bio), front matter
+    source TEXT, l1_first INTEGER, l1_last INTEGER, page INTEGER,
+    role TEXT,                         -- heading | day_extra | front
+    section TEXT, day_title TEXT, text TEXT
 );
 
 CREATE TABLE day (                     -- a liturgical day (or a proper/common "day")
     key TEXT PRIMARY KEY,              -- OT.05.SUN, SOL.TRINITY, …
     season TEXT, week INTEGER, weekday TEXT, psalter_week INTEGER,
-    title TEXT, rank TEXT, precedence INTEGER
+    title TEXT, rank TEXT, precedence INTEGER,
+    short TEXT                         -- short name for margin notes: "Trinity", "26 Dec", "Easter Sun"
+);
+
+CREATE TABLE hour_refs (               -- what a reader needs ribbons for, per hour (drives page refs at hour heads)
+    hour_id INTEGER PRIMARY KEY REFERENCES hour_instance(id),
+    day_key TEXT, hour TEXT,
+    ordinary_anchor TEXT,              -- label of the hour in the Ordinary (ord:lauds …)
+    psalm_units TEXT,                  -- JSON {"PS1": object_id, …}  (psalms and canticles, ≤3; INV: the invitatory psalm)
+    readings TEXT                      -- JSON {"LECT1": id, "RESP1": id, "LECT2": id, "RESP2": id}  (Office of Readings)
 );
 
 CREATE TABLE hour_instance (           -- one printed hour in one source PDF
@@ -18,7 +34,8 @@ CREATE TABLE hour_instance (           -- one printed hour in one source PDF
     hour TEXT,                         -- INV OR LAUDS MIDDAY VESPERS V1 V2 COMPLINE COMPLINE1
     section TEXT, day_title TEXT, subtitle TEXT,
     page_start INTEGER, page_end INTEGER,
-    copy TEXT                          -- duplicate-copy label (e.g. Advent start date); NULL if unique
+    copy TEXT,                         -- duplicate-copy label (e.g. Advent start date); NULL if unique
+    l1_first INTEGER, l1_last INTEGER  -- range of L1 line ids (build/l1/<source>.sqlite) covered by this hour
 );
 CREATE INDEX hour_day ON hour_instance(day_key, hour);
 

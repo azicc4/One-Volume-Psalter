@@ -236,33 +236,53 @@ class POC:
         return sorted(nums)
 
     # ---------------------------------------------------------------- PSALTER
-    def margin_codes(self, num: int) -> tuple[dict, list]:
-        """unit object id → [codes] for psalter-grid uses; plus a list of other uses ('also')."""
-        rows = self.db.c.execute("""SELECT u.unit, u.day_key, u.hour, u.slot, u.psalter_week, u.weekday, d.season, d.rank, d.title
-                                    FROM psalm_use u JOIN day d ON d.key=u.day_key WHERE u.psalm=?""", (num,)).fetchall()
-        codes: dict[str, list] = collections.defaultdict(list)
-        also = set()
+    def use_codes(self, rows) -> tuple[list, list]:
+        """psalm_use-like rows → (four-week-cycle codes, other uses each as its own line), deduplicated in order."""
+        cycle, other = [], []
         for r in rows:
             m = re.match(r"PS(\d+)", r["slot"] or "")
             n = m.group(1) if m else ""
-            code = None
-            if r["hour"] in ("COMPLINE", "COMPLINE1") and not (r["season"] == "OT" and r["rank"] in ("sunday", "weekday")):
-                continue       # Compline of solemnities/seasons repeats the weekly cycle (Sunday Compline)
+            hc = HOURCODE.get(r["hour"], "C" if r["hour"].startswith("COMPLINE") else r["hour"])
+            code, is_cycle = None, True
             if r["hour"] in ("COMPLINE", "COMPLINE1"):
+                if not (r["season"] == "OT" and r["rank"] in ("sunday", "weekday")):
+                    continue       # Compline of solemnities/seasons repeats the weekly cycle (Sunday Compline)
                 code = "C " + ("Sat" if r["hour"] == "COMPLINE1" else DAYABBR[r["weekday"]])
             elif r["season"] == "OT" and r["rank"] in ("sunday", "weekday") and r["psalter_week"]:
-                code = f"{ROMAN[r['psalter_week']]} {DAYABBR[r['weekday']]} {HOURCODE.get(r['hour'], r['hour'])}.{n}"
+                code = f"{ROMAN[r['psalter_week']]} {DAYABBR[r['weekday']]} {hc}.{n}"
             elif r["day_key"] == "ORD.INVITATORY":
                 code = "Inv"
             elif r["day_key"].startswith("ORD.COMPLEMENTARY"):
                 code = None if r["day_key"].endswith("NO_ANT") else f"Compl.{n}"
             elif r["season"] in ("ADV", "LENT", "EAS") and r["rank"] in ("sunday", "weekday", "privileged_weekday") and r["psalter_week"]:
                 continue       # same psalter-week use as Ordinary Time
-            elif not r["day_key"].startswith(("ORD.", "PROP.")):
-                also.add(r["title"])
-            if code and code not in codes[r["unit"]]:
-                codes[r["unit"]].append(code)
-        return codes, sorted(also)
+            elif not r["day_key"].startswith(("ORD.", "PROP.")) and "ORD." not in r["day_key"] and "PROP." not in r["day_key"]:
+                code, is_cycle = f"{r['short'] or r['title']} {hc}.{n}".rstrip("."), False
+            if code:
+                bucket = cycle if is_cycle else other
+                if code not in bucket:
+                    bucket.append(code)
+        return cycle, other
+
+    def margin_codes(self, num: int) -> dict:
+        """unit object id → (cycle codes, other uses) for every printing of that psalm portion."""
+        rows = self.db.c.execute("""SELECT u.unit, u.day_key, u.hour, u.slot, u.psalter_week, u.weekday, d.season, d.rank,
+                                           d.title, d.short
+                                    FROM psalm_use u JOIN day d ON d.key=u.day_key WHERE u.psalm=? ORDER BY u.rowid""",
+                                 (num,)).fetchall()
+        by_unit = collections.defaultdict(list)
+        for r in rows:
+            by_unit[r["unit"]].append(r)
+        return {u: self.use_codes(rs) for u, rs in by_unit.items()}
+
+    @staticmethod
+    def margin_note(cycle: list, other: list, rng: str = "") -> str:
+        parts = r"\\ ".join(esc(c) for c in cycle)
+        if rng:
+            parts += esc(rng)
+        if other:
+            parts += (r"\otheruses " if cycle else "") + r"\\ ".join(esc(o) for o in other)
+        return r"\usemark{" + parts + "}" if parts else ""
 
     def strophe_breaks(self, num: int) -> set[tuple]:
         """(verse, k) keys preceded by a strophe break in the majority of printings (page breaks excluded)."""
@@ -330,15 +350,21 @@ class POC:
         rows = self.db.c.execute("SELECT * FROM psalm_verse WHERE psalm=? ORDER BY seq", (num,)).fetchall()
         vul = prow["vulgate"] if prow and prow["vulgate"] else str(num)
         head = f"Psalm {num}" + (f" ({esc(vul)})" if vul and vul != str(num) else "")
-        out = [f"\\section{{{head}}}" if False else f"\\psalmhead{{{head}}}{{{tex(self.psalm_title(num), marks=False)}}}",
+        # keep the heading with one whole verse; otherwise the psalm may start at the bottom of a page
+        first = [r for r in rows if r["source"] != "NVT"]
+        first_v = first[0]["verse"] if first else None
+        n_first = sum(1 for r in first if r["verse"] == first_v) if first else 1
+        n_titles = sum(1 for r in rows if r["source"] == "NVT")
+        out = [f"\\psalmhead[{3 + n_titles + n_first}]{{{head}}}{{{tex(self.psalm_title(num), marks=False)}}}",
                f"\\objlabel{{{label(f'ps:{num}')}}}"]
-        codes, also = self.margin_codes(num)
+        codes = self.margin_codes(num)
         breaks = self.strophe_breaks(num)
         starts = self.unit_starts(num, rows)
         lh_verses = {r["verse"] for r in rows if r["source"] == "LH"}
         in_unused = False
         prev_v = None
         k = 0
+        pending: list[str] = []
         for i, r in enumerate(rows):
             v = r["verse"]
             k = r["line"]
@@ -349,18 +375,27 @@ class POC:
             if not unused and in_unused:
                 out.append(r"\end{unused}")
                 in_unused = False
-            if (v, k) in breaks and i > 0:
+            # a strophe gap only where a verse or couplet begins — never inside a couplet/triplet
+            if (v, k) in breaks and i > 0 and r["x"] == 0:
                 out.append(r"\psbreak")
+            # one margin note per line, merging every portion that starts here; a verse range follows each code
+            # when that portion is only part of the psalm
+            cyc_all, oth_all = [], []
             for uid in starts.get(i, []):
                 out.append(f"\\objlabel{{{label('psu:' + uid)}}}")
-                cs = codes.get(uid)
-                if cs:
-                    p = self.db.obj(uid).payload
-                    unit_vs = set(unit_verses(p["lines"])[0])
-                    partial = bool(lh_verses - unit_vs)
-                    rng = (" (" + psalm_unit_ref(p).split(":", 1)[1] + ")") if partial and ":" in psalm_unit_ref(p) else ""
-                    out.append(r"\usemark{" + r"\\ ".join(esc(c) for c in cs) + esc(rng) + "}")
+                cycle, other = codes.get(uid, ([], []))
+                p = self.db.obj(uid).payload
+                partial = bool(lh_verses - set(unit_verses(p["lines"])[0]))
+                ref = psalm_unit_ref(p)
+                rng = f" ({ref.split(':', 1)[1]})" if partial and ":" in ref else ""
+                cyc_all += [c + rng for c in cycle if c + rng not in cyc_all]
+                oth_all += [c + rng for c in other if c + rng not in oth_all]
+            if cyc_all or oth_all:
+                pending.append(self.margin_note(cyc_all, oth_all))
             t = tex(r["text"]) if r["source"] == "LH" else tex(r["text"], marks=False)
+            if pending:            # margin notes ride inside the line they belong to (horizontal mode)
+                t = "".join(pending) + t
+                pending = []
             if r["source"] == "NVT":
                 out.append(r"\pstitle{" + t + "}")
             elif k == 0 and v != prev_v:
@@ -372,8 +407,6 @@ class POC:
             prev_v = v
         if in_unused:
             out.append(r"\end{unused}")
-        if also:
-            out.append(r"\par\vspace{2pt}{\footnotesize\rubric{Also used:} " + esc("; ".join(also)) + r".\par}")
         return "\n".join(out)
 
     def canticles(self) -> str:
@@ -388,16 +421,19 @@ class POC:
             if o.id in seen:
                 continue
             seen.add(o.id)
-            uses = self.db.c.execute("""SELECT DISTINCT d.psalter_week, d.weekday, h.hour, oc.slot, d.season, d.rank FROM occurrence oc
-                                        JOIN hour_instance h ON h.id=oc.hour_id JOIN day d ON d.key=h.day_key
-                                        WHERE oc.object_id=?""", (o.id,)).fetchall()
-            codes = sorted({f"{ROMAN[u['psalter_week']]} {DAYABBR[u['weekday']]} {HOURCODE.get(u['hour'], u['hour'])}.{u['slot'][2:]}"
-                            for u in uses if u["season"] == "OT" and u["rank"] in ("sunday", "weekday") and u["psalter_week"]})
-            out.append(f"\\psalmhead{{Canticle {esc(p['ref'])}}}{{{tex(p.get('title', ''), marks=False)}}}")
+            uses = self.db.c.execute("""SELECT h.day_key, d.psalter_week, d.weekday, h.hour, oc.slot, d.season, d.rank,
+                                               d.title, d.short
+                                        FROM occurrence oc JOIN hour_instance h ON h.id=oc.hour_id JOIN day d ON d.key=h.day_key
+                                        WHERE oc.object_id=? ORDER BY h.id""", (o.id,)).fetchall()
+            cycle, other = self.use_codes(uses)
+            n_first = next((i for i, l in enumerate(p["lines"][1:], 1) if l.get("v")), 2)
+            out.append(f"\\psalmhead[{3 + n_first}]{{Canticle {esc(p['ref'])}}}{{{tex(p.get('title', ''), marks=False)}}}")
             out.append(f"\\objlabel{{{label(o.id)}}}")
-            if codes:
-                out.append(r"\usemark{" + r"\\ ".join(esc(c) for c in codes) + "}")
-            out.append(L.canticle_lines(p["lines"]))
+            lines = L.canticle_lines(p["lines"])
+            note = self.margin_note(cycle, other)
+            if note:   # attach to the first line (horizontal mode)
+                lines = re.sub(r"(\\psl\{[^}]*\}\{|\\psc\{|\\psk\{)", lambda m: m.group(1) + note, lines, count=1)
+            out.append(lines)
             if p.get("no_gloria"):
                 out.append(r"\par{\footnotesize\rubric{Glória Patri is not said after this canticle.}}\par")
         return "\n".join(out)
@@ -440,25 +476,29 @@ class POC:
         marian = [db.obj(o["object_id"]) for o in db.occ(db.hour("ORD.MARIAN", "APPX")["id"])
                   if o["object_id"] and o["type"] in ("text", "rubric")]
         out = [r"\chapter{The Ordinary}", r"\objlabel{sec:ordinary}"]
-        # --- finding the office
+        # --- finding the office: order of checking and the ten ribbons
         out += [r"\section{Finding the Office}", r"\objlabel{sec:finding}",
                 r"\begin{enumerate}[leftmargin=1.4em,itemsep=2pt]",
-                r"\item \textbf{The day.} From the calendar, find the season, the week, and any celebration of the date "
-                r"(Proper of Saints).",
-                r"\item \textbf{Precedence.} If a saint and a day of the season meet, the higher rank prevails "
-                r"(solemnity, feast, memorial, weekday; Table of Liturgical Days). In the evening, compare today's "
+                r"\item \textbf{The day.} From the calendar, find the season, the week, and any celebration of the date.",
+                r"\item \textbf{Saints first.} Look the date up in the Proper of Saints (ribbon 1). If the celebration "
+                r"outranks the day of the season (solemnity, feast, memorial over a weekday; Table of Liturgical Days), "
+                r"take what it gives, and what it lacks from the Common it names (ribbon 2). On a memorial only the "
+                r"proper parts change; the psalms are usually those of the weekday. In the evening, compare today's "
                 r"Vespers with tomorrow's First Vespers the same way.",
                 r"\item \textbf{The psalter week.} Ordinary Time week $N$ uses psalter week $((N-1) \bmod 4)+1$; "
                 r"Advent weeks 1–4 use I–IV; Lent: Ash Wednesday IV, weeks 1–5 I, II, III, IV, I; Holy Week II; "
                 r"Easter weeks 2–7: II, III, IV, I, II, III.",
-                r"\item \textbf{Propers.} Turn to that week and day in the Propers of Time; every part of every hour "
-                r"is listed there with its seasonal variants side by side, and refers you to the Psalter and Hymns.",
-                r"\item \textbf{Saints.} On a solemnity or feast, the Proper of Saints and the Commons supply the "
-                r"texts; on a memorial, only what is proper (psalms usually from the current weekday).",
-                r"\item \textbf{The Ordinary.} The fixed parts of each hour are below; in the Propers they are named "
-                r"only by title.", r"\end{enumerate}",
-                r"\rubr{Ribbons: (1) Psalter, (2) Propers of Time, (3) Ordinary, (4) Proper of Saints, (5) Commons, "
-                r"(6) Hymns.}"]
+                r"\item \textbf{The hour.} Open the Ordinary at the hour (ribbon 3), then the Proper of Time at the week "
+                r"and day (ribbon 4). Each hour heading in the Proper of Time gives the pages to mark: "
+                r"\rubric{O} the Ordinary, \rubric{P} the psalms (ribbons 6–9), \rubric{R} the readings (ribbon 10). "
+                r"Hymns (ribbon 5) are referred to at the top of each hour.",
+                r"\end{enumerate}",
+                r"\subsection{The ten ribbons}",
+                r"\begin{enumerate}[leftmargin=1.8em,itemsep=0pt,label=\rubric{\arabic*.}]",
+                r"\item Proper of Saints \item Commons \item Ordinary \item Proper of Time \item Hymns",
+                r"\item Psalter — first psalm \item Psalter — second psalm \item Psalter — third psalm",
+                r"\item Psalter — invitatory psalm (Ps 95, 100, 67 or 24) \item Readings of the Office of Readings",
+                r"\end{enumerate}"]
         # --- common texts
         out += [r"\section{Opening and Gloria}", r"\objlabel{ord:opening}",
                 r"\rubr{Every hour except the Invitatory begins:}\par", sup_pairs(s["opening"]),
@@ -466,14 +506,27 @@ class POC:
                 r"\par\vspace{4pt}\rubr{At the end of every psalm and canticle (unless noted):}\par",
                 r"\objlabel{ord:gloria}\psl{}{Glória Patri et Fílio \mediant{}}\psk{et Spirítui Sancto.}"
                 r"\psc{Sicut erat in princípio et nunc et semper \mediant{}}\psk{et in sǽcula sæculórum. Amen.}"]
-        out += [r"\section{Invitatory}", r"\objlabel{ord:invitatory}",
+        def ordhour(title, anchor, refs):
+            """Hour heading in the Ordinary with the pages of its fixed parts at the right."""
+            r = r" \enspace·\enspace ".join(f"{name} \\pg{{{lab}}}" for name, lab in refs)
+            return [f"\\objlabel{{{anchor}}}",
+                    f"\\hourhead{{\\large {title}}}{{{r}}}",
+                    f"\\addcontentsline{{toc}}{{section}}{{{title}}}\\markright{{{title}}}"]
+
+        out += ordhour("Invitatory", "ord:invitatory", [("Ps 95", label("ps:95"))]) + [
                 r"\rubr{Said before the first hour of the day (Office of Readings or Lauds).}\par",
                 sup_pairs(s["invitatory_opening"]),
                 r"\par\rubr{The antiphon of the day (Propers) is said and repeated after each strophe of Psalm 95, "
                 r"\pgref{" + label("ps:95") + r"}, or Psalm 100, 67 or 24.}"]
+        hour_refs = {
+            "OR": [("Te Deum", "ord:tedeum"), ("Dismissal", "ord:dismissal:or")],
+            "LAUDS": [("Benedictus", "ord:benedictus"), ("Pater", "ord:pater"), ("Dismissal", "ord:dismissal:lauds")],
+            "MIDDAY": [("Dismissal", "ord:dismissal:midday")],
+            "VESPERS": [("Magnificat", "ord:magnificat"), ("Pater", "ord:pater"), ("Dismissal", "ord:dismissal:vespers")],
+        }
         for hr, title, gospel in (("OR", "Office of Readings", None), ("LAUDS", "Lauds", ben),
                                   ("MIDDAY", "Daytime Prayer", None), ("VESPERS", "Vespers", mag)):
-            out += [f"\\section{{{title}}}", f"\\objlabel{{ord:{hr.lower()}}}"]
+            out += ordhour(title, f"ord:{hr.lower()}", hour_refs[hr])
             steps = {
                 "OR": ["Opening", "Hymn", "Psalmody (three psalms with antiphons)", "Versicle",
                        "First reading and responsory; second reading and responsory",
@@ -496,8 +549,8 @@ class POC:
                         r"{\centering\footnotesize " + esc(gospel.payload["ref"]) + r"\par}", L.canticle_lines(gospel.payload["lines"]),
                         r"\gloria"]
             if dism.get(hr):
-                out.append(r"\subsection{Dismissal}")
-                out += [L.render(o.type, o.payload) for o in dism[hr]]
+                out.append(r"\subsection{Dismissal}" + f"\\objlabel{{ord:dismissal:{hr.lower()}}}")
+                out += [L.render(o.type, o.payload) + r"\par" for o in dism[hr]]
         out += [r"\section{Pater noster}", r"\objlabel{ord:pater}", tex(s["pater_noster"]),
                 r"\par\vspace{4pt}\rubr{Prayer endings abbreviated in the Propers:}\par\begin{itemize}[leftmargin=1em,itemsep=0pt]"]
         out += [r"\item \rubric{" + esc(k) + "} " + tex(v) for k, v in s["conclusions"].items()]
@@ -505,7 +558,7 @@ class POC:
         if tedeum:
             out += [r"\section{Te Deum}", r"\objlabel{ord:tedeum}", L.te_deum(tedeum.payload)]
         # --- Compline: fixed weekly cycle lives in the Ordinary
-        out += [r"\section{Compline}", r"\objlabel{ord:compline}",
+        out += ordhour("Compline", "ord:compline", [("Nunc dimittis", "ord:nunc"), ("B.V.M.", "ord:marian")]) + [
                 r"\begin{enumerate}[leftmargin=1.4em,itemsep=0pt,label=\rubric{\arabic*.}]"
                 r"\item Opening \item Examination of conscience (penitential act) \item Hymn \item Psalmody of the day "
                 r"\item Short reading \item Responsory \item Nunc dimittis with antiphon \item Concluding prayer "
@@ -516,22 +569,21 @@ class POC:
             out += [f"\\subsection{{Compline: {esc(name)}}}", f"\\objlabel{{ord:compline:{esc(name.split()[0].lower())}}}"]
             for o in occs:
                 ob = db.obj(o["object_id"])
-                if o["slot"] in ("HYMN",):
-                    out.append(r"\slotname{Hymn}" + obj_ref(db, ob.id))
-                elif o["slot"] == "HYMN_ALT":
-                    continue
-                elif o["slot"].startswith("ANT") and not o["slot"].endswith("_R"):
-                    out.append(r"\slotname{Antiphon}" + L.ant(ob.payload))
-                elif o["slot"].startswith("PS"):
-                    out.append(r"\slotname{Psalm}" + obj_ref(db, ob.id))
-                elif o["slot"] in ("LB", "RB", "ORATIO") or (o["slot"] == "GOSPEL_ANT"):
-                    if o["slot"] == "GOSPEL_ANT" and o["seq"] and name != "Saturday (after First Vespers of Sunday)":
-                        pass
+                slot = o["slot"]
+                if slot == "HYMN":
+                    nm, body = "Hymn", obj_ref(db, ob.id)
+                elif slot.startswith("ANT") and not slot.endswith("_R"):
+                    nm, body = "Antiphon", L.ant(ob.payload)
+                elif slot.startswith("PS") and not slot.endswith("_R"):
+                    nm, body = "Psalm", obj_ref(db, ob.id)
+                elif slot in ("LB", "RB", "ORATIO", "GOSPEL_ANT", "BLESSING"):
                     nm = {"LB": "Short reading", "RB": "Responsory", "ORATIO": "Concluding prayer",
-                          "GOSPEL_ANT": "Antiphon at the Nunc dimittis"}[o["slot"]]
-                    out.append(r"\slotname{" + nm + "}" + L.render(ob.type, ob.payload))
-                elif o["slot"] == "BLESSING":
-                    out.append(r"\slotname{Blessing}" + L.render(ob.type, ob.payload))
+                          "GOSPEL_ANT": "Antiphon at the Nunc dimittis", "BLESSING": "Blessing"}[slot]
+                    body = L.render(ob.type, ob.payload)
+                else:
+                    continue
+                out.append(r"\slotname{" + nm + "}{" + L.citation(ob.type, ob.payload) + "}"
+                           + r"\variant{}{}{" + body + "}")
         out += [r"\subsection{Antiphons of the Blessed Virgin Mary}", r"\objlabel{ord:marian}"]
         out += [L.render(o.type, o.payload) + r"\par\vspace{3pt}" for o in marian]
         return "\n".join(out)
@@ -548,91 +600,130 @@ class POC:
             out.append(self.proper_day(wd))
         return "\n".join(out)
 
+    def ribbon_refs(self, days: list, hour: str) -> str:
+        """Hour head: O = Ordinary page, P = psalm pages (ribbons 6–9), R = readings page when it is the same for all."""
+        db = self.db
+        anchor = {"INV": "ord:invitatory", "OR": "ord:or", "LAUDS": "ord:lauds", "MIDDAY": "ord:midday"}.get(hour, "ord:vespers")
+        parts = [r"\ribbon{O}{\pg{" + anchor + "}}"]
+        if hour == "INV":
+            parts.append(r"\ribbon{P}{\pg{" + label("ps:95") + "}}")
+            return r"\enspace ".join(parts)
+        groups: dict[tuple, list] = collections.defaultdict(list)
+        reads: set = set()
+        for d in days:
+            h = db.hour(d["key"], hour)
+            if not h:
+                continue
+            ref = db.c.execute("SELECT psalm_units, readings FROM hour_refs WHERE hour_id=?", (h["id"],)).fetchone()
+            if not ref:
+                continue
+            units = json.loads(ref["psalm_units"] or "{}")
+            labs = []
+            for slot in sorted(units):
+                o = db.obj(units[slot])
+                labs.append(label("psu:" + o.id) if o.type == "psalm" else label(o.id))
+            if labs:
+                groups[tuple(labs)].append(d)
+            if ref["readings"]:
+                reads.add(json.loads(ref["readings"]).get("LECT1"))
+        all_ot = {d["week"] for d in days if d["season"] == "OT"}
+        ordered = sorted(groups.items(), key=lambda kv: min(SEASON_ORDER[d["season"]] for d in kv[1]))
+        for i, (labs, ds) in enumerate(ordered):
+            pages = ", ".join(r"\pg{" + l + "}" for l in labs)
+            prefix = "" if i == 0 else r"\enspace/\enspace{\scshape " + esc(labels_for(ds, all_ot)) + "} "
+            parts.append(prefix + r"\ribbon{P}{" + pages + "}")
+        if len(reads) == 1 and None not in reads:
+            parts.append(r"\ribbon{R}{\pg{" + label(next(iter(reads))) + "}}")
+        return r"\enspace ".join(parts)
+
     def proper_day(self, wd: str) -> str:
         db = self.db
         days = self.grid_days(wd)
         title = f"Week {ROMAN[self.PW]} — {DAY_NAMES[wd]}"
-        uses = labels_for(days, {d["week"] for d in days if d["season"] == "OT"})
         ot_weeks = sorted(d["week"] for d in days if d["season"] == "OT")
+        others = ", ".join(f"{SEASON_LABEL[d['season']]} {d['week']}" for d in days if d["season"] != "OT")
         out = [f"\\section{{{title}}}", f"\\objlabel{{prop:{wd}}}",
                r"{\footnotesize\rubric{Used on:} Ordinary Time weeks " + ", ".join(map(str, ot_weeks)) + "; "
-               + esc(", ".join(f"{SEASON_LABEL[d['season']]} {d['week']}" for d in days if d['season'] != 'OT')) + r".\par}"]
-        week_blocks: dict[int, list] = collections.defaultdict(list)    # OT week → [(hour title, slot, items)]
+               + esc(others) + r".\par}"]
+        week_blocks: dict[int, list] = collections.defaultdict(list)    # OT week -> [(hour, slot, items)]
         sunday_collects = {}
         if wd == "SUN":
             for d in days:
                 if d["season"] == "OT":
                     h = db.hour(d["key"], "LAUDS")
                     for o in db.occ(h["id"]):
-                        if o["slot"] == "ORATIO":
+                        if o["slot"] == "ORATIO" and o["object_id"]:
                             sunday_collects[d["week"]] = o["object_id"]
         for hour in self.hours_for(wd):
-            if hour == "V1":
-                ht = r"First Vespers \rubric{\footnotesize (Saturday evening)}"
-            else:
-                ht = HOUR_TITLE[hour]
-            ref = {"INV": r"\pgref{ord:invitatory}", "OR": r"\pgref{ord:or}", "LAUDS": r"\pgref{ord:lauds}",
-                   "MIDDAY": r"\pgref{ord:midday}"}.get(hour, r"\pgref{ord:vespers}")
-            out.append(r"\hourhead{" + ht + r"}{\rubric{Ordinary} " + ref + "}")
-            slots = SLOT_ORDER["VESPERS" if hour in ("V1", "V2") else hour]
+            ht = r"First Vespers \rubric{\footnotesize (Saturday evening)}" if hour == "V1" else HOUR_TITLE[hour]
+            out.append(r"\hourhead{" + ht + "}{" + self.ribbon_refs(days, hour) + "}")
             cur_sub = None
-            for s in slots:
+            for s in SLOT_ORDER["VESPERS" if hour in ("V1", "V2") else hour]:
                 slot, sub = (s if isinstance(s, tuple) else (s, ""))
                 groups = slot_groups(db, days, hour, slot, sub)
                 if not groups:
                     continue
-                if sub and sub != cur_sub and slot in ("LB",):
-                    out.append(r"\par\vspace{2pt}{\scshape\footnotesize\color{rubric}" + SUB_TITLE[sub] + r"}\par")
+                if sub and sub != cur_sub and slot == "LB":
+                    out.append(r"\sublabel{" + SUB_TITLE[sub] + "}")
                     cur_sub = sub
                 name = SLOT_NAME.get(slot, slot)
                 if sub and slot in ("HYMN", "ANT"):
                     name += f" ({SUB_TITLE[sub]})"
                 if slot == "GOSPEL_ANT":
                     name = f"Antiphon at the {GOSPEL.get(hour, 'Gospel canticle')}"
-                lines = []
+                kept = []
                 for g in groups:
-                    ot_only = all(d["season"] == "OT" for d in g.days)
-                    single_ot = ot_only and len(g.days) == 1
-                    if single_ot and slot in ("GOSPEL_ANT",) and wd == "SUN":
+                    single_ot = all(d["season"] == "OT" for d in g.days) and len(g.days) == 1
+                    if single_ot and slot == "GOSPEL_ANT" and wd == "SUN":
                         week_blocks[g.days[0]["week"]].append((hour, slot, g.items))
                         continue
                     if single_ot and slot == "ORATIO" and wd == "SUN":
-                        continue     # Sunday collect: listed with the week below
-                    if single_ot and slot == "ORATIO" and hour == "OR" and wd != "SUN":
-                        oid = g.items[0][1]
-                        # weekday Office of Readings uses the collect of the preceding Sunday
+                        continue     # Sunday collect: listed with its week below
+                    if single_ot and slot == "ORATIO" and hour == "OR":
                         sun = db.hour(f"OT.{g.days[0]['week']:02d}.SUN", "LAUDS")
-                        if sun and any(o["object_id"] == oid for o in db.occ(sun["id"])):
-                            week_blocks[g.days[0]["week"]].append(("OR", "ORATIO_REF", g.items))
-                            continue
-                    if slot in ("LECT1", "LECT2"):
+                        if sun and any(o["object_id"] == g.items[0][1] for o in db.occ(sun["id"])):
+                            continue     # weekday Office of Readings: collect of the preceding Sunday
+                    kept.append(g)
+                if slot in ("LECT1", "LECT2"):
+                    # level 2 per season-week: citation/incipit with its page in the Readings section
+                    body = []
+                    for g in kept:
                         for _, oid in g.items:
                             self.or_readings.append((g.label, oid))
-                    body = []
-                    for cond, oid in g.items:
-                        r = obj_ref(db, oid) if slot not in ("ANT", "ANT1", "ANT2", "ANT3", "GOSPEL_ANT", "INV_ANT") else L.ant(db.obj(oid).payload)
-                        body.append((r"\condlabel{" + esc(cond) + "}" if cond else "") + r)
-                    lines.append(r"\variant{" + esc(g.label) + "}{" + r"\par ".join(body) + "}")
-                collapsed = [x for x in lines]
-                if slot in ("LECT1", "LECT2") and lines:
-                    # one compact paragraph: each season-week with the reading's opening line and page
+                            body.append(r"\variant{" + esc(g.label) + "}{}{" + obj_ref(db, oid) + "}")
+                    if body:
+                        out.append(r"\slotname{" + name + "}{}" + "\n".join(body))
+                    continue
+                if not kept:
+                    if slot == "ORATIO" and hour == "OR" and wd != "SUN":
+                        out.append(r"\slotname{" + name + r"}{}\variant{Per annum}{}{\rubr{Collect of the preceding "
+                                   r"Sunday (see the list at the end of this day).}}")
+                    continue
+                # citation: after the slot name when shared by every variant, else after each variant label
+                cites = {L.citation(db.obj(oid).type, db.obj(oid).payload) for g in kept for _, oid in g.items}
+                cites.discard("")
+                shared = next(iter(cites)) if len(cites) == 1 else ""
+                lines = []
+                for g in kept:
                     items = []
-                    for g in groups:
-                        for _, oid in g.items:
-                            items.append(r"{\footnotesize\scshape\color{rubric}" + esc(g.label) + "} " + obj_ref(db, oid))
-                    collapsed = [r"\par\noindent{\small " + r"\enspace·\enspace ".join(items) + r"}\par"]
-                if slot == "ORATIO" and hour == "OR" and wd != "SUN" and not collapsed:
-                    collapsed = [r"\variant{Per annum}{\rubr{Collect of the preceding Sunday (listed with that Sunday).}}"]
-                if collapsed:
-                    out.append(r"\slotname{" + name + "}" + "\n".join(collapsed))
+                    for cond, oid in g.items:
+                        o = db.obj(oid)
+                        is_ant = slot in ("ANT", "ANT1", "ANT2", "ANT3", "GOSPEL_ANT", "INV_ANT")
+                        r = L.ant(o.payload) if is_ant else obj_ref(db, oid)
+                        items.append((r"\condlabel{" + esc(cond) + "}" if cond else "") + r)
+                    first = db.obj(g.items[0][1])
+                    cite = "" if shared or not cites else L.citation(first.type, first.payload)
+                    lead = r"\par " if any(c for c, _ in g.items) else ""      # conditions start at level 3
+                    lines.append(r"\variant{" + esc(g.label) + "}{" + cite + "}{" + lead + r"\par ".join(items) + "}")
+                out.append(r"\slotname{" + name + "}{" + shared + "}" + "\n".join(lines))
             if hour in ("LAUDS", "VESPERS", "V1", "V2"):
                 gname = GOSPEL[hour]
                 out.append(r"\par{\footnotesize\rubric{" + gname + r",} \pgref{ord:" + gname.lower() + r"}; "
                            r"\rubric{Pater noster,} \pgref{ord:pater}.}\par")
             if hour == "OR" and wd == "SUN":
                 out.append(r"\par{\footnotesize\rubric{Te Deum} (except in Lent), \pgref{ord:tedeum}.}\par")
-        cname = "saturday" if False else ("monday" if wd == "MON" else "sunday")
-        out.append(r"\hourhead{Compline}{\rubric{Ordinary} \pgref{ord:compline:" + cname + "}}")
+        cname = "monday" if wd == "MON" else "sunday"
+        out.append(r"\hourhead{Compline}{\ribbon{O}{\pg{ord:compline:" + cname + "}}}")
         if wd == "SUN":
             out.append(r"{\footnotesize After First Vespers: \pgref{ord:compline:saturday}; after Second Vespers: "
                        r"\pgref{ord:compline:sunday}.\par}")
@@ -641,16 +732,15 @@ class POC:
             out.append(r"\rubr{The Gospel canticle antiphons follow the Sunday Gospel of Years A, B and C; the collect "
                        r"of the Sunday is also said at the Office of Readings on the weekdays of that week.}")
             for wk in sorted(set(week_blocks) | set(sunday_collects)):
-                out.append(r"\par\needspace{4\baselineskip}\vspace{4pt}{\scshape\color{rubric}" + f"Week {wk} of Ordinary Time" + r"}\par")
+                out.append(r"\sublabel{" + f"Week {wk} of Ordinary Time" + "}")
                 for hour, slot, items in week_blocks.get(wk, []):
-                    if slot == "ORATIO_REF":
-                        continue
                     hn = {"V1": "First Vespers", "LAUDS": "Lauds", "V2": "Second Vespers"}.get(hour, hour)
                     body = r"\par ".join(r"\condlabel{" + esc(c) + "}" + L.ant(db.obj(o).payload) for c, o in items)
-                    out.append(r"\variant{" + hn + "}{" + body + "}")
+                    out.append(r"\variant{" + hn + r"}{}{\par " + body + "}")
                 if wk in sunday_collects:
                     oid = sunday_collects[wk]
-                    out.append(r"\variant{Collect}{" + f"\\objlabel{{{label('collect:' + oid)}}}" + L.render("oratio", db.obj(oid).payload) + "}")
+                    out.append(r"\variant{Collect}{}{" + f"\\objlabel{{{label('collect:' + oid)}}}"
+                               + L.render("oratio", db.obj(oid).payload) + "}")
         if wd != "SUN":
             refs = []
             for d in days:
@@ -662,7 +752,8 @@ class POC:
                 if o and sun and any(oo["object_id"] == o["object_id"] for oo in db.occ(sun["id"])):
                     refs.append(f"OT {d['week']}: " + r"\pgref{" + label("collect:" + o["object_id"]) + "}")
             if refs:
-                out.append(r"\par{\footnotesize\rubric{Collect at the Office of Readings (from the Sunday):} " + "; ".join(refs) + r".\par}")
+                out.append(r"\par\vspace{3pt}{\footnotesize\rubric{Collect at the Office of Readings (from the Sunday):} "
+                           + "; ".join(refs) + r".\par}")
         return "\n".join(out)
 
     # ---------------------------------------------------------------- OR READINGS
@@ -677,27 +768,42 @@ class POC:
         for o in occs:
             ob = db.obj(o["object_id"])
             if o["slot"].startswith("LECT"):
-                out.append(r"\subsection{" + ("First reading" if o["slot"] == "LECT1" else "Second reading") + "}")
-                out.append(f"\\objlabel{{{label(ob.id)}}}")
-                out.append(L.reading(ob.payload))
+                # heading with the citation: "First reading — Incipit liber Ecclesiástici 1, 1-25"
+                title = "First reading" if o["slot"] == "LECT1" else "Second reading"
+                cite = L.citation(ob.type, ob.payload)
+                out.append(r"\slotname{" + title + "}{" + cite + "}" + f"\\objlabel{{{label(ob.id)}}}")
+                rest = dict(ob.payload, intro=[])            # the intro is now in the heading
+                out.append(L.reading(rest))
             else:
-                ref = ob.payload.get("ref", "")
-                out.append(r"\par\vspace{3pt}{\footnotesize\rubric{Responsory " + esc(ref) + r"}}\par")
+                out.append(r"\slotname{Responsory}{" + L.citation(ob.type, ob.payload) + "}")
                 out.append(L.pairs(ob.payload))
         return "\n".join(out)
+
+    def pending_part(self, title: str, note: str) -> str:
+        return (f"\\chapter{{{title}}}\\objlabel{{sec:{slug_label(title)}}}\n"
+                r"\rubr{" + note + "}")
 
     # ---------------------------------------------------------------- whole document
     def body(self) -> str:
         self.collect()
-        parts = [self.psalter(), self.hymns(), self.ordinary(), self.propers(), self.readings()]
+        # Book order: Saints · Commons · Ordinary · Proper of Time · Hymns · Psalter · OR readings (ribbons 1–10)
+        parts = [
+            self.pending_part("Proper of Saints", "Ribbon 1. Not yet in this proof of concept: built from the four "
+                              "Sanctis volumes (workstreams WS4a/WS4b in TODO.md)."),
+            self.pending_part("Commons", "Ribbon 2. Not yet in this proof of concept: built from the Communia volume "
+                              "(workstream WS3 in TODO.md)."),
+            self.ordinary(), self.propers(), self.hymns(), self.psalter(), self.readings()]
         body = "\n\n".join(parts)
-        # references to readings not printed in the POC: neutralise their page refs
+        # references to texts not printed in the POC (e.g. other weeks' readings): neutralise their page refs
         printed = set(re.findall(r"\\objlabel\{([^}]*)\}", body))
-        def fix(m):
-            return m.group(0) if m.group(1) in printed else r"{\footnotesize\color{black!55}[not in POC]}"
-        body = re.sub(r"\\seepage\{([^}]*)\}", fix, body)
-        body = re.sub(r"\\pref\{([^}]*)\}", lambda m: m.group(0) if m.group(1) in printed else r"{\footnotesize\color{black!55}[not in POC]}", body)
+        missing = r"{\footnotesize\color{black!55}[not in POC]}"
+        for macro in ("seepage", "pgref", "pg"):
+            body = re.sub(r"\\" + macro + r"\{([^}]*)\}", lambda m: m.group(0) if m.group(1) in printed else missing, body)
         return body
+
+
+def slug_label(s: str) -> str:
+    return re.sub(r"[^a-z]+", "-", s.lower()).strip("-")
 
 
 def write_poc() -> str:

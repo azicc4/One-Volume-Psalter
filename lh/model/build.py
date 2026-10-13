@@ -11,8 +11,9 @@ from pathlib import Path
 from lh.config import DB_PATH
 from lh.extract.spans import open_l1
 from lh.model.canon import canon, incipit, object_id, plain_text, psalm_base, unit_verses
-from lh.model.days import day_info, hour_code
+from lh.model.days import day_info, hour_code, short_name
 from lh.parse.run import parse_pdf
+from lh.sources import copy_label
 
 SCHEMA = Path(__file__).with_name("schema.sql")
 REF_TYPES = {"lectio_brevis", "responsory", "resp_breve"}
@@ -35,8 +36,12 @@ def build(sources: list[str], db_path: Path = DB_PATH) -> None:
         l1 = open_l1(src)
         meta = dict(l1.execute("SELECT key, value FROM meta").fetchall())
         l1.close()
-        con.execute("INSERT OR IGNORE INTO source VALUES (?,?,?,?)", (src, meta["pdf"], meta["sha256"], int(meta["pages"])))
-        hours, _ = parse_pdf(src, p0, p1)
+        con.execute("INSERT OR IGNORE INTO source VALUES (?,?,?,?,?,?)",
+                    (src, meta["pdf"], meta["sha256"], int(meta["pages"]), p0, p1))
+        hours, outside = parse_pdf(src, p0, p1)
+        con.executemany("INSERT INTO source_line VALUES (?,?,?,?,?,?,?,?)",
+                        [(src, o.line.l1_ids[0], o.line.l1_ids[-1], o.line.page, o.role, o.section, o.day, o.line.text)
+                         for o in outside])
         for hr in hours:
             if getattr(hr, "day_key", None):
                 key = hr.day_key if src == "PA" else f"{src}.{hr.day_key}"
@@ -46,13 +51,16 @@ def build(sources: list[str], db_path: Path = DB_PATH) -> None:
                 info = day_info(src, hr.section, hr.day)
             days.setdefault(info["key"], info)
             code = hour_code(hr.code, hr.subtitle)
-            n_seen = seen_hours.get((info["key"], code), 0)
-            seen_hours[(info["key"], code)] = n_seen + 1
-            copy = f"#{n_seen + 1}" if n_seen else None        # e.g. Ascension's two tracks
+            vol_copy = copy_label(src, hr.page_start)          # e.g. Advent start-date copy "28 Nov"
+            n_seen = seen_hours.get((info["key"], code, vol_copy), 0)
+            seen_hours[(info["key"], code, vol_copy)] = n_seen + 1
+            dup = f"#{n_seen + 1}" if n_seen else None          # e.g. Ascension's two tracks
+            copy = " ".join(x for x in (vol_copy, dup) if x) or None
             cur = con.execute(
-                "INSERT INTO hour_instance (source,day_key,hour,section,day_title,subtitle,page_start,page_end,copy)"
-                " VALUES (?,?,?,?,?,?,?,?,?)",
-                (src, info["key"], code, hr.section, hr.day, hr.subtitle, hr.page_start, hr.page_end, copy))
+                "INSERT INTO hour_instance (source,day_key,hour,section,day_title,subtitle,page_start,page_end,copy,"
+                "l1_first,l1_last) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                (src, info["key"], code, hr.section, hr.day, hr.subtitle, hr.page_start, hr.page_end, copy,
+                 hr.lines[0].l1_ids[0], hr.lines[-1].l1_ids[-1]))
             hid = cur.lastrowid
             last_ref = ""
             for seq, e in enumerate(hr.elements):
@@ -90,9 +98,9 @@ def build(sources: list[str], db_path: Path = DB_PATH) -> None:
                     (hid, seq, otype, e.slot, e.sub, json.dumps(e.cond, ensure_ascii=False) if e.cond else None,
                      oid, e.page, e.lines[-1].page if e.lines else e.page, e.source_text,
                      json.dumps(extra, ensure_ascii=False) if extra else None))
-    con.executemany("INSERT INTO day VALUES (?,?,?,?,?,?,?,?)",
+    con.executemany("INSERT INTO day VALUES (?,?,?,?,?,?,?,?,?)",
                     [(d["key"], d["season"], d["week"], d["weekday"], d["psalter_week"], d["title"], d["rank"],
-                      d["precedence"]) for d in days.values()])
+                      d["precedence"], short_name(d)) for d in days.values()])
     rows = []
     for ob in objects.values():
         p = ob["payload"]
@@ -102,6 +110,11 @@ def build(sources: list[str], db_path: Path = DB_PATH) -> None:
     con.executemany("INSERT INTO object VALUES (?,?,?,?,?,?,?,?,?)", rows)
     con.execute("INSERT INTO object_fts (id, type, plain) SELECT id, type, plain FROM object")
     build_psalm_use(con)
+    build_hour_refs(con)
+    from lh.model.overrides import apply as apply_overrides
+    n_over = apply_overrides(con)          # reviewed corrections (data/overrides/*.yaml)
+    if n_over:
+        print(f"[build] applied {n_over} override(s)")
     con.commit()
     n_occ = con.execute("SELECT count(*) FROM occurrence").fetchone()[0]
     print(f"[build] {', '.join(sources)}: {len(days)} days, {len(objects)} objects, {n_occ} occurrences "
@@ -125,3 +138,24 @@ def build_psalm_use(con: sqlite3.Connection) -> None:
         rows.append((occ, psalm_base(p["psalm"]), oid, json.dumps(verses), verses[0] if verses else None,
                      verses[-1] if verses else None, x.get("section", ""), day_key, hour, slot, pw, wd))
     con.executemany("INSERT INTO psalm_use VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", rows)
+
+
+ORDINARY_ANCHOR = {"INV": "ord:invitatory", "OR": "ord:or", "LAUDS": "ord:lauds", "MIDDAY": "ord:midday",
+                   "VESPERS": "ord:vespers", "V1": "ord:vespers", "V2": "ord:vespers",
+                   "COMPLINE": "ord:compline", "COMPLINE1": "ord:compline"}
+
+
+def build_hour_refs(con: sqlite3.Connection) -> None:
+    """Per hour: the Ordinary anchor, the psalm/canticle units (≤3; Invitatory: none — its psalm is fixed) and,
+    for the Office of Readings, the readings and responsories. The book prints their pages at each hour head."""
+    rows = []
+    for h in con.execute("SELECT id, day_key, hour FROM hour_instance").fetchall():
+        psalms, readings = {}, {}
+        for slot, oid in con.execute("""SELECT o.slot, o.object_id FROM occurrence o JOIN object ob ON ob.id=o.object_id
+                                        WHERE o.hour_id=? ORDER BY o.seq""", (h[0],)):
+            if re.fullmatch(r"PS\d", slot or "") and slot not in psalms:
+                psalms[slot] = oid
+            elif slot in ("LECT1", "RESP1", "LECT2", "RESP2") and slot not in readings:
+                readings[slot] = oid
+        rows.append((h[0], h[1], h[2], ORDINARY_ANCHOR.get(h[2]), json.dumps(psalms), json.dumps(readings) if readings else None))
+    con.executemany("INSERT INTO hour_refs VALUES (?,?,?,?,?,?)", rows)
