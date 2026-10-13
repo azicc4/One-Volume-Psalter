@@ -314,4 +314,9 @@ def run_all(sources=("PA",), db=DB_PATH) -> dict:
     if set(built) & {"SP", "SQ", "SADV"}:  # saints printed in several Sanctis volumes -> reports/sanctis_overlaps.md
         from lh.verify.sanctis_overlaps import sanctis_overlaps
         out["sanctis_overlaps"] = sanctis_overlaps(db)
+    from lh.verify.copies import copies_report
+    for s in built:                       # sources printing the same days several times (plug-in COPIES)
+        c = copies_report(s, db)
+        if c:
+            out[f"copies:{s}"] = c
     return out

@@ -37,7 +37,8 @@ def chapters(lines: list[Line]) -> list[dict]:
         if L.kind == "week":
             part = "ORD" if "ORDINARIO" in L.text else "PROP"
             continue
-        starts = L.kind == "day" or L.text.upper() == "ANTIPHONÆ FINALES DE BEATA MARIA VIRGINE" or (
+        # (a blue link "Antiphonæ finales …" at the end of a Compline is a reference, not a heading: ADV 8411)
+        starts = L.kind == "day" or (L.kind != "link" and L.text.upper() == "ANTIPHONÆ FINALES DE BEATA MARIA VIRGINE") or (
             L.kind == "hour" and L.text == "Ad Invitatorium" and part == "ORD"
                                       and (not out or out[-1]["title"] != "Ad Invitatorium" or len(out[-1]["lines"]) > 1))
         if starts and out and out[-1]["lines"] and out[-1]["lines"][-1].kind == "day" and L.kind == "day":

@@ -13,7 +13,7 @@ from lh.extract.spans import open_l1
 from lh.model.canon import canon, fold, incipit, object_id, plain_text, psalm_base, unit_verses
 from lh.model.days import day_info, hour_code, short_name
 from lh.parse.run import parse_pdf
-from lh.sources import copy_label, plugin
+from lh.sources import copy_label, non_content, plugin
 
 SCHEMA = Path(__file__).with_name("schema.sql")
 REF_TYPES = {"lectio_brevis", "responsory", "resp_breve"}
@@ -39,10 +39,13 @@ def build(sources: list[str], db_path: Path = DB_PATH) -> None:
         con.execute("INSERT OR IGNORE INTO source VALUES (?,?,?,?,?,?)",
                     (src, meta["pdf"], meta["sha256"], int(meta["pages"]), p0, p1))
         hours, outside = parse_pdf(src, p0, p1)
+        # lines on a page the plug-in declares non-content (cover, index …) are front matter, whatever they look like
         con.executemany("INSERT INTO source_line VALUES (?,?,?,?,?,?,?,?)",
-                        [(src, o.line.l1_ids[0], o.line.l1_ids[-1], o.line.page, o.role, o.section, o.day, o.line.text)
+                        [(src, o.line.l1_ids[0], o.line.l1_ids[-1], o.line.page,
+                          "front" if non_content(src, o.line.page) else o.role, o.section, o.day, o.line.text)
                          for o in outside])
         appendix_days = getattr(plugin(src), "APPENDIX_DAYS", {})   # appendix chapters that are real days
+        refine = getattr(plugin(src), "refine_hour", None)   # optional plug-in hook: (hour, info, copy) -> (info, copy)
         for hr in hours:
             if getattr(hr, "day_key", None) and hr.day_title in appendix_days:
                 info = dict(appendix_days[hr.day_title])
@@ -52,11 +55,13 @@ def build(sources: list[str], db_path: Path = DB_PATH) -> None:
                         "weekday": None, "psalter_week": None, "title": hr.day_title, "rank": "appendix", "precedence": None}
             else:
                 info = day_info(src, hr.section, hr.day, hr.day_extra)
-            days.setdefault(info["key"], info)
-            code = hour_code(hr.code, hr.subtitle)
             # e.g. Advent start-date copy "28 Nov"; or an appendix fragment's own label ("LECTIO ALTERA"); or a
             # per-printing form set by a plug-in's day_info (Sanctis "commemoratio")
             vol_copy = getattr(hr, "copy", None) or info.get("copy") or copy_label(src, hr.page_start)
+            if refine is not None:                              # e.g. ADV: days after Epiphany, Epiphany tracks
+                info, vol_copy = refine(hr, info, vol_copy)
+            days.setdefault(info["key"], info)
+            code = hour_code(hr.code, hr.subtitle)
             n_seen = seen_hours.get((info["key"], code, vol_copy), 0)
             seen_hours[(info["key"], code, vol_copy)] = n_seen + 1
             dup = f"#{n_seen + 1}" if n_seen else None          # e.g. Ascension's two tracks

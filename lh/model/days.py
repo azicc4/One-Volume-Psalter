@@ -75,6 +75,7 @@ SHORT = {
     "FEAST.BAPTISM": "Baptism of the Lord", "HOLY.SUN": "Palm Sunday", "TRIDUUM.THU": "Holy Thu",
     "TRIDUUM.FRI": "Good Fri", "TRIDUUM.SAT": "Holy Sat", "EAS.1.SUN": "Easter Sun", "SOL.ASCENSION": "Ascension",
     "SOL.PENTECOST": "Pentecost",
+    "CHR.2.SUN": "Christmas 2 Sun",
 }
 MONTH_ABBR = {"DEC": "Dec", "JAN": "Jan"}
 MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -91,6 +92,9 @@ def short_name(d: dict) -> str:
     m = re.match(r"^(?:CHR|ADV)\.(DEC|JAN)(\d+)$", key)
     if m:
         return f"{int(m.group(2))} {MONTH_ABBR[m.group(1)]}"
+    m = re.match(r"^CHR\.POSTEPI\.JAN(\d+)$", key)       # weekday after Epiphany (ADV)
+    if m:
+        return f"{int(m.group(1))} Jan p. Epiph."
     m = re.match(r"^EAS\.OCT\.(\w+)$", key)
     if m:
         return f"Easter Oct. {DAY_NAMES[m.group(1)][:3]}"
