@@ -100,6 +100,13 @@ def canticle_slug(ref: str) -> str:
 
 def canon(e) -> tuple[str, dict, str, dict] | None:
     """Return (object_type, payload, identity_key, occurrence_extra) or None for structural elements."""
+    c = _canon(e)
+    if c is not None and e.data.get("choice"):
+        c[3]["choice"] = e.data["choice"]     # printed number of a numbered alternative ("1 Concéde…"), not text
+    return c
+
+
+def _canon(e) -> tuple[str, dict, str, dict] | None:
     t, d = e.type, e.data
     if t in STRUCTURAL:
         return None
@@ -244,6 +251,10 @@ def plain_text(otype: str, payload: dict) -> str:
 
 def restore(otype: str, payload: dict, extra: dict, slot: str = "") -> str:
     """Rebuild the printed text (as joined source lines) from object payload + occurrence extra."""
+    if extra.get("choice"):           # numbered alternative: "<n> text" (an antiphon without "Ant.")
+        rest = {k: v for k, v in extra.items() if k != "choice"}
+        body = payload["text"] if otype == "ant" else restore(otype, payload, rest, slot)
+        return f"{extra['choice']} {body}"
     if otype == "hymn":
         return " ".join(l for st in payload["stanzas"] for l in st)
     if otype == "ant":

@@ -26,6 +26,7 @@ L8 book           lh/render/, book/     LuaLaTeX → book/out/*.pdf
 | `psalm`, `psalm_verse` | psalm; verse line | Hebrew number, Vulgate label; line text, source LH/NV/NVT, consensus counts |
 | `psalm_use` | psalm portion use | unit, verses, day/hour/slot, psalter week — drives Psalter margin notes |
 | `hour_refs` | hour | Ordinary anchor, psalm units (≤3), readings — drives ribbon page refs |
+| `link_target` | printed link | target page → hour instance, element and object (how = text: the link names it; page: first element there) |
 | `source_line` | line outside any hour | role heading/day_extra/front — used by coverage |
 | `psalter_compare` | Felix Just row | status match/range_diff/… |
 | `check_result`, `override_log` | check finding / applied override | |
@@ -41,7 +42,9 @@ antiphon number, intonation dagger, printed Gloria Patri, heading lines, strophe
 
 `OT.NN.DOW` · `ADV.N.DOW` · `ADV.DEC17` … `ADV.DEC24` · `CHR.DEC26` … `CHR.JAN07` · `LENT.0.WED` (Ash Wednesday) ·
 `LENT.N.DOW` · `HOLY.DOW` · `TRIDUUM.THU/FRI/SAT` · `EAS.1.SUN` · `EAS.OCT.DOW` · `EAS.N.DOW` · `SOL.<NAME>` ·
-`FEAST.<NAME>` · `ORD.<CHAPTER>` (Ordinary appendix; other sources prefixed `LQP.ORD.…`) · planned: `COMMON.<NAME>[.<variant>]`,
+`FEAST.<NAME>` · `ORD.<CHAPTER>` (Ordinary appendix; other sources prefixed `LQP.ORD.…`) · `PROP.<CHAPTER>` (proper
+appendix, e.g. `PROP.HYMNS_AD_LIBITUM`) · `MEM.BVM_SATURDAY` (Saturday memorial of the BVM, PA 6269; appendix chapters
+that are real days are mapped in the plug-in's `APPENDIX_DAYS`) · planned: `COMMON.<NAME>[.<variant>]`,
 `SANCT.MM-DD.<litcal_key>`. DOW = SUN MON TUE WED THU FRI SAT.
 
 ## Slot codes
@@ -50,8 +53,11 @@ Opening/Invitatory: `OPENING`, `PREP_PRAYER`, `INV_ANT`, `INV_PSALM` (links). Ps
 per-hour seasonal), `PS1..3` (psalm/canticle units; a section I/II/III is its own unit), `*_R` (repeated antiphon).
 Office of Readings: `OR_VERSE`, `LECT1`, `RESP1`, `LECT2`, `RESP2`, `TE_DEUM`. Lauds/Vespers/Compline: `LB`, `RB`,
 `GOSPEL_ANT`, `GOSPEL_CANT`, `PRECES`, `PATER`, `ORATIO`, `CONCLUSION`, `BLESSING`, `MARIAN`. Daytime Prayer: `sub`
-= TERCE/SEXT/NONE on hymn, antiphon, `LB`, `V`, `ORATIO`; psalmody shared (`sub` empty). Conditions in `cond`:
-`{"year": "A"}`, `{"variant": "night"}`, `{"alt": "Vel:"}`.
+= TERCE/SEXT/NONE on hymn, antiphon, `LB`, `V`, `ORATIO`; psalmody shared (`sub` empty). Links: `HYMN_ALT` (alternative
+hymn printed elsewhere: "Vel alter", "Ad libitum dici potest hymnus …"), `MEMORIAL` ("Memoria ad libitum Sanctæ Mariæ"),
+`LECT1`/`LECT2` (a reading given by reference), `CONCLUSION`, `MARIAN`, `COMPLEMENTARY`, `SUBST`, `LINK`; each resolved in
+`link_target`. Conditions in `cond`: `{"year": "A"}`, `{"variant": "night"}`, `{"alt": "Vel:"}`, `{"choice": "3"}`
+(numbered alternatives "1 …" … "6 …": Gospel antiphons and prayers of the BVM on Saturday).
 
 ## Attribution ("home") — WS6
 

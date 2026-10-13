@@ -17,6 +17,7 @@ LABELS = (
 ROMAN_RE = re.compile(r"^(?:[IVX]+)(?: \([A-Za-z]+\))?$")          # section numeral, e.g. "II", "XIX (Coph)"
 PSALM_HEAD_RE = re.compile(r"^Psalmus (\d+)(?: ([AB]))?(?: \((\d+)(?: ([AB]))?\))?(?:, (.+))?$")
 ANNO_RE = re.compile(r"^Anno ([ABC])$")
+ALT_RE = re.compile(r"^(?:vel|aut)\b|^Ad libitum etiam", re.I)   # "Vel:", "Vel alia:", "vel de Communi…", "aut de die…"
 
 
 @dataclass
@@ -141,6 +142,14 @@ def xclass(L: Line) -> int:
     return 2
 
 
+def numbered(L: Line) -> str | None:
+    """'1 Concéde nos…': a red number before black text = one of several numbered alternatives (BVM on Saturday)."""
+    if L.kind == "rubric" and len(L.runs) > 1 and L.runs[0].red and not L.runs[1].red:
+        m = re.fullmatch(r"\s*(\d+)\s*", L.runs[0].text)
+        return m.group(1) if m else None
+    return None
+
+
 def label_parts(text: str) -> tuple[str, str]:
     for lab in LABELS:
         if text.startswith(lab):
@@ -164,6 +173,7 @@ class HourParser:
         self.ants_seen: dict = {}
         self.last_psalm: Element | None = None
         self.after_psalmody = False
+        self.alt_ref = ""           # citation of an alternative short reading: "Vel (Ap 12, 1):"
 
     # -- helpers
     def peek(self, j=0) -> Line | None:
@@ -178,6 +188,18 @@ class HourParser:
             self.cond = {"year": year} if (year and type_ != "ant") else {}
         self.els.append(e)
         return e
+
+    def last_content(self) -> Element | None:
+        return next((e for e in reversed(self.els) if e.type not in ("rubric", "label", "marker")), None)
+
+    def dash_ahead(self) -> bool:
+        """Does the text block starting here contain preces second halves ("— …")?"""
+        for X in self.L[self.i:]:
+            if X.kind == "dash":
+                return True
+            if X.kind not in ("text", "italic") or X.text == "Pater noster.":
+                return False
+        return False
 
     def take_while(self, pred) -> list[Line]:
         out = []
@@ -243,6 +265,8 @@ class HourParser:
                 self.parse_psalm_body(self.last_psalm, continuing=True)
             elif k in ("V", "R"):
                 self.parse_vr()
+            elif self.section in ("CANTICUM EVANGELICUM", "ORATIO") and numbered(L):
+                self.parse_numbered()
             elif k == "rubric":
                 self.i += 1
                 self.parse_rubric(L)
@@ -303,6 +327,30 @@ class HourParser:
             e = self.emit("ant", lines, slot, data)
             self.cur_ant = e
             self.ants_seen[(self.section, self.sub, text)] = e
+
+    def parse_numbered(self):
+        """Numbered alternatives ("Antiphona ex sequentibus ad libitum sumitur: 1 … 6 …"): Gospel antiphons or
+        prayers. The number is printed, not part of the text: kept as data/extra "choice" and cond {"choice": n}."""
+        first = self.L[self.i]
+        num = numbered(first)
+        self.i += 1
+        cont = self.take_while(lambda X: X.kind == "text" and xclass(X) == 0 and not X.block_start)
+        lines = [first] + cont
+        if self.section == "ORATIO":
+            data = {"lines": [[xclass(first), markup(first, skip_first=True)]] + [[xclass(X), markup(X)] for X in cont],
+                    "choice": num}
+            e = self.emit("oratio", lines, "ORATIO", data)
+        else:
+            text = norm_space(" ".join([markup(first, skip_first=True)] + [markup(X) for X in cont]))
+            data = {"num": None, "text": text, "choice": num}
+            prior = self.ants_seen.get((self.section, self.sub, text))
+            if prior is not None:
+                data["repeat"] = True
+                e = self.emit("ant", lines, "GOSPEL_ANT_R", data, keep_cond=True)
+            else:
+                e = self.emit("ant", lines, "GOSPEL_ANT", data)
+                self.cur_ant = self.ants_seen[(self.section, self.sub, text)] = e
+        e.cond = {**e.cond, "choice": num}
 
     # -- psalms, canticles, and centred meta lines
     def parse_psalm_or_meta(self):
@@ -471,8 +519,16 @@ class HourParser:
         lines = [L] + self.take_while(lambda X: X.kind == "rubric" and not X.block_start)
         text = norm_space(" ".join(markup(X) for X in lines))
         plain = norm_space(" ".join(X.text for X in lines))
-        if plain.startswith("Vel"):
+        if ALT_RE.match(plain):
             self.cond["alt"] = plain
+            # an alternative printed without its label: a short reading after the short responsory ("Vel (Ap 12, 1):"),
+            # or another reading after a responsory ("Vel alia:", "aut de die 16 iulii:")
+            prev = self.last_content()
+            m = re.match(r"^Vel \((.+)\):$", plain)
+            if m and prev is not None and prev.slot == "RB":
+                self.section, self.alt_ref = "LECTIO BREVIS", m.group(1)
+            elif prev is not None and prev.slot in ("RESP1", "RESP2") and not self.section:
+                self.section = "LECTIO PRIOR" if prev.slot == "RESP1" else "LECTIO ALTERA"
         elif re.match(r"^I+\. Quando Officium lectionis", plain):
             self.cond["variant"] = "night" if plain.startswith("I.") else "day"
         elif "non dicitur Glória Patri" in plain or "non dicitur Gloria Patri" in plain:
@@ -489,10 +545,14 @@ class HourParser:
             return
         if t.startswith("Conclusio"):
             slot = "CONCLUSION"
-        elif t == "Vel alter":
-            slot = "HYMN_ALT"
+        elif t == "Vel alter" or (t.startswith("Ad libitum") and self.section == "HYMNUS"):
+            slot = "HYMN_ALT"     # alternative hymn printed elsewhere ("Ad libitum dici potest hymnus Dies iræ.")
         elif t.startswith("Antiphonæ finales"):
             slot = "MARIAN"
+        elif t.startswith("Memoria ad libitum"):
+            slot = "MEMORIAL"     # where the optional memorial (BVM on Saturday) takes over
+        elif self.section in ("LECTIO PRIOR", "LECTIO ALTERA") and re.match(r"^(?:Ex|De) ", t):
+            slot = "LECT1" if self.section == "LECTIO PRIOR" else "LECT2"    # reading given by reference
         elif self.h.code == "INV":
             slot = "INV_PSALM"
         elif t.startswith("Ad alias Horas"):
@@ -526,6 +586,10 @@ class HourParser:
         if sec in ("LECTIO PRIOR", "LECTIO ALTERA"):
             self.parse_reading(sec)
             return
+        if self.dash_ahead():
+            # preces without their PRECES label (LQP 2522) or resumed after an interruption ("Vel aliæ:", PA 6277)
+            self.parse_preces()
+            return
         lines = self.take_while(lambda X: X.kind in ("text", "italic") and X.text != "Pater noster.")
         if not lines:  # e.g. "Pater noster." alone
             L = self.L[self.i]
@@ -534,6 +598,8 @@ class HourParser:
             return
         data = {"lines": [[xclass(X), markup(X)] for X in lines]}
         if sec == "LECTIO BREVIS":
+            if self.alt_ref:
+                data["ref"], self.alt_ref = self.alt_ref, ""
             self.emit("lectio_brevis", lines, "LB", data)
         elif sec == "ORATIO":
             self.emit("oratio", lines, "ORATIO", data)

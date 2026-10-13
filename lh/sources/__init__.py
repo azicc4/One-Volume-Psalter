@@ -10,6 +10,8 @@ Each plug-in module defines
                  {key, season, week, weekday, psalter_week, title, rank, precedence}
   COPIES         optional [(first_page, last_page, label)] for volumes that print the same days several times
                  (e.g. Advent once per possible start date); hours in a copy get that label in hour_instance.copy.
+  APPENDIX_DAYS  optional {appendix chapter title: day record} for ALIA EX … chapters that are days of their own
+                 (e.g. PA: the Saturday memorial of the BVM → MEM.BVM_SATURDAY); others keep ORD./PROP. keys.
 
 Plug-ins for sources that are not parsed yet raise NotImplementedError in day_info; their workstream in TODO.md
 implements them.
