@@ -108,3 +108,10 @@ def test_roundtrip_week1_monday(week1_monday):
 def test_reference_parser(ref, expected):
     b, r, _ = parse_ref(ref)
     assert fmt(b, r) == expected
+
+
+def test_year_condition_does_not_leak_past_gospel_antiphons():
+    """'Anno A/B/C' governs only the Gospel antiphon (and its repeat), never the preces or prayer after it (T-COM-5)."""
+    lauds = next(h for h in hours(276, 292) if h.code == "LAUDS")
+    leaked = [e.slot for e in lauds.elements if e.cond.get("year") and e.type not in ("ant", "marker")]
+    assert leaked == []

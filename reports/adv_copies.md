@@ -132,12 +132,9 @@ For each day/hour printed in more than one copy with different objects: the vari
 | GOSPEL_ANT_R {"year": "A"} | `ant.ioannes-cum-audisset-in.5db8c3` p.377: Ioánnes cum audísset in vínculis ópera Christi, mittens duos | — |
 | GOSPEL_ANT_R {"year": "B"} | `ant.ait-ioannes-ego-vox.98bde3` p.377: Ait Ioánnes: Ego vox clamántis in desérto: Dirígite viam Dóm | — |
 | GOSPEL_ANT_R {"year": "C"} | `ant.dixit-ioannes-omnibus-ego.5b4b7f` p.377: Dixit Ioánnes ómnibus: Ego quidem aqua baptízo vos. Venit au | — |
-| PRECES {"year": "C"} | `prec.deum-patrem-qui-nobis.521df1` p.377: Deum Patrem, qui nobis grátiam exspectándi revelatiónem Dómi | — |
-| ORATIO {"year": "C"} | `or.deus-qui-conspicis-populum.323c13` p.377: Deus, qui cónspicis pópulum tuum nativitátis domínicæ festiv | — |
+| PRECES | `prec.deum-patrem-qui-nobis.521df1` p.377: Deum Patrem, qui nobis grátiam exspectándi revelatiónem Dómi | `prec.deum-patrem-qui-antiqua.0e6d99` p.7772: Deum Patrem, qui antíqua dispositióne pópulum suum salváre s |
 | GOSPEL_ANT | — | `ant.scitote-quia-prope-est.28904c` p.7771: Scitóte quia prope est regnum Dei; amen dico vobis quia non  |
 | GOSPEL_ANT_R | — | `ant.scitote-quia-prope-est.28904c` p.7772: Scitóte quia prope est regnum Dei; amen dico vobis quia non  |
-| PRECES | — | `prec.deum-patrem-qui-antiqua.0e6d99` p.7772: Deum Patrem, qui antíqua dispositióne pópulum suum salváre s |
-| ORATIO | — | `or.deus-qui-conspicis-populum.323c13` p.7772: Deus, qui cónspicis pópulum tuum nativitátis domínicæ festiv |
 
 ### `ADV.3.SUN` MIDDAY — explained
 
@@ -168,12 +165,9 @@ For each day/hour printed in more than one copy with different objects: the vari
 | GOSPEL_ANT_R {"year": "A"} | `ant.tu-es-qui-venturus.50f4ad` p.387: Tu es qui ventúrus es, an álium exspectámus? Dícite Ioánni q | — |
 | GOSPEL_ANT_R {"year": "B"} | `ant.ego-baptizo-in-aqua.95b3fa` p.387: Ego baptízo in aqua. Médius vestrum stat, quem vos non sciti | — |
 | GOSPEL_ANT_R {"year": "C"} | `ant.respondit-ioannes-dicens-venit.eb44d9` p.387: Respóndit Ioánnes dicens: Venit fórtior me, cuius ventilábru | — |
-| PRECES {"year": "C"} | `prec.redemptorem-nostrum-iesum-christum.69aefa` p.387: Redemptórem nostrum Iesum Christum, qui est via, véritas et  | — |
-| ORATIO {"year": "C"} | `or.deus-qui-conspicis-populum.323c13` p.388: Deus, qui cónspicis pópulum tuum nativitátis domínicæ festiv | — |
+| PRECES | `prec.redemptorem-nostrum-iesum-christum.69aefa` p.387: Redemptórem nostrum Iesum Christum, qui est via, véritas et  | `prec.christum-gaudium-et-exsultationem.675334` p.7782: Christum, gáudium et exsultatiónem ómnium eum exspectántium, |
 | GOSPEL_ANT | — | `ant.o-sapientia-quae-ex.93e02b` p.7781: O Sapiéntia, quæ ex ore Altíssimi prodísti, attíngens a fine |
 | GOSPEL_ANT_R | — | `ant.o-sapientia-quae-ex.93e02b` p.7782: O Sapiéntia, quæ ex ore Altíssimi prodísti, attíngens a fine |
-| PRECES | — | `prec.christum-gaudium-et-exsultationem.675334` p.7782: Christum, gáudium et exsultatiónem ómnium eum exspectántium, |
-| ORATIO | — | `or.deus-qui-conspicis-populum.323c13` p.7783: Deus, qui cónspicis pópulum tuum nativitátis domínicæ festiv |
 
 ### `ADV.3.SUN` COMPLINE — explained
 
@@ -258,12 +252,10 @@ For each day/hour printed in more than one copy with different objects: the vari
 | GOSPEL_ANT_R {"year": "A"} | `ant.ioseph-fili-david-noli.3a350b` p.551: Ioseph fili David, noli timére accípere Maríam cóniugem tuam | — |
 | GOSPEL_ANT_R {"year": "B"} | `ant.missus-est-gabriel-angelus.11d2e0` p.551: Missus est Gábriel ángelus a Deo ad Maríam vírginem desponsá | — |
 | GOSPEL_ANT_R {"year": "C"} | `ant.exsurgens-maria-abiit-in.fea6df` p.552: Exsúrgens María ábiit in montána cum festinatióne in civitát | — |
-| PRECES {"year": "C"} | `prec.dominum-iesum-christum-fratres.f5caef` p.552: Dóminum Iesum Christum, fratres caríssimi, deprecémur, qui e | — |
-| ORATIO {"year": "C"} | `or.gratiam-tuam-quaesumus-domine.4889d8` p.552: Grátiam tuam, quǽsumus, Dómine, méntibus nostris infúnde, ut | — |
+| PRECES | `prec.dominum-iesum-christum-fratres.f5caef` p.552: Dóminum Iesum Christum, fratres caríssimi, deprecémur, qui e | `prec.christum-redemptorem-fratres-carissimi.7d0116` p.7953: Christum redemptórem, fratres caríssimi, devotióne mentis or |
+| ORATIO | `or.gratiam-tuam-quaesumus-domine.4889d8` p.552: Grátiam tuam, quǽsumus, Dómine, méntibus nostris infúnde, ut | `or.festina-quaesumus-ne-tardaveris.ef3e7c` p.7954: Festína, quǽsumus, ne tardáveris, Dómine Iesu, ut advéntus t |
 | GOSPEL_ANT | — | `ant.completi-sunt-dies-mariae.cf0f2b` p.7952: Compléti sunt dies Maríæ, ut páreret Fílium suum primogénitu |
 | GOSPEL_ANT_R | — | `ant.completi-sunt-dies-mariae.cf0f2b` p.7953: Compléti sunt dies Maríæ, ut páreret Fílium suum primogénitu |
-| PRECES | — | `prec.christum-redemptorem-fratres-carissimi.7d0116` p.7953: Christum redemptórem, fratres caríssimi, devotióne mentis or |
-| ORATIO | — | `or.festina-quaesumus-ne-tardaveris.ef3e7c` p.7954: Festína, quǽsumus, ne tardáveris, Dómine Iesu, ut advéntus t |
 
 ### `ADV.4.SUN` MIDDAY — explained
 

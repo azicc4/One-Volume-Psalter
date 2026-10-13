@@ -264,9 +264,9 @@ class HourParser:
     def emit(self, type_, lines, slot="", data=None, keep_cond=False) -> Element:
         e = Element(type_, slot, self.sub, dict(self.cond), data or {}, lines)
         if not keep_cond and type_ not in ("rubric", "label", "marker"):
-            # conditions apply to the next content element only (year A/B/C, alternatives)
-            year = self.cond.get("year")
-            keep = {"year": year} if (year and type_ != "ant") else {}
+            # conditions apply to the next content element only (year A/B/C, alternatives); the year of a Sunday
+            # Gospel antiphon ("Anno A") never carries on to the preces, prayer, etc. that follow (TODO T-COM-5)
+            keep = {}
             if type_ == "reading" and self.cond.get("for"):
                 # a sub-variant reading ("Pro presbytero:") keeps its condition for its responsory
                 keep.update({k: self.cond[k] for k in ("for", "alt") if k in self.cond})
@@ -552,6 +552,7 @@ class HourParser:
             data["repeat"] = True
             e = self.emit("ant", lines, prior.slot + "_R", data, keep_cond=True)
             e.cond = dict(prior.cond)
+            self.cond.pop("year", None)        # the "Anno X" before a repeated antiphon is used up here (T-COM-5)
             if bare:
                 self.cond.pop("alt", None)     # the "Vel:" before a repeated bare antiphon is used up here
         else:
@@ -603,6 +604,7 @@ class HourParser:
             data["repeat"] = True
             e = self.emit("ant", lines, prior.slot + "_R", data, keep_cond=True)
             e.cond = dict(prior.cond)
+            self.cond.pop("year", None)
             return
         self.cond = {**self.cond, "alt": data["lead"]}
         if prev.cond.get("for"):
