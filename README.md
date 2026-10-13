@@ -1,11 +1,20 @@
 # One-Volume Psalter
 
-A single-volume *Liturgia Horarum* (Latin text, English rubrics), organised like the Book of Common Prayer:
+A single-volume *Liturgia Horarum* (Latin text, English rubrics), 6 × 9.25 in, ten ribbons:
 
-1. **Psalter** — all 150 psalms in Hebrew numbering (Vulgate in parentheses); the margin marks where each
-   portion is prayed (e.g. `I Mon L.1` = Week I, Monday, Lauds, psalm 1); unused verses in smaller type.
-2. **Hymns** 3. **Ordinary** (with "Finding the Office") 4. **Propers of Time** (four-week grid, seasonal variants
-   side by side) 5. **Commons** 6. **Proper of Saints** 7. **Additional** 8. **Votive** 9. **Office of Readings readings**
+| Ribbon | Section |
+|---|---|
+| 1 | **Proper of Saints** |
+| 2 | **Commons** |
+| 3 | **Ordinary** — "Finding the Office", fixed texts; each hour heading gives the pages of its fixed parts |
+| 4 | **Proper of Time** — the four-week cycle, every part of every hour with its seasonal variants side by side; each hour heading gives the ribbon pages (O Ordinary · P psalms · R readings) |
+| 5 | **Hymns** |
+| 6–9 | **Psalter** (+ Canticles) — all 150 psalms, Hebrew numbering (Vulgate in parentheses); the margin marks where each portion is prayed (`I Mon L.1` = Week I, Monday, Lauds, psalm 1) and, below a rule, every other use (feasts); unused verses in smaller type |
+| 10 | **Office of Readings readings** and responsories |
+
+(Additional and votive offices follow the Commons once their sources are parsed — see `TODO.md`.)
+
+**Working on this project?** Start with `CLAUDE.md`, then `TODO.md`, `docs/contributing.md`, `docs/architecture.md`.
 
 The book is **generated from a verified database**, never edited by hand. Every text in the source PDFs is extracted
 with its page, deduplicated into canonical *objects*, verified, and printed once; everywhere else it is referenced
@@ -61,10 +70,13 @@ python -m lh book --poc                # book/out/poc.pdf
 * **Round-trip**: every printed occurrence is rebuilt from its object + occurrence data and compared with the PDF
   text — currently 44,921 / 44,921 exact.
 * **PDF index**: parsed days/hours must match each PDF's own index (Per annum: 236 / 236 days).
+* **Coverage**: every line of every source PDF is in the database or on a page declared non-content (with a reason)
+  in its plug-in `lh/sources/<key>.py` — `reports/coverage_<KEY>.md`. Per annum and Lent/Easter: all lines except 5
+  unparsed preces lines each (TODO T-UNP); Advent (first copy): 0 gaps.
 * **Structure**: every hour has the slots the GILH requires for it.
 * **Consensus**: each psalm verse line is printed many times; divergent printings are listed for review.
 * **Felix Just** (catalog of the US LOTH psalter) vs. the Latin LH: every disagreement is reported, none silently fixed.
-* Corrections go in `data/overrides/` (with reason and source page), never into generated files.
+* Corrections go in `data/overrides/` (with reason and source page; `docs/overrides.md`), never into generated files.
 
 `data/export/*.jsonl` is a committed, diffable snapshot of the database.
 

@@ -20,6 +20,18 @@ BOOKS = {
     "Sir": "Sir", "Sirach": "Sir", "Wis": "Wis", "Tobit": "Tob", "Luke": "Luke", "1 Pet": "1 Pet", "1 Peter": "1 Pet",
     "1 Thess": "1 Thess",
 }
+# Remaining Nova Vulgata / LH abbreviations → English (used for display of reading citations)
+BOOKS.update({
+    "Gn": "Gen", "Gen": "Gen", "Lv": "Lev", "Nm": "Num", "Dt": "Deut", "Ios": "Josh", "Idc": "Judg", "Rt": "Ruth",
+    "1 Sm": "1 Sam", "2 Sam": "2 Sam", "2 Sm": "2 Sam", "1 Reg": "1 Kgs", "2 Reg": "2 Kgs", "1 Par": "1 Chr",
+    "2 Par": "2 Chr", "2 Chr": "2 Chr", "Esd": "Ezra", "Neh": "Neh", "Idt": "Jdt", "Est": "Esth", "1 Mac": "1 Macc",
+    "2 Mac": "2 Macc", "Iob": "Job", "Prv": "Prov", "Eccle": "Eccl", "Qo": "Eccl", "Ct": "Song", "Lam": "Lam",
+    "Bar": "Bar", "Dn": "Dan", "Os": "Hos", "Ioel": "Joel", "Am": "Amos", "Abd": "Obad", "Ion": "Jonah", "Mi": "Mic",
+    "Na": "Nah", "So": "Zeph", "Soph": "Zeph", "Agg": "Hag", "Za": "Zech", "Zach": "Zech", "Mal": "Mal", "Mt": "Matt",
+    "Mc": "Mark", "Io": "John", "Act": "Acts", "Rom": "Rom", "1 Cor": "1 Cor", "2 Cor": "2 Cor", "Gal": "Gal",
+    "2 Th": "2 Thess", "2 Tim": "2 Tim", "Tit": "Titus", "Phlm": "Phlm", "Hebr": "Heb", "Iac": "Jas",
+    "2 Petr": "2 Pet", "1 Io": "1 John", "2 Io": "2 John", "3 Io": "3 John", "Iud": "Jude",
+})
 _BOOK_RE = re.compile(r"^(?:Cf\.\s*)?(" + "|".join(sorted(map(re.escape, BOOKS), key=len, reverse=True)) + r")\b\.?\s*(.*)$")
 
 
@@ -107,3 +119,35 @@ def psalm_ranges(base: int, verses: list[str]) -> list[tuple[int, int, int]]:
     """LH psalm unit verse labels (['2','3','3c','10b',…]) → merged whole-verse ranges in chapter=psalm."""
     nums = sorted({int(re.match(r"\(?(\d+)", v).group(1)) for v in verses if re.match(r"\(?\d", v)})
     return merge([(base, n, n) for n in nums])
+
+
+def english_ref(ref: str) -> str:
+    """Display form of a Latin LH citation, keeping verse-part letters and order:
+    "(2 Th 3, 10 b-13)" → "2 Thess 3:10b-13";  "Ap 4, 11; 5, 9. 10. 12" → "Rev 4:11; 5:9, 10, 12";
+    "Is 61, 10 — 62, 5" → "Isa 61:10–62:5". Unknown books are returned unchanged."""
+    ref = re.sub(r"^\(|\)$", "", ref.strip()).strip()
+    pm = re.match(r"^Ps (\d+[A-B]?) \((\d+[A-B]?)\),?\s*(.*)$", ref)      # LH: Vulgate first → Hebrew first
+    if pm:
+        vulg, hebr, verses = pm.groups()
+        tail = english_ref(f"Ps {hebr}, {verses}")[3:] if verses else hebr
+        return f"Ps {tail} ({vulg})"
+    m = _BOOK_RE.match(ref)
+    if not m:
+        return ref
+    book, rest = BOOKS[m.group(1)], m.group(2).strip()
+    if ":" in rest:
+        return f"{book} {rest}"
+    groups = []
+    for g in rest.split(";"):
+        g = g.strip()
+        mm = re.match(r"^(\d+),\s*(.*)$", g)
+        if not mm:
+            groups.append(g)
+            continue
+        spec = re.sub(r"\s*[—–]\s*(\d+),\s*(\d+)", r"–\1:\2", mm.group(2))   # cross-chapter (dash with spaces)
+        spec = re.sub(r"\.\s*", ", ", spec)
+        spec = re.sub(r"(\d)\s+([a-c]+)\b", r"\1\2", spec)
+        spec = re.sub(r"\s*-\s*", "-", spec)
+        groups.append(f"{mm.group(1)}:{spec}")
+    prefix = "cf. " if ref.lower().startswith("cf.") else ""
+    return prefix + f"{book} " + "; ".join(groups)

@@ -110,6 +110,19 @@ def canticle_lines(lines: list[dict]) -> str:
     return "\n".join(out)
 
 
+def citation(otype: str, p: dict) -> str:
+    """Scripture citation shown next to a reading's title: English style when the book is known
+    (e.g. "(1 Th 5, 9-10)" → "1 Thess 5:9-10"), otherwise as printed in the source."""
+    if otype in ("lectio_brevis", "responsory", "resp_breve", "versicle"):
+        from lh.psalter.refs import english_ref
+        ref = (p.get("ref") or "").strip()
+        return esc(english_ref(ref)) if ref else ""
+    if otype == "reading":
+        from lh.model.canon import plain
+        return esc(plain(" ".join(p.get("intro", []))))
+    return ""
+
+
 RENDER = {
     "ant": ant, "versicle": pairs, "responsory": pairs, "resp_breve": pairs, "lectio_brevis": prose,
     "oratio": prose, "prayer": prose, "text": prose, "hymn": hymn, "preces": preces, "reading": reading,

@@ -72,6 +72,8 @@ def main(argv=None):
         print(f"  roundtrip failures: {out['roundtrip']['failures']}/{out['roundtrip']['occurrences']}; "
               f"structure incomplete: {out['structure']['incomplete']}; psalm lines divergent: {out['psalms']['divergent']}; "
               f"near-duplicates: {out['variants']['pairs']}")
+        cov = {k[9:]: v["gaps"] for k, v in out.items() if k.startswith("coverage:")}
+        print(f"  coverage gaps per source: {cov}  (reports/coverage_<KEY>.md)")
     elif args.cmd == "psalter":
         from lh.psalter.compare import compare
         from lh.psalter.felix import import_felix

@@ -35,10 +35,14 @@ def record(con, name, subject, status, detail=""):
 # ------------------------------------------------------------------------------------------------ round trip
 
 def check_roundtrip(con) -> dict:
-    q = """SELECT o.id, o.type, o.slot, o.object_id, o.extra, o.source_text, o.page, ob.payload, ob.type AS otype
+    q = """SELECT o.id, o.type, o.slot, o.object_id, o.extra, o.source_text, o.page, ob.payload, ob.type AS otype,
+                  ob.status
            FROM occurrence o JOIN object ob ON ob.id = o.object_id"""
-    n, bad = 0, []
+    n, bad, overridden = 0, [], 0
     for r in con.execute(q):
+        if r["status"] == "overridden":     # differs from the PDF on purpose (data/overrides/)
+            overridden += 1
+            continue
         n += 1
         rebuilt = restore(r["otype"], json.loads(r["payload"]), json.loads(r["extra"] or "{}"), r["slot"])
         if cmp_key(rebuilt) != cmp_key(r["source_text"]):
@@ -47,7 +51,8 @@ def check_roundtrip(con) -> dict:
         record(con, "roundtrip", f"occ:{r['id']}", "fail",
                {"object": r["object_id"], "page": r["page"], "source": r["source_text"][:300]})
     record(con, "roundtrip", "all", "pass" if not bad else "fail", f"{n - len(bad)}/{n} occurrences reproduce exactly")
-    return {"occurrences": n, "failures": len(bad), "examples": [(r["object_id"], r["page"]) for r in bad[:10]]}
+    return {"occurrences": n, "failures": len(bad), "overridden": overridden,
+            "examples": [(r["object_id"], r["page"]) for r in bad[:10]]}
 
 
 # ------------------------------------------------------------------------------------------------ PDF index
@@ -251,5 +256,9 @@ def run_all(sources=("PA",), db=DB_PATH) -> dict:
     out["psalms"] = check_psalms(con)
     out["variants"] = check_variants(con)
     con.commit()
+    built = [r[0] for r in con.execute("SELECT key FROM source ORDER BY rowid")]
     con.close()
+    from lh.verify.coverage import coverage
+    for s in built:                       # every source in the database, not only those with an index check
+        out[f"coverage:{s}"] = coverage(s, db)
     return out
