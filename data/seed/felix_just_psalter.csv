@@ -1,0 +1,374 @@
+week,day,hour,slot,ref,season,note,source
+1,SUN,V1,PS1,Ps 141:1-9,all,,Psalter.html
+1,SUN,V1,PS2,Ps 142,all,,Psalter.html
+1,SUN,V1,PS3,Phil 2:6-11,all,,Psalter.html
+1,SUN,OR,PS1,Ps 1,all,,Psalter.html
+1,SUN,OR,PS2,Ps 2,all,,Psalter.html
+1,SUN,OR,PS3,Ps 3,all,,Psalter.html
+1,SUN,LAUDS,PS1,Ps 63:2-9,all,,Psalter.html
+1,SUN,LAUDS,PS2,"Dan 3:57-88, 56",all,,Psalter.html
+1,SUN,LAUDS,PS3,Ps 149,all,,Psalter.html
+1,SUN,MIDDAY,PS1,Ps 118:1-9,all,,Psalter.html
+1,SUN,MIDDAY,PS2,Ps 118:10-18,all,,Psalter.html
+1,SUN,MIDDAY,PS3,Ps 118:19-29,all,,Psalter.html
+1,SUN,V2,PS1,"Ps 110:1-5, 7",all,,Psalter.html
+1,SUN,V2,PS2,Ps 114,all,,Psalter.html
+1,SUN,V2,PS3,Rev 19:1-7,all,Lent: 1 Pet 2:21-24,Psalter.html
+1,MON,OR,PS1,Ps 6,all,,Psalter.html
+1,MON,OR,PS2,Ps 9:2-11,all,,Psalter.html
+1,MON,OR,PS3,Ps 9:12-21,all,,Psalter.html
+1,MON,LAUDS,PS1,"Ps 5:2-10, 12-13",all,,Psalter.html
+1,MON,LAUDS,PS2,1 Chr 29:10-13,all,,Psalter.html
+1,MON,LAUDS,PS3,Ps 29,all,,Psalter.html
+1,MON,MIDDAY,PS1,Ps 19:8-15,all,,Psalter.html
+1,MON,MIDDAY,PS2,Ps 7:2-10,all,,Psalter.html
+1,MON,MIDDAY,PS3,Ps 7:11-18,all,,Psalter.html
+1,MON,VESPERS,PS1,Ps 11,all,,Psalter.html
+1,MON,VESPERS,PS2,Ps 15,all,,Psalter.html
+1,MON,VESPERS,PS3,Eph 1:3-10,all,,Psalter.html
+1,TUE,OR,PS1,Ps 10:1-11,all,,Psalter.html
+1,TUE,OR,PS2,Ps 10:12-18,all,,Psalter.html
+1,TUE,OR,PS3,Ps 12,all,,Psalter.html
+1,TUE,LAUDS,PS1,Ps 24,all,,Psalter.html
+1,TUE,LAUDS,PS2,Tobit 13:1-8,all,,Psalter.html
+1,TUE,LAUDS,PS3,Ps 33,all,,Psalter.html
+1,TUE,MIDDAY,PS1,Ps 119:1-8 (I: Aleph),all,,Psalter.html
+1,TUE,MIDDAY,PS2,Ps 13,all,,Psalter.html
+1,TUE,MIDDAY,PS3,Ps 14,all,,Psalter.html
+1,TUE,VESPERS,PS1,Ps 20,all,,Psalter.html
+1,TUE,VESPERS,PS2,"Ps 21:2-8, 14",all,,Psalter.html
+1,TUE,VESPERS,PS3,"Rev 4:11; 5:9, 10, 12",all,,Psalter.html
+1,WED,OR,PS1,Ps 18:2-7,all,,Psalter.html
+1,WED,OR,PS2,Ps 18:8-20,all,,Psalter.html
+1,WED,OR,PS3,Ps 18:21-30,all,,Psalter.html
+1,WED,LAUDS,PS1,Ps 36,all,,Psalter.html
+1,WED,LAUDS,PS2,"Judith 16:2-3a, 13-15",all,,Psalter.html
+1,WED,LAUDS,PS3,Ps 47,all,,Psalter.html
+1,WED,MIDDAY,PS1,Ps 119:9-16 (II: Beth),all,,Psalter.html
+1,WED,MIDDAY,PS2,Ps 17:1-9a,all,,Psalter.html
+1,WED,MIDDAY,PS3,Ps 17:9b-15,all,,Psalter.html
+1,WED,VESPERS,PS1,Ps 27:1-6,all,,Psalter.html
+1,WED,VESPERS,PS2,Ps 27:7-14,all,,Psalter.html
+1,WED,VESPERS,PS3,Col 1:12-20,all,,Psalter.html
+1,THU,OR,PS1,Ps 18:31-35,all,,Psalter.html
+1,THU,OR,PS2,Ps 18:36-46,all,,Psalter.html
+1,THU,OR,PS3,Ps 18:47-51,all,,Psalter.html
+1,THU,LAUDS,PS1,Ps 57,all,,Psalter.html
+1,THU,LAUDS,PS2,Jer 31:10-14,all,,Psalter.html
+1,THU,LAUDS,PS3,Ps 48,all,,Psalter.html
+1,THU,MIDDAY,PS1,Ps 119:17-24 (III: Ghimel),all,,Psalter.html
+1,THU,MIDDAY,PS2,Ps 25:1-11,all,,Psalter.html
+1,THU,MIDDAY,PS3,Ps 25:12-22,all,,Psalter.html
+1,THU,VESPERS,PS1,Ps 30,all,,Psalter.html
+1,THU,VESPERS,PS2,Ps 32,all,,Psalter.html
+1,THU,VESPERS,PS3,Rev 11:17-18; 12:10b-12a,all,,Psalter.html
+1,FRI,OR,PS1,"Ps 35:1-2, 3c, 9-12",all,,Psalter.html
+1,FRI,OR,PS2,Ps 35:13-16,all,,Psalter.html
+1,FRI,OR,PS3,"Ps 35:17-19, 22-23, 27-28",all,,Psalter.html
+1,FRI,LAUDS,PS1,Ps 51,all,,Psalter.html
+1,FRI,LAUDS,PS2,Isa 45:15-25,all,,Psalter.html
+1,FRI,LAUDS,PS3,Ps 100,all,,Psalter.html
+1,FRI,MIDDAY,PS1,Ps 119:25-32 (IV: Daleth),all,,Psalter.html
+1,FRI,MIDDAY,PS2,Ps 26,all,,Psalter.html
+1,FRI,MIDDAY,PS3,"Ps 28:1-3, 6-9",all,,Psalter.html
+1,FRI,VESPERS,PS1,Ps 41,all,,Psalter.html
+1,FRI,VESPERS,PS2,Ps 46,all,,Psalter.html
+1,FRI,VESPERS,PS3,Rev 15:3-4,all,,Psalter.html
+1,SAT,OR,PS1,Ps 105:1-15,seasonal,,Psalter.html
+1,SAT,OR,PS2,Ps 105:16-22,seasonal,,Psalter.html
+1,SAT,OR,PS3,Ps 105:23-45,seasonal,,Psalter.html
+1,SAT,OR,PS1,Ps 131,per_annum,,Psalter.html
+1,SAT,OR,PS2,Ps 132:1-10,per_annum,,Psalter.html
+1,SAT,OR,PS3,Ps 132:11-18,per_annum,,Psalter.html
+1,SAT,LAUDS,PS1,Ps 119:145-152 (XIX: Koph),all,,Psalter.html
+1,SAT,LAUDS,PS2,"Exod 15:1-4a, 8-13, 17-18",all,,Psalter.html
+1,SAT,LAUDS,PS3,Ps 117,all,,Psalter.html
+1,SAT,MIDDAY,PS1,Ps 119:333-40 (V: He),all,,Psalter.html
+1,SAT,MIDDAY,PS2,Ps 34:2-11,all,,Psalter.html
+1,SAT,MIDDAY,PS3,Ps 34:12-23,all,,Psalter.html
+2,SUN,V1,PS1,Ps 119:105-112 (XIV: Nun),all,,Psalter.html
+2,SUN,V1,PS2,Ps 16,all,,Psalter.html
+2,SUN,V1,PS3,Phil 2:6-11,all,,Psalter.html
+2,SUN,OR,PS1,Ps 104:1-12,all,,Psalter.html
+2,SUN,OR,PS2,Ps 104:13-23,all,,Psalter.html
+2,SUN,OR,PS3,Ps 104:24-35,all,,Psalter.html
+2,SUN,LAUDS,PS1,Ps 118,all,,Psalter.html
+2,SUN,LAUDS,PS2,Dan 3:52-57,all,,Psalter.html
+2,SUN,LAUDS,PS3,Ps 150,all,,Psalter.html
+2,SUN,MIDDAY,PS1,Ps 23,all,,Psalter.html
+2,SUN,MIDDAY,PS2,Ps 76:2-7,all,,Psalter.html
+2,SUN,MIDDAY,PS3,Ps 76:8-13,all,,Psalter.html
+2,SUN,V2,PS1,"Ps 110:1-5, 7",all,,Psalter.html
+2,SUN,V2,PS2,Ps 115,all,,Psalter.html
+2,SUN,V2,PS3,Rev 19:1-7,all,Lent: 1 Pet 2:21-24,Psalter.html
+2,MON,OR,PS1,Ps 31:2-9,all,,Psalter.html
+2,MON,OR,PS2,Ps 31:10-17,all,,Psalter.html
+2,MON,OR,PS3,Ps 31:20-25,all,,Psalter.html
+2,MON,LAUDS,PS1,Ps 42,all,,Psalter.html
+2,MON,LAUDS,PS2,"Sirach 36:1-5, 10-13",all,,Psalter.html
+2,MON,LAUDS,PS3,Ps 19:2-7,all,,Psalter.html
+2,MON,MIDDAY,PS1,Ps 119:41-48 (VI: Vau),all,,Psalter.html
+2,MON,MIDDAY,PS2,Ps 40:2-9,all,,Psalter.html
+2,MON,MIDDAY,PS3,"Ps 40:10-14, 17-18",all,,Psalter.html
+2,MON,VESPERS,PS1,Ps 45:2-10,all,,Psalter.html
+2,MON,VESPERS,PS2,Ps 45:11-18,all,,Psalter.html
+2,MON,VESPERS,PS3,Eph 1:3-10,all,,Psalter.html
+2,TUE,OR,PS1,Ps 37:1-11,all,,Psalter.html
+2,TUE,OR,PS2,Ps 37:12-29,all,,Psalter.html
+2,TUE,OR,PS3,Ps 37:30-40,all,,Psalter.html
+2,TUE,LAUDS,PS1,Ps 43,all,,Psalter.html
+2,TUE,LAUDS,PS2,"Isa 38:10-14, 17-20",all,,Psalter.html
+2,TUE,LAUDS,PS3,Ps 65,all,,Psalter.html
+2,TUE,MIDDAY,PS1,Ps 119:49-56 (VII: Zain),all,,Psalter.html
+2,TUE,MIDDAY,PS2,Ps 53,all,,Psalter.html
+2,TUE,MIDDAY,PS3,"Ps 54:3-6, 8-9",all,,Psalter.html
+2,TUE,VESPERS,PS1,Ps 49:2-13,all,,Psalter.html
+2,TUE,VESPERS,PS2,Ps 49:14-21,all,,Psalter.html
+2,TUE,VESPERS,PS3,"Rev 4:11; 5:9, 10, 12",all,,Psalter.html
+2,WED,OR,PS1,Ps 39:2-7,all,,Psalter.html
+2,WED,OR,PS2,Ps 39:8-14,all,,Psalter.html
+2,WED,OR,PS3,Ps 52,all,,Psalter.html
+2,WED,LAUDS,PS1,Ps 77,all,,Psalter.html
+2,WED,LAUDS,PS2,1 Sam 2:1-10,all,,Psalter.html
+2,WED,LAUDS,PS3,Ps 97,all,,Psalter.html
+2,WED,MIDDAY,PS1,Ps 119:57-64 (VIII: Heth),all,,Psalter.html
+2,WED,MIDDAY,PS2,Ps 55:2-12,all,,Psalter.html
+2,WED,MIDDAY,PS3,"Ps 55:13-15, 17-24",all,,Psalter.html
+2,WED,VESPERS,PS1,Ps 62,all,,Psalter.html
+2,WED,VESPERS,PS2,Ps 67,all,,Psalter.html
+2,WED,VESPERS,PS3,Col 1:12-20,all,,Psalter.html
+2,THU,OR,PS1,Ps 44:2-9,all,,Psalter.html
+2,THU,OR,PS2,Ps 44:10-17,all,,Psalter.html
+2,THU,OR,PS3,Ps 44:18-27,all,,Psalter.html
+2,THU,LAUDS,PS1,Ps 80,all,,Psalter.html
+2,THU,LAUDS,PS2,Isa 12:1-6,all,,Psalter.html
+2,THU,LAUDS,PS3,Ps 81,all,,Psalter.html
+2,THU,MIDDAY,PS1,Ps 119:65-72 (IX: Teth),all,,Psalter.html
+2,THU,MIDDAY,PS2,"Ps 56:2-7b, 9-14",all,,Psalter.html
+2,THU,MIDDAY,PS3,Ps 57,all,,Psalter.html
+2,THU,VESPERS,PS1,Ps 72:2-11,all,,Psalter.html
+2,THU,VESPERS,PS2,Ps 72:12-19,all,,Psalter.html
+2,THU,VESPERS,PS3,Rev 11:17-18; 12:10b-12a,all,,Psalter.html
+2,FRI,OR,PS1,Ps 38:2-5,all,,Psalter.html
+2,FRI,OR,PS2,Ps 38:6-13,all,,Psalter.html
+2,FRI,OR,PS3,Ps 38:14-23,all,,Psalter.html
+2,FRI,LAUDS,PS1,Ps 51,all,,Psalter.html
+2,FRI,LAUDS,PS2,"Hab 3:2-4, 13a, 15-19",all,,Psalter.html
+2,FRI,LAUDS,PS3,Ps 147:12-20,all,,Psalter.html
+2,FRI,MIDDAY,PS1,Ps 119:73-80 (X: Yod),all,,Psalter.html
+2,FRI,MIDDAY,PS2,"Ps 59:2-5, 10-11, 17-18",all,,Psalter.html
+2,FRI,MIDDAY,PS3,Ps 60,all,,Psalter.html
+2,FRI,VESPERS,PS1,Ps 116:1-9,all,,Psalter.html
+2,FRI,VESPERS,PS2,Ps 121,all,,Psalter.html
+2,FRI,VESPERS,PS3,Rev 15:3-4,all,,Psalter.html
+2,SAT,OR,PS1,Ps 106:1-18,seasonal,,Psalter.html
+2,SAT,OR,PS2,Ps 106:19-33,seasonal,,Psalter.html
+2,SAT,OR,PS3,Ps 106:34-48,seasonal,,Psalter.html
+2,SAT,OR,PS1,Ps 136:1-9,per_annum,,Psalter.html
+2,SAT,OR,PS2,Ps 136:10-15,per_annum,,Psalter.html
+2,SAT,OR,PS3,Ps 136:16-26,per_annum,,Psalter.html
+2,SAT,LAUDS,PS1,Ps 92,all,,Psalter.html
+2,SAT,LAUDS,PS2,Deut 32:1-12,all,,Psalter.html
+2,SAT,LAUDS,PS3,Ps 8,all,,Psalter.html
+2,SAT,MIDDAY,PS1,Ps 119:81-88 (XI: Caph),all,,Psalter.html
+2,SAT,MIDDAY,PS2,Ps 61,all,,Psalter.html
+2,SAT,MIDDAY,PS3,Ps 64,all,,Psalter.html
+3,SUN,V1,PS1,Ps 113,all,,Psalter.html
+3,SUN,V1,PS2,Ps 116:10-19,all,,Psalter.html
+3,SUN,V1,PS3,Phil 2:6-11,all,,Psalter.html
+3,SUN,OR,PS1,Ps 145:1-9,all,,Psalter.html
+3,SUN,OR,PS2,Ps 145:10-13a,all,,Psalter.html
+3,SUN,OR,PS3,Ps 145:13b-21,all,,Psalter.html
+3,SUN,LAUDS,PS1,Ps 93,all,,Psalter.html
+3,SUN,LAUDS,PS2,"Dan 3:57-88, 56",all,,Psalter.html
+3,SUN,LAUDS,PS3,Ps 148,all,,Psalter.html
+3,SUN,MIDDAY,PS1,Ps 118:1-9,all,,Psalter.html
+3,SUN,MIDDAY,PS2,Ps 118:10-18,all,,Psalter.html
+3,SUN,MIDDAY,PS3,Ps 118:19-29,all,,Psalter.html
+3,SUN,V2,PS1,"Ps 110:1-5, 7",all,,Psalter.html
+3,SUN,V2,PS2,Ps 111,all,,Psalter.html
+3,SUN,V2,PS3,Rev 19:1-7,all,Lent: 1 Pet 2:21-24,Psalter.html
+3,MON,OR,PS1,Ps 50:1-6,all,,Psalter.html
+3,MON,OR,PS2,Ps 50:7-15,all,,Psalter.html
+3,MON,OR,PS3,Ps 50:16-23,all,,Psalter.html
+3,MON,LAUDS,PS1,Ps 84,all,,Psalter.html
+3,MON,LAUDS,PS2,Isa 2:2-5,all,,Psalter.html
+3,MON,LAUDS,PS3,Ps 96,all,,Psalter.html
+3,MON,MIDDAY,PS1,Ps 119:89-96 (XII: Lamed),all,,Psalter.html
+3,MON,MIDDAY,PS2,Ps 71:1-13,all,,Psalter.html
+3,MON,MIDDAY,PS3,Ps 71:14-24,all,,Psalter.html
+3,MON,VESPERS,PS1,Ps 123,all,,Psalter.html
+3,MON,VESPERS,PS2,Ps 124,all,,Psalter.html
+3,MON,VESPERS,PS3,Eph 1:3-10,all,,Psalter.html
+3,TUE,OR,PS1,Ps 68:2-11,all,,Psalter.html
+3,TUE,OR,PS2,Ps 68:12-24,all,,Psalter.html
+3,TUE,OR,PS3,Ps 68:25-36,all,,Psalter.html
+3,TUE,LAUDS,PS1,Ps 85,all,,Psalter.html
+3,TUE,LAUDS,PS2,"Isa 26:1-4, 7-9, 12",all,,Psalter.html
+3,TUE,LAUDS,PS3,Ps 67,all,,Psalter.html
+3,TUE,MIDDAY,PS1,Ps 119:97-104 (XIII: Mem),all,,Psalter.html
+3,TUE,MIDDAY,PS2,Ps 74:1-12,all,,Psalter.html
+3,TUE,MIDDAY,PS3,Ps 74:13-23,all,,Psalter.html
+3,TUE,VESPERS,PS1,Ps 125,all,,Psalter.html
+3,TUE,VESPERS,PS2,Ps 131,all,,Psalter.html
+3,TUE,VESPERS,PS3,"Rev 4:11; 5:9, 10, 12",all,,Psalter.html
+3,WED,OR,PS1,Ps 89:2-19,all,,Psalter.html
+3,WED,OR,PS2,Ps 89:20-30,all,,Psalter.html
+3,WED,OR,PS3,Ps 89:31-38,all,,Psalter.html
+3,WED,LAUDS,PS1,Ps 86,all,,Psalter.html
+3,WED,LAUDS,PS2,Isa 33:13-16,all,,Psalter.html
+3,WED,LAUDS,PS3,Ps 98,all,,Psalter.html
+3,WED,MIDDAY,PS1,Ps 119:105-112 (XIV: Nun),all,,Psalter.html
+3,WED,MIDDAY,PS2,Ps 70,all,,Psalter.html
+3,WED,MIDDAY,PS3,Ps 75,all,,Psalter.html
+3,WED,VESPERS,PS1,Ps 126,all,,Psalter.html
+3,WED,VESPERS,PS2,Ps 127,all,,Psalter.html
+3,WED,VESPERS,PS3,Col 1:12-20,all,,Psalter.html
+3,THU,OR,PS1,Ps 89:39-46,all,,Psalter.html
+3,THU,OR,PS2,Ps 89:47-53,all,,Psalter.html
+3,THU,OR,PS3,Ps 90,all,,Psalter.html
+3,THU,LAUDS,PS1,Ps 87,all,,Psalter.html
+3,THU,LAUDS,PS2,Isa 40:10-17,all,,Psalter.html
+3,THU,LAUDS,PS3,Ps 99,all,,Psalter.html
+3,THU,MIDDAY,PS1,Ps 119:113-120 (XV: Samech),all,,Psalter.html
+3,THU,MIDDAY,PS2,"Ps 79:1-5, 8-11, 13",all,,Psalter.html
+3,THU,MIDDAY,PS3,Ps 80,all,,Psalter.html
+3,THU,VESPERS,PS1,Ps 132:1-10,all,,Psalter.html
+3,THU,VESPERS,PS2,Ps 132:11-18,all,,Psalter.html
+3,THU,VESPERS,PS3,Rev 11:17-18; 12:10b-12a,all,,Psalter.html
+3,FRI,OR,PS1,Ps 69:2-13,all,,Psalter.html
+3,FRI,OR,PS2,Ps 69:14-22,all,,Psalter.html
+3,FRI,OR,PS3,Ps 69:30-37,all,,Psalter.html
+3,FRI,LAUDS,PS1,Ps 51,all,,Psalter.html
+3,FRI,LAUDS,PS2,Jer 14:17-21,all,,Psalter.html
+3,FRI,LAUDS,PS3,Ps 100,all,,Psalter.html
+3,FRI,MIDDAY,PS1,Ps 22:2-12,all,,Psalter.html
+3,FRI,MIDDAY,PS2,Ps 22:13-23,all,,Psalter.html
+3,FRI,MIDDAY,PS3,Ps 22:24-32,all,,Psalter.html
+3,FRI,VESPERS,PS1,Ps 135:1-12,all,,Psalter.html
+3,FRI,VESPERS,PS2,Ps 135:13-21,all,,Psalter.html
+3,FRI,VESPERS,PS3,Rev 15:3-4,all,,Psalter.html
+3,SAT,OR,PS1,Ps 107:1-16,all,,Psalter.html
+3,SAT,OR,PS2,Ps 107:17-32,all,,Psalter.html
+3,SAT,OR,PS3,Ps 107:33-43,all,,Psalter.html
+3,SAT,LAUDS,PS1,Ps 119:145-152 (XIX: Koph),all,,Psalter.html
+3,SAT,LAUDS,PS2,"Wis 9:1-6, 9-11",all,,Psalter.html
+3,SAT,LAUDS,PS3,Ps 117,all,,Psalter.html
+3,SAT,MIDDAY,PS1,Ps 119:121-128 (XVI: Ain),all,,Psalter.html
+3,SAT,MIDDAY,PS2,Ps 34:2-11,all,,Psalter.html
+3,SAT,MIDDAY,PS3,Ps 34:12-23,all,,Psalter.html
+4,SUN,V1,PS1,Ps 122,all,,Psalter.html
+4,SUN,V1,PS2,Ps 130,all,,Psalter.html
+4,SUN,V1,PS3,Phil 2:6-11,all,,Psalter.html
+4,SUN,OR,PS1,Ps 24,all,,Psalter.html
+4,SUN,OR,PS2,Ps 66:2-12,all,,Psalter.html
+4,SUN,OR,PS3,Ps 66:13-20,all,,Psalter.html
+4,SUN,LAUDS,PS1,Ps 118,all,,Psalter.html
+4,SUN,LAUDS,PS2,Dan 3:52-57,all,,Psalter.html
+4,SUN,LAUDS,PS3,Ps 150,all,,Psalter.html
+4,SUN,MIDDAY,PS1,Ps 23,all,,Psalter.html
+4,SUN,MIDDAY,PS2,Ps 76:2-7,all,,Psalter.html
+4,SUN,MIDDAY,PS3,Ps 76:8-13,all,,Psalter.html
+4,SUN,V2,PS1,"Ps 110:1-5, 7",all,,Psalter.html
+4,SUN,V2,PS2,Ps 112,all,,Psalter.html
+4,SUN,V2,PS3,Rev 19:1-7,all,Lent: 1 Pet 2:21-24,Psalter.html
+4,MON,OR,PS1,Ps 73:1-12,all,,Psalter.html
+4,MON,OR,PS2,Ps 73:13-20,all,,Psalter.html
+4,MON,OR,PS3,Ps 73:21-28,all,,Psalter.html
+4,MON,LAUDS,PS1,Ps 90,all,,Psalter.html
+4,MON,LAUDS,PS2,Isa 42:10-16,all,,Psalter.html
+4,MON,LAUDS,PS3,Ps 135:1-12,all,,Psalter.html
+4,MON,MIDDAY,PS1,Ps 119:129-136 (XVII: Pe),all,,Psalter.html
+4,MON,MIDDAY,PS2,Ps 82,all,,Psalter.html
+4,MON,MIDDAY,PS3,Ps 120,all,,Psalter.html
+4,MON,VESPERS,PS1,Ps 136:1-9,all,,Psalter.html
+4,MON,VESPERS,PS2,Ps 136:10-26,all,,Psalter.html
+4,MON,VESPERS,PS3,Eph 1:3-10,all,,Psalter.html
+4,TUE,OR,PS1,Ps 102:2-12,all,,Psalter.html
+4,TUE,OR,PS2,Ps 102:13-23,all,,Psalter.html
+4,TUE,OR,PS3,Ps 102:24-29,all,,Psalter.html
+4,TUE,LAUDS,PS1,Ps 101,all,,Psalter.html
+4,TUE,LAUDS,PS2,"Dan 3:26, 27, 29, 34-41",all,,Psalter.html
+4,TUE,LAUDS,PS3,Ps 144:1-10,all,,Psalter.html
+4,TUE,MIDDAY,PS1,Ps 119:137-144 (XVIII: Sade),all,,Psalter.html
+4,TUE,MIDDAY,PS2,Ps 88:2-8,all,,Psalter.html
+4,TUE,MIDDAY,PS3,Ps 88:9-19,all,,Psalter.html
+4,TUE,VESPERS,PS1,Ps 137:1-6,all,,Psalter.html
+4,TUE,VESPERS,PS2,Ps 138,all,,Psalter.html
+4,TUE,VESPERS,PS3,"Rev 4:11; 5:9, 10, 12",all,,Psalter.html
+4,WED,OR,PS1,Ps 103:1-7,all,,Psalter.html
+4,WED,OR,PS2,Ps 103:8-16,all,,Psalter.html
+4,WED,OR,PS3,Ps 103:17-22,all,,Psalter.html
+4,WED,LAUDS,PS1,Ps 108,all,,Psalter.html
+4,WED,LAUDS,PS2,Isa 61:10—62:5,all,,Psalter.html
+4,WED,LAUDS,PS3,Ps 146,all,,Psalter.html
+4,WED,MIDDAY,PS1,Ps 119:145-152 (XIX: Koph),all,,Psalter.html
+4,WED,MIDDAY,PS2,Ps 94:1-11,all,,Psalter.html
+4,WED,MIDDAY,PS3,Ps 94:12-23,all,,Psalter.html
+4,WED,VESPERS,PS1,Ps 139:1-12,all,,Psalter.html
+4,WED,VESPERS,PS2,"Ps 139:13-18, 23-24",all,,Psalter.html
+4,WED,VESPERS,PS3,Col 1:12-20,all,,Psalter.html
+4,THU,OR,PS1,Ps 44:2-9,all,,Psalter.html
+4,THU,OR,PS2,Ps 44:10-17,all,,Psalter.html
+4,THU,OR,PS3,Ps 44:18-27,all,,Psalter.html
+4,THU,LAUDS,PS1,Ps 143:1-11,all,,Psalter.html
+4,THU,LAUDS,PS2,Isa 66:10-14a,all,,Psalter.html
+4,THU,LAUDS,PS3,Ps 147:1-11,all,,Psalter.html
+4,THU,MIDDAY,PS1,Ps 119:153-160 (XX: Resh),all,,Psalter.html
+4,THU,MIDDAY,PS2,Ps 128,all,,Psalter.html
+4,THU,MIDDAY,PS3,Ps 129,all,,Psalter.html
+4,THU,VESPERS,PS1,Ps 144:1-8,all,,Psalter.html
+4,THU,VESPERS,PS2,Ps 144:9-15,all,,Psalter.html
+4,THU,VESPERS,PS3,Rev 11:17-18; 12:10b-12a,all,,Psalter.html
+4,FRI,OR,PS1,Ps 78:1-16,seasonal,,Psalter.html
+4,FRI,OR,PS2,Ps 78:17-31,seasonal,,Psalter.html
+4,FRI,OR,PS3,Ps 78:32-39,seasonal,,Psalter.html
+4,FRI,OR,PS1,Ps 55:2-10a,per_annum,,Psalter.html
+4,FRI,OR,PS2,Ps 55:10b-15,per_annum,,Psalter.html
+4,FRI,OR,PS3,Ps 55:17-24,per_annum,,Psalter.html
+4,FRI,LAUDS,PS1,Ps 51,all,,Psalter.html
+4,FRI,LAUDS,PS2,"Tobit 13:8-11, 13-15",all,,Psalter.html
+4,FRI,LAUDS,PS3,Ps 147:12-20,all,,Psalter.html
+4,FRI,MIDDAY,PS1,Ps 119:161-168 (XXI: Shin),all,,Psalter.html
+4,FRI,MIDDAY,PS2,Ps 133,all,,Psalter.html
+4,FRI,MIDDAY,PS3,"Ps 140:2-9, 13-14",all,,Psalter.html
+4,FRI,VESPERS,PS1,Ps 145:1-13a,all,,Psalter.html
+4,FRI,VESPERS,PS2,Ps 145:13b-21,all,,Psalter.html
+4,FRI,VESPERS,PS3,Rev 15:3-4,all,,Psalter.html
+4,SAT,OR,PS1,Ps 78:40-51,seasonal,,Psalter.html
+4,SAT,OR,PS2,Ps 78:52-64,seasonal,,Psalter.html
+4,SAT,OR,PS3,Ps 78:65-72,seasonal,,Psalter.html
+4,SAT,OR,PS1,Ps 50:1-6,per_annum,,Psalter.html
+4,SAT,OR,PS2,Ps 50:7-15,per_annum,,Psalter.html
+4,SAT,OR,PS3,Ps 50:16-23,per_annum,,Psalter.html
+4,SAT,LAUDS,PS1,Ps 92,all,,Psalter.html
+4,SAT,LAUDS,PS2,Ezek 36:24-28,all,,Psalter.html
+4,SAT,LAUDS,PS3,Ps 8,all,,Psalter.html
+4,SAT,MIDDAY,PS1,Ps 119:169-176 (XXII: Tau),all,,Psalter.html
+4,SAT,MIDDAY,PS2,Ps 45:2-10,all,,Psalter.html
+4,SAT,MIDDAY,PS3,Ps 45:11-18,all,,Psalter.html
+*,*,COMPLEMENTARY.TERCE,PS1,Ps 120,all,,Psalter-Hours.html
+*,*,COMPLEMENTARY.TERCE,PS2,Ps 121,all,,Psalter-Hours.html
+*,*,COMPLEMENTARY.TERCE,PS3,Ps 122,all,,Psalter-Hours.html
+*,*,COMPLEMENTARY.SEXT,PS1,Ps 123,all,,Psalter-Hours.html
+*,*,COMPLEMENTARY.SEXT,PS2,Ps 124,all,,Psalter-Hours.html
+*,*,COMPLEMENTARY.SEXT,PS3,Ps 125,all,,Psalter-Hours.html
+*,*,COMPLEMENTARY.NONE,PS1,Ps 126,all,,Psalter-Hours.html
+*,*,COMPLEMENTARY.NONE,PS2,Ps 127,all,,Psalter-Hours.html
+*,*,COMPLEMENTARY.NONE,PS3,Ps 128,all,,Psalter-Hours.html
+*,SUN,COMPLINE1,PS1,Ps 4,all,,Psalter-Hours.html
+*,SUN,COMPLINE1,PS2,Ps 134,all,,Psalter-Hours.html
+*,SUN,COMPLINE1,LB,Deut 6:4-7,all,,Psalter-Hours.html
+*,SUN,COMPLINE,PS1,Ps 91,all,,Psalter-Hours.html
+*,SUN,COMPLINE,LB,Rev 22:4-5,all,,Psalter-Hours.html
+*,MON,COMPLINE,PS1,Ps 86,all,,Psalter-Hours.html
+*,MON,COMPLINE,LB,1 Thess 5:9-10,all,,Psalter-Hours.html
+*,TUE,COMPLINE,PS1,Ps 143:1-11,all,,Psalter-Hours.html
+*,TUE,COMPLINE,LB,1 Peter 5:8-9a,all,,Psalter-Hours.html
+*,WED,COMPLINE,PS1,Ps 31:2-6,all,,Psalter-Hours.html
+*,WED,COMPLINE,PS2,Ps 130,all,,Psalter-Hours.html
+*,WED,COMPLINE,LB,Eph 4:26-27,all,,Psalter-Hours.html
+*,THU,COMPLINE,PS1,Ps 16,all,,Psalter-Hours.html
+*,THU,COMPLINE,LB,1 Thess 5:23,all,,Psalter-Hours.html
+*,FRI,COMPLINE,PS1,Ps 88,all,,Psalter-Hours.html
+*,FRI,COMPLINE,LB,Jer 14:9a,all,,Psalter-Hours.html

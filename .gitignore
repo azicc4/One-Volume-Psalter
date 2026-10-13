@@ -1,0 +1,27 @@
+# Source PDFs (large, copyrighted) — kept locally, hashed in sources/manifest.json
+*.pdf
+!book/out/*.pdf
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Build artifacts (regenerated deterministically)
+build/
+book/generated/
+book/*.aux
+book/*.log
+book/*.fls
+book/*.fdb_latexmk
+book/*.out
+book/*.toc
+book/*.xdv
+book/*.synctex.gz
+
+# Generated reference catalog (rebuild with: python -m lh catalog)
+reference/
+
+# Cached third-party web sources (re-download with: python -m lh fetch); URLs + hashes in sources/manifest.json
+sources/web/

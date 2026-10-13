@@ -1,0 +1,26 @@
+{
+  "felix_just/Psalter.html": {
+    "url": "https://catholic-resources.org/LoH/Psalter.html",
+    "sha256": "8a1b416c3cd48a196fdea60e4fea9ea763ff4c56b551c63cd4bd73c07a36045c"
+  },
+  "felix_just/Psalter-Hours.html": {
+    "url": "https://catholic-resources.org/LoH/Psalter-Hours.html",
+    "sha256": "7f247a5dd058a25db9bc1174dab0901f8b2f4e7a68f0dfb81b0698c3873e4d60"
+  },
+  "felix_just/Psalter-Index.html": {
+    "url": "https://catholic-resources.org/LoH/Psalter-Index.html",
+    "sha256": "9ac583542f207428ec857d1e1753efb16118ba6b039a681d0c6d1f1705d8c12f"
+  },
+  "felix_just/Psalter-Omissions.html": {
+    "url": "https://catholic-resources.org/LoH/Psalter-Omissions.html",
+    "sha256": "f9aa30fd719f87268ef94cf7be73ec32fa70c2b586e8064bf2246e342b8a52b7"
+  },
+  "felix_just/Hours-Ordinary.html": {
+    "url": "https://catholic-resources.org/LoH/Hours-Ordinary.html",
+    "sha256": "b78a4194e182d524d146665dfd93caacdc618e5664a9f9b0a272f95b04e0c2b8"
+  },
+  "nova_vulgata/psalmorum.html": {
+    "url": "https://www.vatican.va/archive/bible/nova_vulgata/documents/nova-vulgata_vt_psalmorum_lt.html",
+    "sha256": "e508ed1c4add8cd5f6962fcfaa6c70848023553307eb95ba1d9b62ed3575fb42"
+  }
+}
