@@ -13,6 +13,19 @@
    merging, which avoids conflicts. (`book/out/poc.pdf` likewise.)
 5. Open a PR to `main` using the template below; link it from the `TODO.md` item; set status `[x]` when merged.
 
+## Working in a git worktree
+
+The PDFs, their L1 dumps and the cached web sources are gitignored, so a fresh worktree does not have them. Point the
+worktree at the main checkout (read-only use) and reuse its virtualenv:
+
+```bash
+export LH_PDF_DIR="<main checkout>"              # the eight LH-*.pdf
+export LH_L1_DIR="<main checkout>/build/l1"      # PyMuPDF dumps (all eight already extracted)
+export LH_WEB_DIR="<main checkout>/sources/web"  # Felix Just + Nova Vulgata
+"<main checkout>/.venv/Scripts/python" -m lh build PA LQP ADV:4-1198 <KEY>   # run from the worktree root
+```
+Each worktree builds its own `build/lh.sqlite` and `build/latex/`; never write into the shared `build/l1`.
+
 ## Verification gates (all must pass before a PR)
 
 ```bash

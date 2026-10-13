@@ -10,7 +10,7 @@ import json
 import re
 import sqlite3
 
-from lh.config import DB_PATH, PDFS, ROOT
+from lh.config import DB_PATH, PDFS, ROOT, pdf_path
 from lh.model.canon import fold, paragraphs, plain
 from lh.model.days import HOUR_NAMES
 
@@ -56,7 +56,7 @@ def obj_html(otype: str, p: dict) -> str:
 def build_catalog(db=DB_PATH) -> str:
     con = sqlite3.connect(db)
     con.row_factory = sqlite3.Row
-    pdf_files = {k: (ROOT / v).as_uri() for k, v in PDFS.items()}
+    pdf_files = {k: pdf_path(k).as_uri() for k in PDFS}
     flags = {}
     for subj, status in con.execute("SELECT subject, status FROM check_result WHERE check_name='variants'"):
         for oid in subj.split(" ~ "):
