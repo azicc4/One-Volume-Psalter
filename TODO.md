@@ -25,7 +25,7 @@ Order: WS0 first (lead), then WS1–WS5 in parallel (one git worktree + PR each)
 | WS4a | [x] | `ws/spa-saints` (merged PR #6 https://github.com/azicc4/One-Volume-Psalter/pull/6) | **SPA** — Proper of Saints, Ordinary Time: date/title/rank lines; ALTERA sections; Assumption title quirk (SPA 1111); calendar keys/ranks from LitCal; flag post-2010 calendar changes | coverage 100%; every saint mapped to a LitCal key |
 | WS4b | [x] | `ws/sanctis-seasons` (merged PR #5 https://github.com/azicc4/One-Volume-Psalter/pull/5) | **SP, SQ, SADV** — remaining Sanctis files: commemorations in Lent; overlaps across files deduplicated by date | coverage 100%; no saint printed twice |
 | WS5 | [x] | `ws/pa-residue` (merged PR #3 https://github.com/azicc4/One-Volume-Psalter/pull/3) | **PA residue** — Saturday memorial of the BVM office, hymns *ad libitum*, T-UNP | coverage 100% of PA |
-| WS6 | [ ] | | **Redundancy engine + full book**: assign each object one home (Ordinary → Psalter → Hymns → Proper of Time → Commons → Saints → Readings); Saints texts equal to a Common become "de Communi" references; generate all sections in book order; page-budget report | full book builds; 0 undefined refs; page budget per section reported |
+| WS6 | [~] | `ws/full-book` | **Redundancy engine + full book**: assign each object one home (Ordinary → Psalter → Hymns → Proper of Time → Commons → Saints → Readings); Saints texts equal to a Common become "de Communi" references; generate all sections in book order; page-budget report | full book builds; 0 undefined refs; page budget per section reported |
 | WS7 | [ ] | lead + owner | Resolve the review items in §3 via `data/overrides/` with evidence | each item closed with an override or a "no change" note |
 
 ## 2. Book and layout
