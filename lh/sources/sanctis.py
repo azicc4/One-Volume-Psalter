@@ -462,6 +462,14 @@ def check_index(con, source: str, record) -> dict:
     return {"days_in_index": n, "mismatches": mism[:20], "n_mismatch": len(mism)}
 
 
+def copies_report(source: str, db=None) -> None:
+    """Copies-report hook (lh/verify/copies.py): a Sanctis volume has no duplicate copies to collapse. Its COPIES are
+    ALTERA offices — alternative offices of a saint (as pastor, virgin, feast …) whose texts differ by design — and
+    its per-printing forms (commemoratio, propria, sollemnitas) print different parts of the day, so the generic
+    report would flag every difference. Printings of one day in several volumes: reports/sanctis_overlaps.md."""
+    return None
+
+
 # --------------------------------------------------------------------------------------------- calendar changes
 
 def calendar_changes(since_year: int) -> list[dict]:

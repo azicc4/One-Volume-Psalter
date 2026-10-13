@@ -14,7 +14,7 @@ Overlaps with SQ (Feb–Mar), SP (May–Jun) and SADV (30 Nov): reports/sanctis_
 from __future__ import annotations
 
 from lh.sources import sanctis
-from lh.sources.sanctis import check_index, classify_lines, required_slots  # noqa: F401  (plug-in hooks)
+from lh.sources.sanctis import check_index, classify_lines, copies_report, required_slots  # noqa: F401  (hooks)
 
 KEY = "SPA"
 TITLE = "Proprium de Sanctis — Tempus per Annum"

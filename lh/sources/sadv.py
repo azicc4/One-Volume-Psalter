@@ -13,7 +13,8 @@ Overlap: SPA (St Andrew, 30 Nov) — see reports/sanctis_overlaps.md. Header par
 """
 from __future__ import annotations
 
-from lh.sources.sanctis import check_index, classify_lines, day_meta, required_slots, sanct_day_info  # noqa: F401  (hooks)
+from lh.sources.sanctis import (  # noqa: F401  (plug-in hooks)
+    check_index, classify_lines, copies_report, day_meta, required_slots, sanct_day_info)
 
 KEY = "SADV"
 TITLE = "Proprium de Sanctis — Tempus Adventus et Nativitatis"

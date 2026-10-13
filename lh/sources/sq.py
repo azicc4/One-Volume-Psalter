@@ -9,7 +9,8 @@ Header parsing, day keys and index check: lh/sources/sanctis.py.
 """
 from __future__ import annotations
 
-from lh.sources.sanctis import check_index, classify_lines, day_meta, required_slots, sanct_day_info  # noqa: F401  (hooks)
+from lh.sources.sanctis import (  # noqa: F401  (plug-in hooks)
+    check_index, classify_lines, copies_report, day_meta, required_slots, sanct_day_info)
 
 KEY = "SQ"
 TITLE = "Proprium de Sanctis — Tempus Quadragesimæ"
