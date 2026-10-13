@@ -14,6 +14,9 @@ LABELS = (
     "HYMNUS", "PSALMODIA", "LECTIO PRIOR", "LECTIO ALTERA", "LECTIO BREVIS", "RESPONSORIUM BREVE",
     "RESPONSORIUM", "CANTICUM EVANGELICUM", "PRECES",
 )
+# Easter Vigil in place of the Office of Readings of Easter Sunday (GILH 212; LQP 1192-1198): numbered readings, each
+# followed by its chant and prayer. Only LQP prints these labels.
+VIGIL_READINGS = {"LECTIO PRIMA": "LECT1", "LECTIO SECUNDA": "LECT2", "LECTIO TERTIA": "LECT3", "LECTIO QUARTA": "LECT4"}
 ROMAN_RE = re.compile(r"^(?:[IVX]+)(?: \([A-Za-z]+\))?$")          # section numeral, e.g. "II", "XIX (Coph)"
 PSALM_HEAD_RE = re.compile(r"^Psalmus (\d+)(?: ([AB]))?(?: \((\d+)(?: ([AB]))?\))?(?:, (.+))?$")
 ANNO_RE = re.compile(r"^Anno ([ABC])$")
@@ -278,7 +281,23 @@ class HourParser:
             else:
                 self.i += 1
                 self.emit("unparsed", [L], data={"why": f"kind {k} in section {self.section!r}"})
+        if self.h.code == "MIDDAY":
+            self.infer_terce()
         return self.els
+
+    def infer_terce(self):
+        """Seasonal Hora media whose 'Ad Tertiam' sub-header is missing before Terce's short reading (LQP 1500):
+        the closing elements between the psalmody and 'Ad Sextam' belong to Terce."""
+        subs = [i for i, e in enumerate(self.els) if e.slot == "SUBHOUR"]
+        last_ps = max((i for i, e in enumerate(self.els) if e.slot.startswith("PS")), default=None)
+        if last_ps is None:
+            return
+        after = [i for i in subs if i > last_ps]
+        if not after or self.els[after[0]].sub != "SEXT":
+            return                          # 'Ad Tertiam' printed (or a layout without per-hour sections)
+        for e in self.els[last_ps + 1:after[0]]:
+            if e.slot in ("LB", "V", "ORATIO", "LECTIO BREVIS") and not e.sub:
+                e.sub = "TERCE"
 
     def section_was_psalmody(self):
         return any(e.slot.startswith("PS") for e in self.els)
@@ -307,6 +326,12 @@ class HourParser:
             data["dagger"] = True
         if prefix:
             data["prefix"] = prefix
+        prev = self.els[-1] if self.els else None
+        if prev is not None and prev.type == "rubric" and prev.source_text.startswith("Loco responsorii"):
+            # Triduum / Easter Octave: "Loco responsorii dicitur: Ant. Christus factus est / Hæc dies" — the antiphon
+            # takes the short responsory's place (LQP 1129-1370)
+            self.emit("ant", lines, "RB", data)
+            return
         prior = self.ants_seen.get((self.section, self.sub, text))
         repeat = prior is not None and (num is None or num == prior.data["num"])
         if self.section == "CANTICUM EVANGELICUM":
@@ -317,6 +342,8 @@ class HourParser:
             slot = "ANT"          # seasonal Hora media: per-hour antiphon after the hymn
         elif self.section in ("PSALMODIA",) or self.h.code in ("MIDDAY",):
             slot = f"ANT{num}" if num else "ANT"
+        elif num and self.section == "HYMNUS":
+            slot = f"ANT{num}"    # numbered psalmody antiphon whose PSALMODIA label is not printed (LQP 2286)
         else:
             slot = "ANT"
         if repeat:
@@ -358,7 +385,8 @@ class HourParser:
         t = L.text
         head = []
         is_psalm = bool(PSALM_HEAD_RE.match(t)) or t == "Canticum" or ROMAN_RE.match(t) or (
-            self.section == "CANTICUM EVANGELICUM" and re.match(r"^Lc \d", t))
+            self.section == "CANTICUM EVANGELICUM" and re.match(r"^Lc \d", t)) or (
+            self.section in VIGIL_READINGS and re.match(r"^Psalmi \d", t))
         if not is_psalm:
             # centred red line outside psalmody: reading refs/titles are handled in parse_text_block;
             # here it's a free-standing rubric (e.g. a title inside a reading section)
@@ -400,6 +428,11 @@ class HourParser:
                 data["canticle"] = True
                 data["ref"] = heads[1] if len(heads) > 1 else ""
                 rest = heads[2:]
+            elif heads[0].startswith("Psalmi "):
+                # portions of several psalms sung as one chant: "Psalmi 41 (42), 2-3. 5 bcd; 42 (43), 3-4" (LQP 1195)
+                data["canticle"] = True
+                data["ref"] = heads[0]
+                rest = heads[1:]
             else:  # Gospel canticle: "Lc 1, 68-79"
                 data["canticle"] = True
                 data["gospel"] = True
@@ -583,8 +616,14 @@ class HourParser:
             self.emit("te_deum", lines, "TE_DEUM", {"lines": [[X.kind, markup(X)] for X in lines]})
             self.section = ""
             return
-        if sec in ("LECTIO PRIOR", "LECTIO ALTERA"):
+        if sec in ("LECTIO PRIOR", "LECTIO ALTERA") or sec in VIGIL_READINGS:
             self.parse_reading(sec)
+            return
+        if sec.startswith("ANTIPHONA FINALIS"):
+            # Marian antiphon printed in full (Eastertide Compline: Regína cæli, GILH 92), not linked to the Ordinary
+            lines = self.take_while(lambda X: X.kind in ("text", "italic"))
+            self.emit("text", lines, "MARIAN", {"lines": [[xclass(X), markup(X)] for X in lines]})
+            self.section = ""
             return
         if self.dash_ahead():
             # preces without their PRECES label (LQP 2522) or resumed after an interruption ("Vel aliæ:", PA 6277)
@@ -616,7 +655,7 @@ class HourParser:
             X = self.L[self.i]
             if X.kind in ("label", "hour", "subhour", "link") or (X.kind == "rubric_c" and X.text == "Oratio"):
                 break
-            if X.kind in ("V", "R", "ant", "dash"):
+            if X.kind in ("V", "R", "ant", "dash") or X.text.startswith("Hymnus Te Deum"):
                 break
             lines.append(X)
             self.i += 1
@@ -628,8 +667,8 @@ class HourParser:
                 intro.append(markup(X))       # "Incipit liber …" / "Ex Epístola sancti …" (flush left)
             else:
                 body.append([xclass(X), markup(X)])
-        self.emit("reading", lines, "LECT1" if sec == "LECTIO PRIOR" else "LECT2",
-                  {"intro": intro, "meta": meta, "lines": body})
+        slot = VIGIL_READINGS.get(sec) or ("LECT1" if sec == "LECTIO PRIOR" else "LECT2")
+        self.emit("reading", lines, slot, {"intro": intro, "meta": meta, "lines": body})
 
     def parse_preces(self):
         intro, response, petitions, lines = [], "", [], []

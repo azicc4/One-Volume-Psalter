@@ -58,6 +58,10 @@ hymn printed elsewhere: "Vel alter", "Ad libitum dici potest hymnus …"), `MEMO
 `LECT1`/`LECT2` (a reading given by reference), `CONCLUSION`, `MARIAN`, `COMPLEMENTARY`, `SUBST`, `LINK`; each resolved in
 `link_target`. Conditions in `cond`: `{"year": "A"}`, `{"variant": "night"}`, `{"alt": "Vel:"}`, `{"choice": "3"}`
 (numbered alternatives "1 …" … "6 …": Gospel antiphons and prayers of the BVM on Saturday).
+Substitutions: in the Triduum and the Easter Octave the `RB` slot holds an antiphon (*Loco responsorii dicitur:
+Christus factus est / Hæc dies*); in Eastertide Compline the `MARIAN` slot holds the *Regína cæli* printed in full
+(a `text` object) instead of a link. Easter Sunday's Office of Readings is the Easter Vigil (GILH 212): `LECT1..4`,
+each followed by its chant (`PS1..3`) and prayer, then `TE_DEUM`, `ORATIO`.
 
 ## Attribution ("home") — WS6
 

@@ -12,6 +12,10 @@ Each plug-in module defines
                  (e.g. Advent once per possible start date); hours in a copy get that label in hour_instance.copy.
   APPENDIX_DAYS  optional {appendix chapter title: day record} for ALIA EX … chapters that are days of their own
                  (e.g. PA: the Saturday memorial of the BVM → MEM.BVM_SATURDAY); others keep ORD./PROP. keys.
+  STRUCTURE_EXCEPTIONS
+                 optional {(day_key, hour): {"missing": [slots], "reason": str}}: GILH-required slots the source
+                 itself omits for that hour (data stay as printed; reason cites the page, the GILH paragraph and the
+                 TODO.md §3 item). The structure check (lh/verify/checks.py) records them as "excused".
 
 Plug-ins for sources that are not parsed yet raise NotImplementedError in day_info; their workstream in TODO.md
 implements them.
