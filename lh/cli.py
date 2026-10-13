@@ -76,6 +76,11 @@ def main(argv=None):
         print(f"  coverage gaps per source: {cov}  (reports/coverage_<KEY>.md)")
         if "sanctis_overlaps" in out:
             print(f"  Sanctis overlaps: {out['sanctis_overlaps']}  (reports/sanctis_overlaps.md)")
+        for k, v in out.items():
+            if k.startswith("copies:"):
+                print(f"  copies {k[7:]}: {v['same']}/{v['multi']} repeated day/hours collapse; {v['differ']} differ "
+                      f"({v['explained']} explained, {v['review']} unexplained); unexplained calendar findings {v['calendar']}  "
+                      f"(reports/{k[7:].lower()}_copies.md)")
     elif args.cmd == "psalter":
         from lh.psalter.compare import compare
         from lh.psalter.felix import import_felix

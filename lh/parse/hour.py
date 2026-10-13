@@ -19,9 +19,13 @@ LABELS = (
 VIGIL_READINGS = {"LECTIO PRIMA": "LECT1", "LECTIO SECUNDA": "LECT2", "LECTIO TERTIA": "LECT3", "LECTIO QUARTA": "LECT4"}
 ROMAN_RE = re.compile(r"^(?:[IVX]+)(?: \([A-Za-z]+\))?$")          # section numeral, e.g. "II", "XIX (Coph)"
 PSALM_HEAD_RE = re.compile(r"^Psalmus (\d+)(?: ([AB]))?(?: \((\d+)(?: ([AB]))?\))?(?:, (.+))?$")
+# "Canticum" alone (reference on the next line), numbered "Canticum I" (ADV 8416, vigil canticles) or with the
+# reference on the same line "Canticum Eph 1, 3-10" (ADV 286, Immaculate Conception Vespers)
+CANT_HEAD_RE = re.compile(r"^Canticum(?: ([IVX]+|[1-4]? ?[A-Z][a-z]+ \d.*))?$")
 ANNO_RE = re.compile(r"^Anno ([ABC])$")
 ALT_RE = re.compile(r"^(?:vel|aut)\b|^Ad libitum etiam", re.I)   # "Vel:", "Vel alia:", "vel de Communi…", "aut de die…"
-SANCTIS_SOURCES = {"SP", "SQ", "SADV", "COM"}   # WS4b parser refinements (see is_inline_alt_ant, parse_ant, parse_rubric)
+SANCTIS_SOURCES = {"SP", "SQ", "SADV", "COM", "ADV"}   # WS4b parser refinements (is_inline_alt_ant, parse_ant, parse_rubric)
+# (ADV opted in by WS1: its Epiphany Complines print "Vel, si … dominica:" alternative orations, ADV 1090, 1117 …)
 # complementary psalmody substitutes (COM 1684-1693), red heading + blue link: "Psalmus 126 (127) vel 130 (131)"
 PSALM_VEL_RE = re.compile(r"^(Psalmus \d+ \(\d+\)),? vel (\d+ \(\d+\))$")
 # Sub-variant rubrics (Commons, Office of the Dead): the following text applies only to one kind of saint or occasion,
@@ -99,6 +103,26 @@ class Outside:
     day: str
 
 
+def _pretitle_enabled(pdf: str) -> bool:
+    try:
+        from lh.sources import plugin
+        return bool(getattr(plugin(pdf), "PRE_TITLE_LINES", False))
+    except (KeyError, ImportError):
+        return False
+
+
+def _n_pretitle(lines: list[Line], day_line: Line) -> int:
+    """Number of trailing lines that are a centred date/occasion printed at the top of the day title's page
+    ("Die 25 decembris", "Dominica infra octavam Nativitatis", ADV 713/1919): they belong to the next day."""
+    n = 0
+    for X in reversed(lines):
+        if X.page == day_line.page and X.kind in ("text", "subhour") and X.x0 > 150:
+            n += 1
+        else:
+            break
+    return n if n and lines[-n].page_top else 0
+
+
 def segment(lines: list[Line], pdf: str) -> tuple[list[Hour], list[Outside]]:
     """Split the line stream into hour instances. Returns (hours, lines outside any hour, with their role)."""
     hours: list[Hour] = []
@@ -106,6 +130,7 @@ def segment(lines: list[Line], pdf: str) -> tuple[list[Hour], list[Outside]]:
     section, day, day_extra = "", "", []
     cur: Hour | None = None
     prev_kind = ""
+    pretitle = _pretitle_enabled(pdf)     # source plug-in opts in (PRE_TITLE_LINES = True)
     for L in lines:
         k = L.kind
         if k == "week":
@@ -113,9 +138,22 @@ def segment(lines: list[Line], pdf: str) -> tuple[list[Hour], list[Outside]]:
             cur = None
             outside.append(Outside(L, "heading", section, day))
         elif k == "day":
+            pre: list[Line] = []
+            if pretitle and prev_kind != "day":
+                if cur is not None:                 # absorbed at the end of the previous hour
+                    n = _n_pretitle(cur.lines[1:], L)
+                    if n:
+                        pre = cur.lines[-n:]
+                        del cur.lines[-n:]
+                else:                               # after a section heading: recorded as the previous day's preamble
+                    n = _n_pretitle([o.line for o in outside], L)
+                    if n:
+                        pre = [o.line for o in outside[-n:]]
+                        del outside[-n:]
             day = f"{day} / {L.text}" if prev_kind == "day" else L.text
-            day_extra = []
+            day_extra = [X.text for X in pre]
             cur = None
+            outside += [Outside(X, "day_extra", section, day) for X in pre]
             outside.append(Outside(L, "heading", section, day))
         elif k == "hour":
             cur = Hour(pdf, section, day, list(day_extra), L.text, HOUR_HEADERS[L.text], lines=[L])
@@ -302,6 +340,11 @@ class HourParser:
                 self.emit("marker", [L], "YEAR", {"year": self.cond["year"]}, keep_cond=True)
             elif k == "ant":
                 self.parse_ant()
+            elif (k == "text" and self.section == "CANTICUM EVANGELICUM" and self.els
+                  and self.els[-1].slot == "YEAR"):
+                self.parse_ant(bare=True)   # Gospel antiphon for one year printed without "Ant." (ADV 37)
+            elif self.section == "EVANGELIUM" and k in ("text", "italic", "verse", "rubric_c"):
+                self.parse_reading("EVANGELIUM")
             elif k == "text" and t.startswith("Deus, in adiutórium") and not self.section:
                 self.i += 1   # opening printed without its ℣ sign (source quirk, e.g. PA 277)
                 self.emit("versicle", [L], "OPENING", {"pairs": [["V", markup(L)]], "nosign": True})
@@ -424,16 +467,20 @@ class HourParser:
 
     # -- antiphons
     def parse_ant(self, bare: bool = False):
-        """bare: an alternative antiphon printed as plain text after a "Vel:" rubric (no red label run)."""
+        """bare: an antiphon printed as plain text without its red label — an alternative after a "Vel:" rubric
+        (COM), or a Year A/B/C Gospel antiphon after "Anno X" (ADV 37)."""
         first = self.L[self.i]
         self.i += 1
         cont = self.take_while(lambda L: L.kind in ("text", "italic") and xclass(L) == 0 and not L.block_start)
-        if not cont:
-            # page-break continuation: next page starts flush-left with lowercase or punctuation-led text
-            nxt = self.peek()
-            if nxt and nxt.page_top and nxt.kind == "text" and xclass(nxt) == 0 and nxt.text[:1].islower():
-                cont = [nxt]
-                self.i += 1
+        # page-break continuation: next page starts flush-left with lowercase or punctuation-led text (also after
+        # a multi-line antiphon, ADV 1705), or (ADV 1748) with a capital when the antiphon so far stops mid-sentence
+        nxt = self.peek()
+        last = cont[-1] if cont else first
+        if nxt and nxt.page_top and nxt.kind == "text" and xclass(nxt) == 0 and (
+                nxt.text[:1].islower() or not re.search(r"[.!?:;»)]\s*†?$", last.text)):
+            self.i += 1
+            cont = cont + [nxt] + self.take_while(
+                lambda L: L.kind in ("text", "italic") and xclass(L) == 0 and not L.block_start)
         if self.h.pdf in SANCTIS_SOURCES:
             # an unfinished antiphon continues across a block or page break (SP 476 "turbam multam", SQ 55)
             while True:
@@ -555,7 +602,12 @@ class HourParser:
         L = self.L[self.i]
         t = L.text
         head = []
-        is_psalm = bool(PSALM_HEAD_RE.match(t) or PSALM_VEL_RE.match(t)) or t == "Canticum" or ROMAN_RE.match(t) or (
+        nxt = self.peek(1)
+        # heading wrapped after the comma: "Psalmus 68 (69)," / "2-22. 30-37" (ADV 1685, LQP 595)
+        wrapped = t.endswith(",") and nxt is not None and nxt.kind == "rubric_c" and bool(
+            PSALM_HEAD_RE.match(f"{t} {nxt.text}"))
+        is_psalm = bool(PSALM_HEAD_RE.match(t) or PSALM_VEL_RE.match(t)) or wrapped or CANT_HEAD_RE.match(t) or (
+            ROMAN_RE.match(t)) or (
             self.section == "CANTICUM EVANGELICUM" and re.match(r"^Lc \d", t)) or (
             self.section in VIGIL_READINGS and re.match(r"^Psalmi \d", t))
         if not is_psalm:
@@ -590,6 +642,8 @@ class HourParser:
             if mv:
                 data["alt_psalm"] = mv.group(2)       # "Psalmus 121 (122), vel 128 (129)" (COM 1684): either psalm
             m = PSALM_HEAD_RE.match(mv.group(1) if mv else heads[0])
+            if wrapped:
+                m = PSALM_HEAD_RE.match(f"{heads[0]} {heads[1]}")
             if m:
                 vul, va, heb, ha, rng = m.groups()
                 if heb:   # "Psalmus 9 A (9)", "Psalmus 18 B (19 B)", "Psalmus 114 (116 A)"
@@ -597,11 +651,16 @@ class HourParser:
                 else:     # same number in both systems: "Psalmus 6", "Psalmus 149"
                     hebr = vul + (va or "")
                 data["psalm"] = {"vulg": vul + (va or ""), "hebr": hebr, "range": rng or ""}
-                rest = heads[1:]
-            elif heads[0] == "Canticum":
+                rest = heads[2:] if wrapped else heads[1:]
+            elif CANT_HEAD_RE.match(heads[0]):
                 data["canticle"] = True
-                data["ref"] = heads[1] if len(heads) > 1 else ""
-                rest = heads[2:]
+                arg = CANT_HEAD_RE.match(heads[0]).group(1) or ""
+                if arg and not ROMAN_RE.match(arg):     # "Canticum Eph 1, 3-10": reference on the same line
+                    data["ref"] = arg
+                    rest = heads[1:]
+                else:                                   # "Canticum" / "Canticum I", reference on the next line
+                    data["ref"] = heads[1] if len(heads) > 1 else ""
+                    rest = heads[2:]
             elif heads[0].startswith("Psalmi "):
                 # portions of several psalms sung as one chant: "Psalmi 41 (42), 2-3. 5 bcd; 42 (43), 3-4" (LQP 1195)
                 data["canticle"] = True
@@ -747,6 +806,8 @@ class HourParser:
         elif "non dicitur Glória Patri" in plain or "non dicitur Gloria Patri" in plain:
             if self.last_psalm is not None:
                 self.last_psalm.data["no_gloria"] = True
+        elif plain.startswith("Deinde legitur Evangelium"):
+            self.section = "EVANGELIUM"     # Christmas vigil: canticles, then the Gospel (ADV 8418)
         sv = subvariant(plain)
         if sv:
             self.cond["for"] = sv
@@ -846,6 +907,8 @@ class HourParser:
                 break
             if X.kind in ("V", "R", "ant", "dash") or X.text.startswith("Hymnus Te Deum"):
                 break
+            if sec == "EVANGELIUM" and X.kind == "rubric" and lines:
+                break                         # "Vel forma breviore:" starts the alternative (shorter) Gospel
             lines.append(X)
             self.i += 1
         intro, meta, body = [], [], []
@@ -856,7 +919,7 @@ class HourParser:
                 intro.append(markup(X))       # "Incipit liber …" / "Ex Epístola sancti …" (flush left)
             else:
                 body.append([xclass(X), markup(X)])
-        slot = VIGIL_READINGS.get(sec) or ("LECT1" if sec == "LECTIO PRIOR" else "LECT2")
+        slot = VIGIL_READINGS.get(sec) or {"LECTIO PRIOR": "LECT1", "EVANGELIUM": "GOSPEL"}.get(sec, "LECT2")
         self.emit("reading", lines, slot, {"intro": intro, "meta": meta, "lines": body})
 
     def parse_preces(self):

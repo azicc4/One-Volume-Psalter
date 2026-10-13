@@ -260,7 +260,8 @@ def restore(otype: str, payload: dict, extra: dict, slot: str = "") -> str:
     if otype == "hymn":
         return " ".join(l for st in payload["stanzas"] for l in st)
     if otype == "ant":
-        head = "" if extra.get("bare") else (extra.get("lead") or "Ant.")   # lead "Vel:"; bare: no label (COM 1300)
+        # lead "Vel:"; bare: no label (COM 1300; ADV 37 Year A/B/C Gospel antiphons)
+        head = "" if extra.get("bare") else (extra.get("lead") or "Ant.")
         if extra.get("num"):
             head += f" {extra['num']}"
         if extra.get("prefix"):

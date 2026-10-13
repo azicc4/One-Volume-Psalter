@@ -40,7 +40,9 @@ antiphon number, intonation dagger, printed Gloria Patri, heading lines, strophe
 
 ## Day keys
 
-`OT.NN.DOW` · `ADV.N.DOW` · `ADV.DEC17` … `ADV.DEC24` · `CHR.DEC26` … `CHR.JAN07` · `LENT.0.WED` (Ash Wednesday) ·
+`OT.NN.DOW` · `ADV.N.DOW` · `ADV.DEC17` … `ADV.DEC24` · `CHR.DEC26` … `CHR.DEC31` · `CHR.JAN02` … `CHR.JAN07`
+(weekdays before Epiphany, texts by date) · `CHR.POSTEPI.JAN07` … `CHR.POSTEPI.JAN12` (the k-th weekday after Epiphany
+takes the texts of (6+k) January, whatever its date — see `lh/sources/adv.py`) · `CHR.2.SUN` · `LENT.0.WED` (Ash Wednesday) ·
 `LENT.N.DOW` · `HOLY.DOW` · `TRIDUUM.THU/FRI/SAT` · `EAS.1.SUN` · `EAS.OCT.DOW` · `EAS.N.DOW` · `SOL.<NAME>` ·
 `FEAST.<NAME>` · `ORD.<CHAPTER>` (Ordinary appendix; other sources prefixed `LQP.ORD.…`) · `PROP.<CHAPTER>` (proper
 appendix, e.g. `PROP.HYMNS_AD_LIBITUM`) · `MEM.BVM_SATURDAY` (Saturday memorial of the BVM, PA 6269; appendix chapters
@@ -52,6 +54,10 @@ a title slug — `SANCT.02-05.agathae` — until LitCal keys land; saints the Pr
 Commons' sub-variants — pope, bishop, virgin martyr … — are `cond.for`, not day keys) · `DEAD` (Office of the Dead).
 DOW = SUN MON TUE WED THU FRI SAT.
 
+Advent/Christmas printings are told apart by `copy` = start date of the copy (`27 Nov` … `3 Dec`), plus the Christmas
+track for days printed on one track only (`28 Nov, Epiphany Sunday` / `28 Nov, Epiphany 6 Jan`); `reports/adv_copies.md`
+compares the copies and lists each dated day's weekday and psalter week per copy.
+
 Sanctis printings of one day are told apart by `hour_instance.source` and `copy`: `commemoratio` (Lenten / late-Advent
 / Christmas-octave commemoration, its own structure template), `propria` (proper parts only), `altera <label>`
 (unoutlined ALTERA alternative offices, labelled as in the volume's index), `sollemnitas` (SADV 26-28 Dec Vespers).
@@ -60,7 +66,7 @@ Sanctis printings of one day are told apart by `hour_instance.source` and `copy`
 
 Opening/Invitatory: `OPENING`, `PREP_PRAYER`, `INV_ANT`, `INV_PSALM` (links). Psalmody: `ANT1..3`, `ANT` (single or
 per-hour seasonal), `PS1..3` (psalm/canticle units; a section I/II/III is its own unit), `*_R` (repeated antiphon).
-Office of Readings: `OR_VERSE`, `LECT1`, `RESP1`, `LECT2`, `RESP2`, `TE_DEUM`. Lauds/Vespers/Compline: `LB`, `RB`,
+Office of Readings: `OR_VERSE`, `LECT1`, `RESP1`, `LECT2`, `RESP2`, `TE_DEUM`, `GOSPEL` (Christmas vigil, Adv 8418). Lauds/Vespers/Compline: `LB`, `RB`,
 `GOSPEL_ANT`, `GOSPEL_CANT`, `PRECES`, `PATER`, `ORATIO`, `CONCLUSION`, `BLESSING`, `MARIAN`. Daytime Prayer: `sub`
 = TERCE/SEXT/NONE on hymn, antiphon, `LB`, `V`, `ORATIO`; psalmody shared (`sub` empty). Links: `HYMN_ALT` (alternative
 hymn printed elsewhere: "Vel alter", "Ad libitum dici potest hymnus …"), `MEMORIAL` ("Memoria ad libitum Sanctæ Mariæ"),
