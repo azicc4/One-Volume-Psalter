@@ -201,9 +201,14 @@ class HourParser:
 
     def dash_ahead(self) -> bool:
         """Does the text block starting here contain preces second halves ("— …")?"""
+        prev = None
         for X in self.L[self.i:]:
             if X.kind == "dash":
                 return True
+            if X.kind == "rubric" and X.text.startswith("Vel:") and prev is not None and prev.kind == "italic":
+                prev = X                    # alternative response after the italic response (SP 288, SA 124)
+                continue
+            prev = X
             if X.kind not in ("text", "italic") or X.text == "Pater noster.":
                 return False
         return False

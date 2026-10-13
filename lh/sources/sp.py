@@ -32,6 +32,19 @@ COPIES = [
     (599, 607, "altera Religiosus"),    # 26 May S. Philippi Neri
     (608, 616, "altera Pastor"),        # 5 Jun  S. Bonifatii
 ]
+# source omissions excused by the structure check until the owner decides (TODO.md §3 T-SANCT)
+_NO_CONCL = "prints no 'Conclusio Horæ, ut in Ordinario.' link after the prayer (GILH 54); every other Vespers of the " \
+            "volume has it. TODO §3 T-SANCT-1."
+STRUCTURE_EXCEPTIONS = {
+    ("SANCT.04-23.georgii", "VESPERS"): {"missing": ["CONCLUSION"], "reason": "SP 146 " + _NO_CONCL},
+    ("SANCT.04-24.fidelis-de-sigmaringen", "VESPERS"): {"missing": ["CONCLUSION"], "reason": "SP 164 " + _NO_CONCL},
+    ("SANCT.04-28.petri-chanel", "VESPERS"): {"missing": ["CONCLUSION"], "reason": "SP 194 " + _NO_CONCL},
+    ("SANCT.05-25.gregorii-vii", "VESPERS"): {
+        "missing": ["PS1", "PS2", "PS3"],
+        "reason": "SP 360: Vespers of St Gregory VII prints 'Hora media de feria currente.' where every other memorial "
+                  "prints 'Antiphonæ et psalmi de feria currente.' (GILH 235: psalmody of the weekday). TODO §3 T-SANCT-2.",
+    },
+}
 # the volume's own index disagrees with what is printed (TODO.md §3 T-SANCT): entry -> reason
 INDEX_ERRATA = {
     "06-11 #1": "index lists 'OL LD VP' but the feast of St Barnabas prints its own Hora media (SP 477-480)",

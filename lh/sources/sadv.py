@@ -26,6 +26,14 @@ COPIES = [
     (194, 202, "altera Virgo"),         # 13 Dec S. Luciæ
     (203, 211, "altera Doctores"),      # 2 Jan  SS. Basilii Magni et Gregorii Nazianzeni
 ]
+# source omissions excused by the structure check until the owner decides (TODO.md §3 T-SANCT)
+STRUCTURE_EXCEPTIONS = {
+    ("SANCT.12-13.luciae", "VESPERS"): {
+        "missing": ["CONCLUSION"],
+        "reason": "SA 133: Vespers of St Lucy prints no 'Conclusio Horæ, ut in Ordinario.' link after the prayer "
+                  "(GILH 54); the ALTERA printing (SA 202) has it. TODO §3 T-SANCT-1.",
+    },
+}
 # the volume's own index disagrees with what is printed (TODO.md §3 T-SANCT): entry -> reason
 INDEX_ERRATA = {
     "01-03 #1": "index lists 'LD VP' but the Holy Name also prints an Office of Readings reading (SA 180-181)",

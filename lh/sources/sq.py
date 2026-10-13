@@ -20,6 +20,14 @@ NON_CONTENT = [
 COPIES = [
     (147, 165, "altera Festum"),        # SS. Cyril and Methodius where kept as a feast (index: "Festum OL LD HM VP")
 ]
+# source omissions excused by the structure check until the owner decides (TODO.md §3 T-SANCT)
+STRUCTURE_EXCEPTIONS = {
+    ("SANCT.02-14.cyrilli-et-methodii", "LAUDS"): {
+        "missing": ["HYMN"],
+        "reason": "SQ 153 (ALTERA, feast form): the Lauds hymn 'Hi sacerdótes Dómini sacráti' is printed without its "
+                  "HYMNUS label, so it is parsed as plain text (GILH 42 requires the hymn). TODO §3 T-SANCT-3.",
+    },
+}
 
 
 def day_info(section: str, day: str, extra: list[str] | None = None) -> dict:
