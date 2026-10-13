@@ -32,7 +32,9 @@ def write_report(out: dict, db=DB_PATH) -> str:
                      f"content lines; {v['gaps']} gap(s); {excl:,} non-content lines excluded |")
     if rt.get("overridden"):
         L.append(f"| Overrides applied (`data/overrides/`, skipped by round-trip) | {rt['overridden']} occurrences |")
-    L += [f"| Structure (every hour has its GILH-required slots) | {'PASS' if not st['incomplete'] else 'FAIL'}: {st['hours'] - st['incomplete']}/{st['hours']} hours |",
+    L += [f"| Structure (every hour has its GILH-required slots) | {'PASS' if not st['incomplete'] else 'FAIL'}: {st['hours'] - st['incomplete']}/{st['hours']} hours"
+          + (f" ({st['excused']} with source omissions excused by the plug-ins' STRUCTURE_EXCEPTIONS)" if st.get("excused") else "")
+          + " |",
           f"| Psalm text consensus (every printing of a verse line agrees) | {ps['lines'] - ps['divergent']}/{ps['lines']} lines unanimous; {ps['divergent']} lines need review |",
           f"| Near-duplicate texts (possible source typos/variants) | {va['pairs']} pairs to review |", "",
           f"Database: **{n_occ:,} printed occurrences → {n_obj:,} canonical objects.**", "",

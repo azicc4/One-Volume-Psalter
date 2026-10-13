@@ -75,6 +75,11 @@ Advent ×7 by start date (27 Nov 4–1198 · 28 Nov 1199–2462 · 29 Nov 2463�
 1 Dec 5003–6273 · 2 Dec 6274–7396 · 3 Dec 7397–8387); Communia ×4 by season (Adv 4–416, Lent 417–817,
 Easter 818–1207, Per annum 1208–1640); Office of the Dead Communia 1641–1675; Sanctis overlaps across files.
 
+Ascension tracks in L/E (index p.5 lists Easter week VI twice; `lh/sources/lqp.py` COPIES):
+*Ascension Sun* (transferred to Sunday VII) = Wed Vespers/Compline 2206–2215, Thu 2216, Fri 2242, Sat 2267, then the
+Ascension 2286 with I Vespers on Saturday evening; *Ascension Thu* = Fri 2321, Sat 2346 after the Ascension 2286
+(I Vespers on Wednesday evening) → Sunday VII 2365. Week VI Sun–Wed Hora media and the Ascension itself are shared.
+
 ## Ordinary texts location (PA)
 
 Invitatory psalms 6233–6237 · Ps 94 without refrains 6262 · alternate Hora media hymns 6238–6241 ·
@@ -91,4 +96,9 @@ chapter,verse labels (`5,9`) · optional `[24-32]` (L/E 1136) · alleluia cantic
 numbered repeat antiphon (SPA 631) · two-line day titles (Adv 514) · preces without their PRECES label (L/E 2522) or
 resumed after "Vel aliæ:" (PA 6277) · numbered alternatives: red "1 " + black text, classified rubric (PA 6272, 6276) ·
 alternative short reading introduced by "Vel (Ap 12, 1):" instead of a label (PA 6275) · texts after an appendix hour's
-"Conclusio" (BVM second readings, PA 6280–6290) · Salve dies / Dies ætásque printed without a heading (PA 6267–6268).
+"Conclusio" (BVM second readings, PA 6280–6290) · Salve dies / Dies ætásque printed without a heading (PA 6267–6268) ·
+Easter Vigil as Office of Readings with
+`LECTIO PRIMA … QUARTA` and a two-psalm chant heading `Psalmi 41 (42) …; 42 (43) …` (L/E 1192–1198) ·
+`Loco responsorii dicitur:` + antiphon (L/E 1129–1403) · Regína cæli under `ANTIPHONA FINALIS …` (L/E, COM, SP) ·
+missing `Ad Tertiam` before Terce's short reading (L/E 1500) · Ascension I Vespers without opening, PSALMODIA
+label and conclusion (L/E 2286–2290).

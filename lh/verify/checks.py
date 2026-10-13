@@ -69,9 +69,11 @@ def expected_from_index(source: str) -> dict[str, set[str]]:
     l1.close()
     exp: dict[str, set[str]] = {}
     section = ""
+    from lh.sources import plugin
+    section_re = getattr(plugin(source), "INDEX_SECTION_RE", r"^(HEBDOMADA [IVXL]+|SOLLEMNITATES)$")
     for page, text, spans in rows:
         t = re.sub(r"\s+", " ", text).strip()
-        if re.match(r"^(HEBDOMADA [IVXL]+|SOLLEMNITATES)$", t):
+        if re.match(section_re, t):
             section = t
             continue
         m = re.match(r"^(.*?) ((?:(?:1v|cp|ol|ld|hm|vp) ?)+)$", t)
@@ -108,8 +110,15 @@ def check_index(con, source: str) -> dict:
         got[r["day_key"]].add(r["hour"])
     # map index entries to day keys
     index_days = {}
+    from lh.sources import plugin
+    index_day_key = getattr(plugin(source), "index_day_key", None)
     for k, hours in exp.items():
         section, name = k.split("|")
+        if index_day_key is not None:          # source-specific index layout (e.g. LQP)
+            key = index_day_key(section, name)
+            if key:
+                index_days.setdefault(key, set()).update(hours)   # a day listed on two tracks: union
+            continue
         if section == "SOLLEMNITATES":
             continue
         title = {"Dominica": "DOMINICA", "Sabbato": "SABBATO"}.get(name, name.upper())
@@ -142,6 +151,24 @@ REQUIRED = {
 }
 REQUIRED["V1"] = REQUIRED["V2"] = REQUIRED["VESPERS"]
 REQUIRED["COMPLINE1"] = REQUIRED["COMPLINE"]
+# Days whose hour follows a different GILH template (source-independent).
+#   GILH 212: "The Easter Vigil takes the place of the Office of Readings: those not present at the Vigil should
+#   therefore choose from it at least four readings with canticles and prayers … The Te Deum and the prayer of the
+#   day follow."  (No hymn, no psalmody, no versicle, no responsories.)
+TEMPLATE_EXCEPTIONS = {
+    ("EAS.1.SUN", "OR"): ["LECT1", "LECT2", "LECT3", "LECT4", "PS1", "PS2", "PS3", "TE_DEUM", "ORATIO", "CONCLUSION"],
+}
+# Slot substitutions are modelled by the parser (lh/parse/hour.py): "Loco responsorii dicitur:" + antiphon
+# (Christus factus est / Hæc dies) is the RB slot; the Regína cæli printed in full is the MARIAN slot (GILH 92).
+# Source-specific omissions are excused by the plug-in's STRUCTURE_EXCEPTIONS (lh/sources/<key>.py).
+
+
+def _source_exceptions(source: str) -> dict:
+    from lh.sources import plugin
+    try:
+        return getattr(plugin(source), "STRUCTURE_EXCEPTIONS", {}) or {}
+    except (KeyError, ImportError):
+        return {}
 
 
 def check_structure(con) -> dict:
@@ -163,29 +190,31 @@ def check_structure(con) -> dict:
                 slots[r["hour_id"]].update(("LECT1", "RESP1"))
         if r["type"] == "link" and r["slot"] in ("LECT1", "LECT2"):
             slots[r["hour_id"]].add("RESP" + r["slot"][-1])
-        # GILH substitutions: Easter Octave / Triduum replace the short responsory with an antiphon
-        # ("Loco responsorii dicitur: Hæc dies / Christus factus est"); in Eastertide the Regina cæli is printed inline
-        if t.startswith("Loco responsorii"):
-            slots[r["hour_id"]].add("RB")
-        if "Regína cæli" in t[:40] or t.startswith("ANTIPHONA FINALIS"):
-            slots[r["hour_id"]].add("MARIAN")
-    bad = []
-    for h in con.execute("SELECT id, day_key, hour, page_start FROM hour_instance "
+        # RB / MARIAN substitutions (Loco responsorii, Regína cæli) are modelled by the parser — see above
+    bad, excused = [], []
+    for h in con.execute("SELECT id, source, day_key, hour, page_start FROM hour_instance "
                          "WHERE day_key NOT LIKE '%ORD.%' AND day_key NOT LIKE '%PROP.%'"):   # appendix fragments
-        req = REQUIRED.get(h["hour"], [])
+        req = TEMPLATE_EXCEPTIONS.get((h["day_key"], h["hour"])) or REQUIRED.get(h["hour"], [])
         missing = [s for s in req if s not in slots[h["id"]]]
         if h["hour"] == "MIDDAY" and "LINK" in slots[h["id"]]:      # complementary psalmody given by reference
             missing = [s for s in missing if s not in ("PS1", "PS2", "PS3")]
-        if h["hour"] == "MIDDAY":   # Terce, Sext and None each need LB, V, ORATIO
-            for s in ("LB", "V", "ORATIO"):
+        if h["hour"] == "MIDDAY" and (h["day_key"], h["hour"]) not in TEMPLATE_EXCEPTIONS:
+            for s in ("LB", "V", "ORATIO"):     # Terce, Sext and None each need LB, V, ORATIO
                 if subs[h["id"]][s] < 3:
                     missing.append(f"{s}x3")
+        exc = _source_exceptions(h["source"]).get((h["day_key"], h["hour"]))
+        if missing and exc and set(missing) <= set(exc["missing"]):
+            excused.append((h["day_key"], h["hour"], h["page_start"], missing))
+            record(con, "structure", f"{h['day_key']} {h['hour']}", "excused",
+                   {"missing": missing, "page": h["page_start"], "reason": exc["reason"]})
+            continue
         if missing:
             bad.append((h["day_key"], h["hour"], h["page_start"], missing))
             record(con, "structure", f"{h['day_key']} {h['hour']}", "fail", {"missing": missing, "page": h["page_start"]})
     n = con.execute("SELECT count(*) FROM hour_instance WHERE day_key NOT LIKE '%ORD.%' AND day_key NOT LIKE '%PROP.%'").fetchone()[0]
-    record(con, "structure", "all", "pass" if not bad else "fail", f"{n - len(bad)}/{n} hours complete")
-    return {"hours": n, "incomplete": len(bad), "examples": bad[:15]}
+    record(con, "structure", "all", "pass" if not bad else "fail",
+           f"{n - len(bad)}/{n} hours complete ({len(excused)} excused source omissions)")
+    return {"hours": n, "incomplete": len(bad), "examples": bad[:15], "excused": len(excused)}
 
 
 # ------------------------------------------------------------------------------------------------ near-duplicates
