@@ -119,7 +119,7 @@ def _canon(e) -> tuple[str, dict, str, dict] | None:
             breaks.append(i)
         return "hymn", {"stanzas": stanzas}, "\n".join(flat), {"breaks": breaks, "page_breaks": d.get("page_breaks", [])}
     if t == "ant":
-        extra = {k: d[k] for k in ("num", "prefix", "repeat", "dagger", "lead") if d.get(k)}
+        extra = {k: d[k] for k in ("num", "prefix", "repeat", "dagger", "lead", "bare") if d.get(k)}
         return "ant", {"text": d["text"]}, d["text"], extra
     if t == "psalm":
         lines, daggers, brk = [], [], {}
@@ -260,7 +260,7 @@ def restore(otype: str, payload: dict, extra: dict, slot: str = "") -> str:
     if otype == "hymn":
         return " ".join(l for st in payload["stanzas"] for l in st)
     if otype == "ant":
-        head = extra.get("lead") or "Ant."          # "Vel:" for an inline alternative antiphon (Sanctis)
+        head = "" if extra.get("bare") else (extra.get("lead") or "Ant.")   # lead "Vel:"; bare: no label (COM 1300)
         if extra.get("num"):
             head += f" {extra['num']}"
         if extra.get("prefix"):

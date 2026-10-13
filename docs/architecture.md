@@ -46,7 +46,11 @@ antiphon number, intonation dagger, printed Gloria Patri, heading lines, strophe
 appendix, e.g. `PROP.HYMNS_AD_LIBITUM`) · `MEM.BVM_SATURDAY` (Saturday memorial of the BVM, PA 6269; appendix chapters
 that are real days are mapped in the plug-in's `APPENDIX_DAYS`) · `SANCT.MM-DD.<slug>` (Proper of Saints; WS4b uses
 a title slug — `SANCT.02-05.agathae` — until LitCal keys land; saints the Proper of Time prints keep its key:
-`SOL.IMMACULATE_CONCEPTION`, `CHR.DEC26`) · planned: `COMMON.<NAME>[.<variant>]`. DOW = SUN MON TUE WED THU FRI SAT.
+`SOL.IMMACULATE_CONCEPTION`, `CHR.DEC26`) · `COMMON.<NAME>[.<variant>]` (Commons: `COMMON.DEDICATION`, `COMMON.BVM`,
+`COMMON.APOSTLES`, `COMMON.MARTYRS.SEVERAL`, `COMMON.MARTYRS.ONE`, `COMMON.PASTORS`, `COMMON.DOCTORS`, `COMMON.VIRGINS`,
+`COMMON.HOLY_MEN`, `COMMON.HOLY_WOMEN`; the seasonal printing is `hour_instance.copy` = ADV / LENT / EAS / OT; the
+Commons' sub-variants — pope, bishop, virgin martyr … — are `cond.for`, not day keys) · `DEAD` (Office of the Dead).
+DOW = SUN MON TUE WED THU FRI SAT.
 
 Sanctis printings of one day are told apart by `hour_instance.source` and `copy`: `commemoratio` (Lenten / late-Advent
 / Christmas-octave commemoration, its own structure template), `propria` (proper parts only), `altera <label>`
@@ -62,7 +66,10 @@ Office of Readings: `OR_VERSE`, `LECT1`, `RESP1`, `LECT2`, `RESP2`, `TE_DEUM`. L
 hymn printed elsewhere: "Vel alter", "Ad libitum dici potest hymnus …"), `MEMORIAL` ("Memoria ad libitum Sanctæ Mariæ"),
 `LECT1`/`LECT2` (a reading given by reference), `CONCLUSION`, `MARIAN`, `COMPLEMENTARY`, `SUBST`, `LINK`; each resolved in
 `link_target`. Conditions in `cond`: `{"year": "A"}`, `{"variant": "night"}`, `{"alt": "Vel:"}`, `{"choice": "3"}`
-(numbered alternatives "1 …" … "6 …": Gospel antiphons and prayers of the BVM on Saturday).
+(numbered alternatives "1 …" … "6 …": Gospel antiphons and prayers of the BVM on Saturday), `{"for": "Pro papa"}`
+(sub-variant rubric of the Commons / Office of the Dead: "Pro papa:", "Pro pluribus:", "In ipsa ecclesia dedicata:",
+"Tempore Adventus:", "Vel alia, præsertim pro episcopo:" → `for` + `alt`; a reading's `for` also marks its responsory;
+the common stanzas printed after the last of several one-stanza hymn variants are split off and keep the hymn's own `for`).
 Substitutions: in the Triduum and the Easter Octave the `RB` slot holds an antiphon (*Loco responsorii dicitur:
 Christus factus est / Hæc dies*); in Eastertide Compline the `MARIAN` slot holds the *Regína cæli* printed in full
 (a `text` object) instead of a link. Easter Sunday's Office of Readings is the Easter Vigil (GILH 212): `LECT1..4`,
