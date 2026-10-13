@@ -49,8 +49,8 @@ def _cell(s: str) -> str:
 
 def copies_report(source: str, db=DB_PATH) -> dict | None:
     p = plugin(source)
-    if not getattr(p, "COPIES", None):
-        return None
+    if not getattr(p, "COPIES", None) or hasattr(p, "copies_report"):
+        return None      # no duplicate copies, or the plug-in writes its own report (COM: reports/com_copies.md)
     con = sqlite3.connect(db)
     con.row_factory = sqlite3.Row
     hours = con.execute("""SELECT id, day_key, hour, copy, page_start, page_end, day_title FROM hour_instance
