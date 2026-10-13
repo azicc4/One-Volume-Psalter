@@ -16,9 +16,9 @@ Never silently "fix" a discrepancy: report it in `TODO.md` §3 with the PDF page
 ## Commands (run from the repo root)
 
 ```bash
-.venv/Scripts/python -m lh all            # build → verify → psalter → export → catalog → book --poc  (~1 min)
-.venv/Scripts/python -m lh build PA LQP ADV:4-1198   # sources in the DB (KEY or KEY:firstpage-lastpage)
-.venv/Scripts/python -m lh verify         # round-trip, PDF index, coverage, structure, consensus, near-duplicates
+.venv/Scripts/python -m lh all            # all eight volumes: build → verify → psalter → export → catalog → book --poc (~2 min)
+.venv/Scripts/python -m lh build PA LQP ADV COM SPA SP SQ SADV   # sources (KEY or KEY:firstpage-lastpage)
+.venv/Scripts/python -m lh verify PA LQP COM SPA SP SQ SADV   # index checks for those; coverage etc. for all built
 .venv/Scripts/python -m pytest -q tests   # parser golden tests + book layout tests
 .venv/Scripts/python -m lh find <words>   # search objects;  lh show <id>;  lh hour OT.05.SUN LAUDS
 ```

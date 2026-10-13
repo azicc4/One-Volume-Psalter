@@ -35,7 +35,7 @@ def main(argv=None):
     p.add_argument("--force", action="store_true")
 
     p = sub.add_parser("all", help="run the whole pipeline: build, verify, psalter, export, catalog, book --poc")
-    p.add_argument("keys", nargs="*", default=["PA", "LQP", "ADV:4-1198"])
+    p.add_argument("keys", nargs="*", default=["PA", "LQP", "ADV", "COM", "SPA", "SP", "SQ", "SADV"])
 
     sub.add_parser("export", help="write diffable JSONL snapshots of the database to data/export/")
 
@@ -48,7 +48,8 @@ def main(argv=None):
     args = ap.parse_args(argv)
 
     if args.cmd == "all":
-        for step in (["build", *args.keys], ["verify", "PA"], ["psalter"], ["export"], ["catalog"], ["book", "--poc"]):
+        indexed = [k.split(":")[0] for k in args.keys if k.split(":")[0] != "ADV"]   # ADV has no index check
+        for step in (["build", *args.keys], ["verify", *indexed], ["psalter"], ["export"], ["catalog"], ["book", "--poc"]):
             print(f"== lh {' '.join(step)}")
             main(step)
         return
