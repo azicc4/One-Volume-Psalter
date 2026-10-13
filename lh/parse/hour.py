@@ -21,6 +21,7 @@ ROMAN_RE = re.compile(r"^(?:[IVX]+)(?: \([A-Za-z]+\))?$")          # section num
 PSALM_HEAD_RE = re.compile(r"^Psalmus (\d+)(?: ([AB]))?(?: \((\d+)(?: ([AB]))?\))?(?:, (.+))?$")
 ANNO_RE = re.compile(r"^Anno ([ABC])$")
 ALT_RE = re.compile(r"^(?:vel|aut)\b|^Ad libitum etiam", re.I)   # "Vel:", "Vel alia:", "vel de Communi…", "aut de die…"
+SANCTIS_SOURCES = {"SP", "SQ", "SADV"}   # WS4b parser refinements (see is_inline_alt_ant, parse_ant, parse_rubric)
 
 
 @dataclass
@@ -154,6 +155,8 @@ def numbered(L: Line) -> str | None:
 
 
 def label_parts(text: str) -> tuple[str, str]:
+    if text == "LECTIO" or text.startswith("LECTIO ("):
+        return "LECTIO", text[6:].strip()     # the single reading of a commemoration (SADV 143)
     for lab in LABELS:
         if text.startswith(lab):
             return lab, text[len(lab):].strip()
@@ -177,6 +180,7 @@ class HourParser:
         self.last_psalm: Element | None = None
         self.after_psalmody = False
         self.alt_ref = ""           # citation of an alternative short reading: "Vel (Ap 12, 1):"
+        self.hymn_in_sub = False    # Hora media layout C (per-hour hymn + psalmody, e.g. SP 31): keep `sub`
 
     # -- helpers
     def peek(self, j=0) -> Line | None:
@@ -239,7 +243,9 @@ class HourParser:
                 if self.section == "PSALMODIA" and lab != "PSALMODIA":
                     self.after_psalmody = True
                 self.section = lab
-                if lab == "PSALMODIA" and self.h.code == "MIDDAY":
+                if lab == "HYMNUS":
+                    self.hymn_in_sub = bool(self.sub)   # layout C: "Ad Tertiam" precedes its own HYMNUS label
+                if lab == "PSALMODIA" and self.h.code == "MIDDAY" and not self.hymn_in_sub:
                     self.sub = ""      # Hora media psalmody is shared by Terce, Sext and None
                 self.emit("label", [L], lab, {"label": lab, "ref": ref}, keep_cond=True)
             elif k == "rubric_c" and t == "Oratio":
@@ -270,6 +276,8 @@ class HourParser:
                 self.parse_vr()
             elif self.section in ("CANTICUM EVANGELICUM", "ORATIO") and numbered(L):
                 self.parse_numbered()
+            elif k == "rubric" and self.is_inline_alt_ant(L):
+                self.parse_alt_ant()
             elif k == "rubric":
                 self.i += 1
                 self.parse_rubric(L)
@@ -312,6 +320,15 @@ class HourParser:
             nxt = self.peek()
             if nxt and nxt.page_top and nxt.kind == "text" and xclass(nxt) == 0 and nxt.text[:1].islower():
                 cont = [nxt]
+                self.i += 1
+        if self.h.pdf in SANCTIS_SOURCES:
+            # an unfinished antiphon continues across a block or page break (SP 476 "turbam multam", SQ 55)
+            while True:
+                nxt, last = self.peek(), (cont[-1] if cont else first)
+                if not (nxt and nxt.kind == "text" and xclass(nxt) == 0 and nxt.text[:1].islower()
+                        and not re.search(r"[.!?]$", last.text)):
+                    break
+                cont.append(nxt)
                 self.i += 1
         lines = [first] + cont
         red = first.runs[0].text.strip()
@@ -378,6 +395,30 @@ class HourParser:
                 e = self.emit("ant", lines, "GOSPEL_ANT", data)
                 self.cur_ant = self.ants_seen[(self.section, self.sub, text)] = e
         e.cond = {**e.cond, "choice": num}
+
+    def is_inline_alt_ant(self, L: Line) -> bool:
+        """Red 'Vel:' + black antiphon text right after an antiphon (SP 100: 'Vel: Grátias tibi ago…').
+        Enabled for the Sanctis volumes only; LQP (39×) and PA (1×) print the same pattern."""
+        return (self.h.pdf in SANCTIS_SOURCES and len(L.runs) > 1 and L.runs[0].text.strip().lower() == "vel:"
+                and not L.runs[1].red and bool(self.els) and self.els[-1].type == "ant")
+
+    def parse_alt_ant(self):
+        first = self.L[self.i]
+        self.i += 1
+        cont = self.take_while(lambda L: L.kind in ("text", "italic") and xclass(L) == 0 and not L.block_start)
+        lines = [first] + cont
+        text = norm_space(" ".join([markup(first, skip_first=True)] + [markup(L) for L in cont]))
+        data = {"num": None, "text": text, "lead": first.runs[0].text.strip()}
+        prev = self.els[-1]
+        prior = self.ants_seen.get((self.section, self.sub, text))
+        if prior is not None:
+            data["repeat"] = True
+            e = self.emit("ant", lines, prior.slot + "_R", data, keep_cond=True)
+            e.cond = dict(prior.cond)
+            return
+        self.cond = {**self.cond, "alt": data["lead"]}
+        e = self.emit("ant", lines, prev.slot[:-2] if prev.slot.endswith("_R") else prev.slot, data)
+        self.ants_seen[(self.section, self.sub, text)] = e
 
     # -- psalms, canticles, and centred meta lines
     def parse_psalm_or_meta(self):
@@ -562,6 +603,8 @@ class HourParser:
                 self.section, self.alt_ref = "LECTIO BREVIS", m.group(1)
             elif prev is not None and prev.slot in ("RESP1", "RESP2") and not self.section:
                 self.section = "LECTIO PRIOR" if prev.slot == "RESP1" else "LECTIO ALTERA"
+            elif self.h.pdf in SANCTIS_SOURCES and self.els and self.els[-1].type == "oratio" and plain.endswith(":"):
+                self.section = "ORATIO"     # "Vel, si celebretur dominica:" — alternative prayer (SADV 72; PA/ADV 2× each)
         elif re.match(r"^I+\. Quando Officium lectionis", plain):
             self.cond["variant"] = "night" if plain.startswith("I.") else "day"
         elif "non dicitur Glória Patri" in plain or "non dicitur Gloria Patri" in plain:
@@ -616,7 +659,7 @@ class HourParser:
             self.emit("te_deum", lines, "TE_DEUM", {"lines": [[X.kind, markup(X)] for X in lines]})
             self.section = ""
             return
-        if sec in ("LECTIO PRIOR", "LECTIO ALTERA") or sec in VIGIL_READINGS:
+        if sec in ("LECTIO PRIOR", "LECTIO ALTERA", "LECTIO") or sec in VIGIL_READINGS:
             self.parse_reading(sec)
             return
         if sec.startswith("ANTIPHONA FINALIS"):
@@ -672,6 +715,7 @@ class HourParser:
 
     def parse_preces(self):
         intro, response, petitions, lines = [], "", [], []
+        response_alt = ""
         first_half: list[str] = []
         alt = False
         while self.i < len(self.L):
@@ -680,6 +724,9 @@ class HourParser:
                 break
             if X.kind == "italic" and not response:
                 response = markup(X)
+            elif (X.kind == "rubric" and response and not response_alt and not petitions and not first_half
+                  and X.text.startswith("Vel:")):
+                response_alt = markup(X)         # alternative response, e.g. "Vel: Plenam grátia intuére…" (SP 287)
             elif X.kind == "rubric" and X.text.strip().lower().startswith("(vel"):
                 alt = True                       # the next petition is an alternative to the previous one
             elif X.kind == "dash":
@@ -700,6 +747,8 @@ class HourParser:
             lines.append(X)
             self.i += 1
         data = {"intro": norm_space(" ".join(intro)), "response": response, "petitions": petitions}
+        if response_alt:
+            data["response_alt"] = response_alt
         if first_half:
             data["tail"] = norm_space(" ".join(first_half))
         self.emit("preces", lines, "PRECES", data)

@@ -55,9 +55,15 @@ def special_day(table: dict, day: str) -> dict | None:
     return None
 
 
-def day_info(source: str, section: str, day: str) -> dict:
+def day_info(source: str, section: str, day: str, extra: list[str] | None = None) -> dict:
+    """`extra` = the day's preamble lines (rank, biography); passed only to plug-ins whose day_info accepts it."""
+    import inspect
+
     from lh.sources import plugin
-    return plugin(source).day_info(section, day)
+    fn = plugin(source).day_info
+    if extra is not None and "extra" in inspect.signature(fn).parameters:
+        return fn(section, day, extra=extra)
+    return fn(section, day)
 
 
 # ------------------------------------------------------------------------------------------- short names (margins)
@@ -71,6 +77,7 @@ SHORT = {
     "SOL.PENTECOST": "Pentecost",
 }
 MONTH_ABBR = {"DEC": "Dec", "JAN": "Jan"}
+MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 
 def short_name(d: dict) -> str:
@@ -78,6 +85,9 @@ def short_name(d: dict) -> str:
     key = d["key"]
     if key in SHORT:
         return SHORT[key]
+    m = re.match(r"^SANCT\.(\d\d)-(\d\d)\.", key)          # Proper of Saints: "5 Feb"
+    if m:
+        return f"{int(m.group(2))} {MONTHS_SHORT[int(m.group(1)) - 1]}"
     m = re.match(r"^(?:CHR|ADV)\.(DEC|JAN)(\d+)$", key)
     if m:
         return f"{int(m.group(2))} {MONTH_ABBR[m.group(1)]}"

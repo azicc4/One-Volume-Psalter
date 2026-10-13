@@ -182,4 +182,8 @@ def load_lines(key: str, p0: int | None = None, p1: int | None = None) -> list[L
             if not L.runs[0].text.strip():
                 L.runs = L.runs[1:] or L.runs
         L.kind = classify(L)
+    from lh.sources import MODULES, plugin
+    hook = getattr(plugin(key), "classify_lines", None) if key in MODULES else None
+    if hook:                              # source-specific reclassification (e.g. Sanctis date lines start a day)
+        hook(lines)
     return lines

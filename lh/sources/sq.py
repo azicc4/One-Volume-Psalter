@@ -1,14 +1,26 @@
-"""SQ — Proprium de Sanctis — Tempus Quadragesimæ.  NOT YET PARSED: workstream WS4b in TODO.md.
+"""SQ — LH-Sanctis-Quadragesimae.pdf: Proprium de Sanctis — Tempus Quadragesimæ (5 Feb – 13 Apr).
 
-Saints in Lent: mostly commemorations (rank line 'Pro commemoratione': an antiphon + prayer at Lauds and Vespers, an extra reading at the Office of Readings). Overlaps SPA (Feb-Mar) and SP. ALTERA 145-164; ALIA EX ORDINARIO 165-192.
-See docs/source-pdf-format.md for this volume's layout and traps.
+Most days are commemorations ("Pro commemoratione": Office of Readings second reading + responsory + prayer, and a
+Lauds / Vespers antiphon) — rank `commemoration`, hour_instance.copy "commemoratio". 22 Feb (feast), 19 Mar and
+25 Mar (solemnities) are printed in full. Unoutlined ALTERA 146-165: 14 Feb (Cyril and Methodius) as a feast
+("Vel ubi celebratur ut festum", SQ 21). ALIA EX ORDINARIO 166-192 (lh/parse/appendix.py).
+Overlaps: SPA (Feb-Mar), SP (19 Mar, 25 Mar, 2-13 Apr) — see reports/sanctis_overlaps.md.
+Header parsing: lh/sources/sanctis_seasons.py.
 """
 from __future__ import annotations
 
+from lh.sources.sanctis_seasons import check_index, classify_lines, required_slots, sanct_day_info  # noqa: F401  (hooks)
+
 KEY = "SQ"
 TITLE = "Proprium de Sanctis — Tempus Quadragesimæ"
-NON_CONTENT = [(1, 3, "cover, title page, index")]   # verify with `python -m lh verify` (coverage report) when implementing
+NON_CONTENT = [
+    (1, 2, "cover and title page"),
+    (3, 6, "volume index (read by the Sanctis index check, not printed)"),
+]
+COPIES = [
+    (147, 165, "altera Festum"),        # SS. Cyril and Methodius where kept as a feast (index: "Festum OL LD HM VP")
+]
 
 
-def day_info(section: str, day: str) -> dict:
-    raise NotImplementedError(f"SQ: day mapping not implemented yet (workstream WS4b); section={section!r} day={day!r}")
+def day_info(section: str, day: str, extra: list[str] | None = None) -> dict:
+    return sanct_day_info(section, day, extra)

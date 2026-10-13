@@ -26,10 +26,10 @@ def coverage(source: str, db=DB_PATH) -> dict:
     p0, p1, pdf = src
     ranges = sorted(con.execute("SELECT l1_first, l1_last FROM hour_instance WHERE source=?", (source,)).fetchall())
     starts = [r[0] for r in ranges]
-    recorded = {r[0] for r in con.execute(
-        "SELECT l1_first FROM source_line WHERE source=? AND role IN ('heading','day_extra')", (source,))}
-    recorded |= {r[0] for r in con.execute(
-        "SELECT l1_last FROM source_line WHERE source=? AND role IN ('heading','day_extra')", (source,))}
+    recorded = set()
+    for a, b in con.execute(
+            "SELECT l1_first, l1_last FROM source_line WHERE source=? AND role IN ('heading','day_extra')", (source,)):
+        recorded.update(range(a, b + 1))     # a visual line may merge several L1 rows (justified prose, SP 242)
     front = {r[0]: r[1] for r in con.execute("SELECT l1_first, page FROM source_line WHERE source=? AND role='front'", (source,))}
     unparsed = con.execute("""SELECT o.page, o.source_text FROM occurrence o JOIN hour_instance h ON h.id=o.hour_id
                               WHERE h.source=? AND o.type='unparsed'""", (source,)).fetchall()
