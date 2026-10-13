@@ -18,7 +18,7 @@ L8 book           lh/render/, book/     LuaLaTeX → book/out/*.pdf
 | Table | One row per | Key columns |
 |---|---|---|
 | `source` | source PDF in the build | key, pdf, sha256, page scope (p0, p1) |
-| `day` | liturgical day (or appendix chapter) | key (`OT.05.SUN`…), season, week, weekday, psalter_week, rank, precedence, short |
+| `day` | liturgical day (or appendix chapter) | key (`OT.05.SUN`…), season, week, weekday, psalter_week, rank, precedence, short, extra (JSON, plug-in specific: Sanctis printed preamble + LitCal data) |
 | `hour_instance` | printed hour | source, day_key, hour, pages, copy (duplicate label), l1_first/l1_last |
 | `occurrence` | element printed in an hour | hour_id, seq, type, slot, sub, cond, object_id, page, source_text, extra |
 | `object` | canonical text | id (readable + hash), type, payload (JSON with `<r> <i> <v>` markup), n_occ, status, home |
@@ -46,9 +46,11 @@ takes the texts of (6+k) January, whatever its date — see `lh/sources/adv.py`)
 `LENT.N.DOW` · `HOLY.DOW` · `TRIDUUM.THU/FRI/SAT` · `EAS.1.SUN` · `EAS.OCT.DOW` · `EAS.N.DOW` · `SOL.<NAME>` ·
 `FEAST.<NAME>` · `ORD.<CHAPTER>` (Ordinary appendix; other sources prefixed `LQP.ORD.…`) · `PROP.<CHAPTER>` (proper
 appendix, e.g. `PROP.HYMNS_AD_LIBITUM`) · `MEM.BVM_SATURDAY` (Saturday memorial of the BVM, PA 6269; appendix chapters
-that are real days are mapped in the plug-in's `APPENDIX_DAYS`) · `SANCT.MM-DD.<slug>` (Proper of Saints; WS4b uses
-a title slug — `SANCT.02-05.agathae` — until LitCal keys land; saints the Proper of Time prints keep its key:
-`SOL.IMMACULATE_CONCEPTION`, `CHR.DEC26`) · `COMMON.<NAME>[.<variant>]` (Commons: `COMMON.DEDICATION`, `COMMON.BVM`,
+that are real days are mapped in the plug-in's `APPENDIX_DAYS`) · `SANCT.MM-DD.<litcal_key>` (Proper of Saints, all
+four Sanctis volumes: printed date + Liturgical Calendar API event key, e.g. `SANCT.01-13.StHilaryPoitiers`,
+`SANCT.03-19.StJoseph`; movable `SANCT.MOVABLE.ImmaculateHeart`; a celebration without a LitCal match would fall back
+to a title slug; saints the Proper of Time prints keep its key: `SOL.IMMACULATE_CONCEPTION`, `CHR.DEC26`) ·
+`COMMON.<NAME>[.<variant>]` (Commons: `COMMON.DEDICATION`, `COMMON.BVM`,
 `COMMON.APOSTLES`, `COMMON.MARTYRS.SEVERAL`, `COMMON.MARTYRS.ONE`, `COMMON.PASTORS`, `COMMON.DOCTORS`, `COMMON.VIRGINS`,
 `COMMON.HOLY_MEN`, `COMMON.HOLY_WOMEN`; the seasonal printing is `hour_instance.copy` = ADV / LENT / EAS / OT; the
 Commons' sub-variants — pope, bishop, virgin martyr … — are `cond.for`, not day keys) · `DEAD` (Office of the Dead).
@@ -58,9 +60,12 @@ Advent/Christmas printings are told apart by `copy` = start date of the copy (`2
 track for days printed on one track only (`28 Nov, Epiphany Sunday` / `28 Nov, Epiphany 6 Jan`); `reports/adv_copies.md`
 compares the copies and lists each dated day's weekday and psalter week per copy.
 
-Sanctis printings of one day are told apart by `hour_instance.source` and `copy`: `commemoratio` (Lenten / late-Advent
-/ Christmas-octave commemoration, its own structure template), `propria` (proper parts only), `altera <label>`
-(unoutlined ALTERA alternative offices, labelled as in the volume's index), `sollemnitas` (SADV 26-28 Dec Vespers).
+Sanctis days (`lh/sources/sanctis.py`) take rank and precedence from LitCal's current grade, the same in every volume;
+`day.extra` keeps what is printed (date line, title, rank line, rubrics, biography; other printings under `copies`) and
+the LitCal key, grade and decrees. Printings of one day are told apart by `hour_instance.source` and `copy`:
+`commemoratio` (Lenten / late-Advent / Christmas-octave commemoration, its own structure template), `propria` (proper
+parts only), `altera <label>` (unoutlined ALTERA alternative offices, labelled as in the volume's index),
+`sollemnitas` (SADV 26-28 Dec Vespers).
 
 ## Slot codes
 

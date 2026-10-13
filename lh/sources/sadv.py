@@ -9,11 +9,11 @@ Traps:
   seven start-date copies (the 1 Dec copy lacks it — WS1 can take it from here).
 - 21, 23, 29, 31 Dec fall on privileged days: commemorations (rank `commemoration`, copy "commemoratio").
 Unoutlined ALTERA 193-211 (13 Dec as Virgo, 2 Jan as Doctores); ALIA EX ORDINARIO 212-238.
-Overlap: SPA (St Andrew, 30 Nov) — see reports/sanctis_overlaps.md. Header parsing: lh/sources/sanctis_seasons.py.
+Overlap: SPA (St Andrew, 30 Nov) — see reports/sanctis_overlaps.md. Header parsing, day keys and index check: lh/sources/sanctis.py.
 """
 from __future__ import annotations
 
-from lh.sources.sanctis_seasons import check_index, classify_lines, required_slots, sanct_day_info  # noqa: F401  (hooks)
+from lh.sources.sanctis import check_index, classify_lines, day_meta, required_slots, sanct_day_info  # noqa: F401  (hooks)
 
 KEY = "SADV"
 TITLE = "Proprium de Sanctis — Tempus Adventus et Nativitatis"
@@ -28,7 +28,7 @@ COPIES = [
 ]
 # source omissions excused by the structure check until the owner decides (TODO.md §3 T-SANCT)
 STRUCTURE_EXCEPTIONS = {
-    ("SANCT.12-13.luciae", "VESPERS"): {
+    ("SANCT.12-13.StLucySyracuse", "VESPERS"): {
         "missing": ["CONCLUSION"],
         "reason": "SA 133: Vespers of St Lucy prints no 'Conclusio Horæ, ut in Ordinario.' link after the prayer "
                   "(GILH 54); the ALTERA printing (SA 202) has it. TODO §3 T-SANCT-1.",

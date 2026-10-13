@@ -114,3 +114,15 @@ Easter Vigil as Office of Readings with
 `Loco responsorii dicitur:` + antiphon (L/E 1129–1403) · Regína cæli under `ANTIPHONA FINALIS …` (L/E, COM, SP) ·
 missing `Ad Tertiam` before Terce's short reading (L/E 1500) · Ascension I Vespers without opening, PSALMODIA
 label and conclusion (L/E 2286–2290).
+
+Sanctis (all four volumes parsed by `lh/sources/sanctis.py`; SPA examples): date line is 14.4 bold like a sub-hour
+header, and twice lacks "Die" (`16 septembris`, `29 septembris`, SPA 1379, 1483) · "Eodem die …" for a second saint on the same date · movable
+`Sabbato post dominicam II post Pentecosten` (Immaculate Heart, SPA 501) · rubric `Infra memoria ut martyr, vel altera …`
+with a link to the ALTERA office, before the biography · the volume index (SPA 3–22) names each ALTERA variant
+(`Pastor OL LD VP`) — the only place the variant is printed · `Vel: <antiphon>` (red + black) alternative antiphons and
+`Vel: <response>` in preces (SPA 145, 254) · `vel:` / `Extra ipsam Basilicam Lateranensem:` + a second oratio (SPA 691,
+1821) · `Vel alia:` + an alternative first reading after a link (All Souls, SPA 1774) · hymn stanzas numbered in red
+(SPA 1784) · canticle 1 Tim 3 with `℟. Laudáte Dóminum, omnes gentes.` refrains (SPA 1012) · Daytime Prayer of
+solemnities with one psalmody per sub-hour (layout C, SPA 639–650) · complementary psalm headings
+`Psalmus 126 (127) vel 130 (131)` with a link (SPA 2606–2631) · labels missing (HYMNUS 259/2067/2357, RESPONSORIUM
+BREVE 414, LECTIO ALTERA 1314) or set in black roman (`Responsorium breve`, SPA 1540).

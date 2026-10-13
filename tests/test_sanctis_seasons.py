@@ -13,9 +13,10 @@ from lh.model.canon import canon, cmp_key, restore
 from lh.model.days import day_info, hour_code
 from lh.parse.run import parse_pdf
 from lh.sources import copy_label, plugin
-from lh.sources.sanctis_seasons import nice_title, rank_of, split_day, title_slug
+from lh.sources.sanctis import have_calendar, nice_title, rank_of, split_day, title_slug
 
-needs = {k: pytest.mark.skipif(not l1_path(k).exists(), reason=f"run `python -m lh extract {k}` first")
+needs = {k: pytest.mark.skipif(not l1_path(k).exists() or not have_calendar(),
+                                reason=f"run `python -m lh extract {k}` and `python -m lh fetch` first")
          for k in ("SP", "SQ", "SADV")}
 
 
@@ -73,8 +74,8 @@ def test_sq_commemoration_agatha():
     h = hours[0]
     assert h.day == "Die 5 februarii / S. AGATHÆ, VIRGINIS ET MARTYRIS"     # date line joined with the title
     info = day_info("SQ", h.section, h.day, h.day_extra)
-    assert info["key"] == "SANCT.02-05.agathae"
-    assert (info["rank"], info["copy"]) == ("commemoration", "commemoratio")
+    assert info["key"] == "SANCT.02-05.StAgatha"
+    assert (info["rank"], info["copy"]) == ("memorial", "commemoratio")    # LitCal rank; printed form
     assert slots(h) == ["LECT2", "RESP2", "ORATIO"]
     assert slots(hours[1]) == ["ANT"] and slots(hours[2]) == ["ANT"]
     req = plugin("SQ").required_slots(info["key"], "OR", "commemoratio", [])
@@ -99,7 +100,7 @@ def test_sp_easter_memorial_alleluias_and_feria():
     hours = hours_of("SP", 129, 137)
     assert [h.code for h in hours] == ["INV", "OR", "LAUDS", "VESPERS"]
     info = day_info("SP", hours[0].section, hours[0].day, hours[0].day_extra)
-    assert (info["key"], info["rank"]) == ("SANCT.04-21.anselmi", "optional_memorial")
+    assert (info["key"], info["rank"]) == ("SANCT.04-21.StAnselm", "optional_memorial")
     inv = next(e for e in hours[0].elements if e.slot == "INV_ANT")
     assert inv.data["text"].endswith("allelúia.")
     rb = next(e for e in hours[2].elements if e.slot == "RB")
@@ -129,7 +130,7 @@ def test_st_joseph_midday_per_hour_layout():
     """SP 31-34: Hora media printed per hour (hymn, antiphon + complementary psalmody links, LB, versicle, prayer
     under each of Terce/Sext/None) keeps each part under its own sub-hour."""
     hours = hours_of("SP", 11, 41)
-    assert {day_info("SP", h.section, h.day, h.day_extra)["key"] for h in hours} == {"SANCT.03-19.ioseph"}
+    assert {day_info("SP", h.section, h.day, h.day_extra)["key"] for h in hours} == {"SANCT.03-19.StJoseph"}
     codes = [hour_code(h.code, h.subtitle) for h in hours]
     assert codes == ["V1", "COMPLINE1", "INV", "OR", "LAUDS", "MIDDAY", "V2", "COMPLINE"]
     mid = hours[codes.index("MIDDAY")]
@@ -143,7 +144,7 @@ def test_joseph_and_annunciation_one_day_two_seasonal_printings():
     only by the Easter alleluias and are distinct objects."""
     con = sqlite3.connect(DB_PATH)
     try:
-        for key in ("SANCT.03-19.ioseph", "SANCT.03-25.annuntiatione-domini"):
+        for key in ("SANCT.03-19.StJoseph", "SANCT.03-25.Annunciation"):
             src = {r[0] for r in con.execute("SELECT DISTINCT source FROM hour_instance WHERE day_key=?", (key,))}
             assert src == {"SP", "SQ"}
             assert con.execute("SELECT rank FROM day WHERE key=?", (key,)).fetchone()[0] == "solemnity"
@@ -152,7 +153,7 @@ def test_joseph_and_annunciation_one_day_two_seasonal_printings():
                                      AND o.slot='RB'""", (key,)))
             assert "Allelúia" in rb["SP"] and "Allelúia" not in rb["SQ"]
         # SQ's commemoration of St Francis of Paola and SP's memorial resolve to the same day
-        rows = set(con.execute("SELECT source, copy FROM hour_instance WHERE day_key='SANCT.04-02.francisci-de-paola'"))
+        rows = set(con.execute("SELECT source, copy FROM hour_instance WHERE day_key='SANCT.04-02.StFrancisPaola'"))
         assert rows == {("SP", None), ("SQ", "commemoratio")}
     finally:
         con.close()

@@ -106,7 +106,7 @@ def hours_seen(h):
 def check_index(con, source: str) -> dict:
     from lh.sources import plugin
     hook = getattr(plugin(source), "check_index", None)
-    if hook:                  # volumes whose index differs from Per annum's (Sanctis: lh/sources/sanctis_seasons.py)
+    if hook:                  # volumes whose index differs from Per annum's (Sanctis: lh/sources/sanctis.py)
         return hook(con, source, record)
     exp = expected_from_index(source)
     got: dict[str, set[str]] = collections.defaultdict(set)
@@ -174,6 +174,27 @@ def _source_exceptions(source: str) -> dict:
     except (KeyError, ImportError):
         return {}
 
+# Proper of Saints (SANCT.* days): what the volume must print depends on the rank (GILH 225-236, docs/loth-model.md
+# §2). Slots "de feria" (taken from the psalter / the current weekday) are not printed, so they are not required.
+_FERIAL_PSALMODY = ("PS1", "PS2", "PS3")
+_MEMORIAL = {   # GILH 234-236: psalmody (with the OR versicle) and the first reading de feria; Daytime Prayer de feria
+    "OR": [s for s in REQUIRED["OR"] if s not in _FERIAL_PSALMODY + ("OR_VERSE", "LECT1", "RESP1")],
+    "LAUDS": [s for s in REQUIRED["LAUDS"] if s not in _FERIAL_PSALMODY],
+    "VESPERS": [s for s in REQUIRED["VESPERS"] if s not in _FERIAL_PSALMODY],
+}
+_FEAST = {      # GILH 231-233: Daytime Prayer takes the psalms of the current weekday
+    "MIDDAY": [s for s in REQUIRED["MIDDAY"] if s not in _FERIAL_PSALMODY],
+}
+RANK_REQUIRED = {"memorial": _MEMORIAL, "optional_memorial": _MEMORIAL, "feast": _FEAST, "feast_lord": _FEAST}
+
+
+def required_slots(day_key: str, rank: str | None, hour: str) -> list[str]:
+    if day_key.startswith("SANCT."):
+        tpl = RANK_REQUIRED.get(rank or "", {})
+        if hour in tpl:
+            return tpl[hour]
+    return REQUIRED.get(hour, [])
+
 
 def check_structure(con) -> dict:
     slots: dict[int, set] = collections.defaultdict(set)
@@ -199,11 +220,12 @@ def check_structure(con) -> dict:
         # RB / MARIAN substitutions (Loco responsorii, Regína cæli) are modelled by the parser — see above
     from lh.sources import MODULES, plugin
     bad, excused = [], []
-    for h in con.execute("SELECT id, source, day_key, hour, copy, page_start FROM hour_instance "
+    for h in con.execute("SELECT h.id, h.source, h.day_key, h.hour, h.copy, h.page_start, d.rank FROM hour_instance h "
+                         "LEFT JOIN day d ON d.key = h.day_key "
                          "WHERE day_key NOT LIKE '%ORD.%' AND day_key NOT LIKE '%PROP.%'"):   # appendix fragments
-        req = TEMPLATE_EXCEPTIONS.get((h["day_key"], h["hour"])) or REQUIRED.get(h["hour"], [])
+        req = TEMPLATE_EXCEPTIONS.get((h["day_key"], h["hour"])) or required_slots(h["day_key"], h["rank"], h["hour"])
         hook = getattr(plugin(h["source"]), "required_slots", None) if h["source"] in MODULES else None
-        if hook:          # printed forms with their own template, e.g. Sanctis commemorations (sanctis_seasons.py)
+        if hook:          # printed forms with their own template, e.g. Sanctis commemorations (sanctis.py)
             req = hook(h["day_key"], h["hour"], h["copy"], req)
         missing = [s for s in req if s not in slots[h["id"]]]
         if h["hour"] == "MIDDAY" and "LINK" in slots[h["id"]]:      # complementary psalmody given by reference
@@ -311,7 +333,7 @@ def run_all(sources=("PA",), db=DB_PATH) -> dict:
     from lh.verify.coverage import coverage
     for s in built:                       # every source in the database, not only those with an index check
         out[f"coverage:{s}"] = coverage(s, db)
-    if set(built) & {"SP", "SQ", "SADV"}:  # saints printed in several Sanctis volumes -> reports/sanctis_overlaps.md
+    if len(set(built) & {"SPA", "SP", "SQ", "SADV"}) >= 2:  # saints printed in several Sanctis volumes -> reports/sanctis_overlaps.md
         from lh.verify.sanctis_overlaps import sanctis_overlaps
         out["sanctis_overlaps"] = sanctis_overlaps(db)
     from lh.verify.copies import copies_report
