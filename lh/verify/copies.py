@@ -147,12 +147,15 @@ def copies_report(source: str, db=DB_PATH) -> dict | None:
                     pw = _psalter_week(con, source, lab, k, t, psalter)
                     wd_table[k][(lab, t)] = (d, wd, pr - {None}, pw)
     con.close()
+    if not n_multi and not cal_rows:      # no day printed twice (e.g. a Sanctis volume's per-form labels): no report
+        return None
     out = {"source": source, "hours": len(hours), "day_hours": len(by_dh), "multi": n_multi, "same": n_same,
            "differ": rows, "rubric_only": rubric_only, "calendar": cal_rows, "weekdays": wd_table}
     _write(out, p, plain)
     return {"multi": n_multi, "same": n_same, "differ": len(rows),
             "explained": sum(1 for r in rows if r["kind"] == "explained"),
-            "review": sum(1 for r in rows if r["kind"] == "review"), "calendar": len(cal_rows)}
+            "review": sum(1 for r in rows if r["kind"] == "review"),
+            "calendar": sum(1 for c in cal_rows if (c[0], c[2]) not in (getattr(p, "CALENDAR_NOTES", {}) or {}))}
 
 
 def _hord(h):
@@ -241,7 +244,7 @@ def _write(r: dict, p, plain: dict) -> None:
          f"| … other differences, explained (calendar, or a source discrepancy in `TODO.md` §3) | {len(expl):,} |",
          f"| … other differences, **unexplained** (review) | {len(review):,} |",
          f"| … same texts, different rubrics/links only | {len(r['rubric_only']):,} |",
-         f"| Calendar check: days missing or unexpected | {len(r['calendar']):,} |", ""]
+         f"| Calendar check: days missing or unexpected (see the explanations below) | {len(r['calendar']):,} |", ""]
     if getattr(p, "calendar", None):
         L += ["## Calendar check", "",
               "Each copy's days computed from its start date (`calendar()` in the plug-in: Immaculate Conception moved "
@@ -249,8 +252,10 @@ def _write(r: dict, p, plain: dict) -> None:
               "after the Octave the two tracks, Epiphany on 6 January or on the Sunday 2–8 January) against the days "
               "printed.", ""]
         if r["calendar"]:
-            L += ["| Copy | Date | Day | Track | Finding |", "|---|---|---|---|---|"]
-            L += [f"| {c} | {d.strftime('%d %b') if d else ''} | `{k}` | {t or 'both'} | {f} |" for c, d, k, t, f in r["calendar"]]
+            cn = getattr(p, "CALENDAR_NOTES", {}) or {}
+            L += ["| Copy | Date | Day | Track | Finding | Explanation (plug-in `CALENDAR_NOTES`) |", "|---|---|---|---|---|---|"]
+            L += [f"| {c} | {d.strftime('%d %b') if d else ''} | `{k}` | {t or 'both'} | {f} | "
+                  f"{_cell(cn.get((c, k), '**unexplained**'))} |" for c, d, k, t, f in r["calendar"]]
         else:
             L.append("Every copy prints exactly the days of its calendar.")
         L.append("")

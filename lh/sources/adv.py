@@ -97,6 +97,14 @@ COPY_NOTES = {
                                       "27 December Vespers ('Deus Fílium suum mittens') instead of 'Erámus natúra fílii "
                                       "iræ'. TODO §3 T-ADV-3.",
 }
+# Findings of the calendar check (copies.py) with their explanation
+CALENDAR_NOTES = {
+    ("1 Dec", "SOL.IMMACULATE_CONCEPTION"): "Not printed in this copy: 8 December is the Second Sunday of Advent, so the "
+        "solemnity moves to Monday 9 December, where the copy prints the Monday of Week II (p. 5216) instead. The office "
+        "is supplied by SADV pp. 65–96 (same day key SOL.IMMACULATE_CONCEPTION; it matches the ADV printings except as "
+        "noted in TODO §3 T-ADV-1/T-ADV-11). TODO §3 T-ADV-1.",
+    ("1 Dec", "ADV.2.MON"): "Printed on 9 December in place of the transferred Immaculate Conception (see above).",
+}
 # Hours that lack a GILH slot because the source does not print it (lh/verify/checks.py check_structure)
 STRUCTURE_EXCEPTIONS = {
     ("SOL.IMMACULATE_CONCEPTION", "LAUDS"): {

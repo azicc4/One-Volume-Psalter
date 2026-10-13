@@ -47,6 +47,9 @@ def coverage(source: str, db=DB_PATH) -> dict:
     gaps = []
     for r in rows:
         i, page, text = r["id"], r["page"], r["text"]
+        if in_hour(i) and non_content(source, page):   # liturgical text on a page declared non-content: bad range
+            gaps.append((page, f"[hour content on a NON_CONTENT page] {text}"))
+            continue
         if in_hour(i) or i in recorded:
             covered += 1
             continue

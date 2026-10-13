@@ -79,7 +79,7 @@ def main(argv=None):
         for k, v in out.items():
             if k.startswith("copies:"):
                 print(f"  copies {k[7:]}: {v['same']}/{v['multi']} repeated day/hours collapse; {v['differ']} differ "
-                      f"({v['explained']} explained, {v['review']} unexplained); calendar findings {v['calendar']}  "
+                      f"({v['explained']} explained, {v['review']} unexplained); unexplained calendar findings {v['calendar']}  "
                       f"(reports/{k[7:].lower()}_copies.md)")
     elif args.cmd == "psalter":
         from lh.psalter.compare import compare

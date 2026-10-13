@@ -95,8 +95,13 @@ DIMISSIO 6259–6260 · Marian antiphons 6260–6261 · ALIA EX PROPRIO (Dies ir
 
 ## Known traps
 
-Immaculate Conception missing in the 1 Dec Advent copy (use SA 65) · Assumption title non-bold (SPA 1111) ·
-Christmas & Ascension dual tracks · heading typos (`FERIA II HEBDOMADA XXVIII`, `SACRUUM TRIDUUM`,
+Immaculate Conception missing in the 1 Dec Advent copy (transferred to 9 Dec; supplied by SA 65-96) · Assumption
+title non-bold (SPA 1111) · Christmas & Ascension dual tracks (Adv: each copy index lists the two Christmas tracks;
+weekdays after Epiphany are printed under their date but carry the texts of 7, 8 … January) · centred date lines
+above a day title (`Die 25 decembris`, Adv 713; plug-in `PRE_TITLE_LINES`) · Year A/B/C Gospel antiphons without
+"Ant." (Adv 37) · `Canticum Eph 1, 3-10` on one line (Adv 286) and numbered `Canticum I` (Adv 8416) · psalm
+heading wrapped after the comma (`Psalmus 68 (69),` / `2-22. 30-37`, Adv 1685, L/E 595) · antiphon continued on
+the next page with a capital (Adv 1748) · heading typos (`FERIA II HEBDOMADA XXVIII`, `SACRUUM TRIDUUM`,
 `ALIA EX PROPIO`, `QUARESIMÆ`) · black em dash inside psalm text (PA 732) · wrapped preces first halves at
 x=72 (SPA 2000) · verse number on a continuation line (Ps 7:9) · `(19)` omitted-verse label (PA 124) ·
 chapter,verse labels (`5,9`) · optional `[24-32]` (L/E 1136) · alleluia canticle layout (PA 291) ·

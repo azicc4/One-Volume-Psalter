@@ -24,7 +24,8 @@ PSALM_HEAD_RE = re.compile(r"^Psalmus (\d+)(?: ([AB]))?(?: \((\d+)(?: ([AB]))?\)
 CANT_HEAD_RE = re.compile(r"^Canticum(?: ([IVX]+|[1-4]? ?[A-Z][a-z]+ \d.*))?$")
 ANNO_RE = re.compile(r"^Anno ([ABC])$")
 ALT_RE = re.compile(r"^(?:vel|aut)\b|^Ad libitum etiam", re.I)   # "Vel:", "Vel alia:", "vel de Communi…", "aut de die…"
-SANCTIS_SOURCES = {"SP", "SQ", "SADV", "COM"}   # WS4b parser refinements (see is_inline_alt_ant, parse_ant, parse_rubric)
+SANCTIS_SOURCES = {"SP", "SQ", "SADV", "COM", "ADV"}   # WS4b parser refinements (is_inline_alt_ant, parse_ant, parse_rubric)
+# (ADV opted in by WS1: its Epiphany Complines print "Vel, si … dominica:" alternative orations, ADV 1090, 1117 …)
 # complementary psalmody substitutes (COM 1684-1693), red heading + blue link: "Psalmus 126 (127) vel 130 (131)"
 PSALM_VEL_RE = re.compile(r"^(Psalmus \d+ \(\d+\)),? vel (\d+ \(\d+\))$")
 # Sub-variant rubrics (Commons, Office of the Dead): the following text applies only to one kind of saint or occasion,
