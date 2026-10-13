@@ -24,9 +24,11 @@ PSALM_HEAD_RE = re.compile(r"^Psalmus (\d+)(?: ([AB]))?(?: \((\d+)(?: ([AB]))?\)
 CANT_HEAD_RE = re.compile(r"^Canticum(?: ([IVX]+|[1-4]? ?[A-Z][a-z]+ \d.*))?$")
 ANNO_RE = re.compile(r"^Anno ([ABC])$")
 ALT_RE = re.compile(r"^(?:vel|aut)\b|^Ad libitum etiam", re.I)   # "Vel:", "Vel alia:", "vel de Communi…", "aut de die…"
-SANCTIS_SOURCES = {"SP", "SQ", "SADV", "COM", "ADV"}   # WS4b parser refinements (is_inline_alt_ant, parse_ant, parse_rubric)
-# (ADV opted in by WS1: its Epiphany Complines print "Vel, si … dominica:" alternative orations, ADV 1090, 1117 …)
-# complementary psalmody substitutes (COM 1684-1693), red heading + blue link: "Psalmus 126 (127) vel 130 (131)"
+# Sanctis / Commons parser refinements (see is_inline_alt_ant, parse_ant, parse_rubric); ADV opted in by WS1: its
+# Epiphany Complines print "Vel, si … dominica:" alternative orations (ADV 1090, 1117 …)
+SANCTIS_SOURCES = {"SPA", "SP", "SQ", "SADV", "COM", "ADV"}
+# complementary psalmody substitutes (COM 1684-1693; SP/SQ/SADV/SPA appendices), red heading + blue link:
+# "Psalmus 126 (127) vel 130 (131)"
 PSALM_VEL_RE = re.compile(r"^(Psalmus \d+ \(\d+\)),? vel (\d+ \(\d+\))$")
 # Sub-variant rubrics (Commons, Office of the Dead): the following text applies only to one kind of saint or occasion,
 # e.g. "Pro papa:", "Pro pluribus pastoribus:", "Vel alia, præsertim pro episcopo:", "In ipsa ecclesia dedicata:",
@@ -44,6 +46,11 @@ def subvariant(text: str) -> str | None:
         return None
     v = m.group(1).strip()
     return v[:1].upper() + v[1:]
+
+
+def is_stanza_no(L: Line) -> bool:
+    """A hymn stanza that starts with a red stanza number ('1 Qui lacrimátus Lázarum', SPA 1784)."""
+    return len(L.runs) > 1 and L.runs[0].red and L.runs[0].text.strip().isdigit() and not L.runs[1].red
 
 
 @dataclass
@@ -315,6 +322,10 @@ class HourParser:
                     self.section = ""  # per-hour closing section of Hora media
             elif k == "label":
                 self.i += 1
+                more = []
+                if t.count("(") > t.count(")"):      # reference wrapped onto a red line ("… Eccli 44, 16. / 17)", SPA 1946)
+                    more = self.take_while(lambda X: X.kind == "rubric" and X.block == L.block and len(X.text) < 40)
+                    t = norm_space(" ".join([t] + [X.text for X in more]))
                 lab, ref = label_parts(t)
                 if self.section == "PSALMODIA" and lab != "PSALMODIA":
                     self.after_psalmody = True
@@ -323,7 +334,7 @@ class HourParser:
                     self.hymn_in_sub = bool(self.sub)   # layout C: "Ad Tertiam" precedes its own HYMNUS label
                 if lab == "PSALMODIA" and self.h.code == "MIDDAY" and not self.hymn_in_sub:
                     self.sub = ""      # Hora media psalmody is shared by Terce, Sext and None
-                self.emit("label", [L], lab, {"label": lab, "ref": ref}, keep_cond=True)
+                self.emit("label", [L] + more, lab, {"label": lab, "ref": ref}, keep_cond=True)
             elif k == "rubric_c" and t == "Oratio":
                 self.i += 1
                 self.section = "ORATIO"
@@ -345,6 +356,8 @@ class HourParser:
                 self.parse_ant(bare=True)   # Gospel antiphon for one year printed without "Ant." (ADV 37)
             elif self.section == "EVANGELIUM" and k in ("text", "italic", "verse", "rubric_c"):
                 self.parse_reading("EVANGELIUM")
+            elif k == "rubric" and self.section == "HYMNUS" and is_stanza_no(L):
+                self.parse_text_block()
             elif k == "text" and t.startswith("Deus, in adiutórium") and not self.section:
                 self.i += 1   # opening printed without its ℣ sign (source quirk, e.g. PA 277)
                 self.emit("versicle", [L], "OPENING", {"pairs": [["V", markup(L)]], "nosign": True})
@@ -727,7 +740,9 @@ class HourParser:
                 verses.append({"v": None, "t": markup(L), "x": xclass(L), "refrain": True})
                 e.lines.append(L)
                 self.i += 1
-            elif L.kind in ("R", "rubric") and re.match(r"^\(?\s*℟\. Allelúia", L.text):
+            elif (L.kind in ("R", "rubric") and re.match(r"^\(?\s*℟\. Allelúia", L.text)) or (
+                    L.kind == "R" and e.data.get("canticle") and not e.data.get("gospel")):
+                # canticle refrain: "℟. Allelúia" (Rev 19), "℟. Laudáte Dóminum, omnes gentes." (1 Tim 3, SPA 1012)
                 verses.append({"v": None, "t": markup(L), "x": xclass(L), "resp": True})
                 e.lines.append(L)
                 self.i += 1
@@ -756,6 +771,9 @@ class HourParser:
             else:
                 break
         text0 = pairs[0][1] if pairs else ""
+        if self.section == "LECTIO BREVIS" and self.h.code in ("LAUDS", "VESPERS", "V1", "V2") and pairs \
+                and pairs[0][0] == "R":
+            self.section = "RESPONSORIUM BREVE"     # label missing in the source (SPA 414, 1537): ℟ … * after LB
         if self.section in ("RESPONSORIUM", "RESPONSORIUM BREVE"):
             prev = [e for e in self.els if e.type == "reading"]
             if self.section == "RESPONSORIUM":
@@ -788,7 +806,16 @@ class HourParser:
             lines += self.take_while(lambda X: X.kind == "text" and xclass(X) == 0 and not X.block_start)
         text = norm_space(" ".join(markup(X) for X in lines))
         plain = norm_space(" ".join(X.text for X in lines))
-        if ALT_RE.match(plain):
+        last = self.last_content()
+        nxt = self.peek()
+        if self.h.pdf in SANCTIS_SOURCES and last is not None and last.type == "oratio" and plain.endswith(":") \
+                and nxt is not None and nxt.kind == "text" and xclass(nxt) == 1 and not subvariant(plain):
+            # another oratio follows: "vel:", "Vel, in sollemnitate dominica occurrenti:" (SPA 628, 691), "Vel, si
+            # celebretur dominica:" (SADV 72), "Extra ipsam Basilicam Lateranensem:" (SPA 1821). PA/ADV print the
+            # pattern twice each (Corpus Christi Compline) — left to their workstreams.
+            self.section = "ORATIO"
+            self.cond["alt"] = plain
+        elif ALT_RE.match(plain):
             self.cond["alt"] = plain
             # an alternative printed without its label: a short reading after the short responsory ("Vel (Ap 12, 1):"),
             # or another reading after a responsory ("Vel alia:", "aut de die 16 iulii:")
@@ -799,8 +826,6 @@ class HourParser:
                 self.section, self.alt_ref = "LECTIO BREVIS", m.group(1)
             elif prev is not None and prev.slot in ("RESP1", "RESP2") and not self.section:
                 self.section = "LECTIO PRIOR" if prev.slot == "RESP1" else "LECTIO ALTERA"
-            elif self.h.pdf in SANCTIS_SOURCES and self.els and self.els[-1].type == "oratio" and plain.endswith(":"):
-                self.section = "ORATIO"     # "Vel, si celebretur dominica:" — alternative prayer (SADV 72; PA/ADV 2× each)
         elif re.match(r"^I+\. Quando Officium lectionis", plain):
             self.cond["variant"] = "night" if plain.startswith("I.") else "day"
         elif "non dicitur Glória Patri" in plain or "non dicitur Gloria Patri" in plain:
@@ -821,10 +846,12 @@ class HourParser:
 
     def parse_link(self, L: Line):
         more = self.take_while(lambda X: X.kind in ("rubric", "rubric_c") and X.block == L.block and not X.block_start)
+        if L.text.startswith("Antiphonæ finales"):   # "… Hodie convenienter dicitur ant. Ave, / Regína cælórum." (SPA 1145)
+            more += self.take_while(lambda X: X.kind == "text" and X.block == L.block and not X.block_start)
         t = norm_space(" ".join([L.text] + [X.text for X in more]))
         if more:
-            self.emit("link", [L] + more, "SUBST" if "Invitatori" in t else "LINK", {"text": t, "target": L.link},
-                      keep_cond=True)
+            slot = "SUBST" if "Invitatori" in t else "MARIAN" if t.startswith("Antiphonæ finales") else "LINK"
+            self.emit("link", [L] + more, slot, {"text": t, "target": L.link}, keep_cond=True)
             return
         if t.startswith("Conclusio"):
             slot = "CONCLUSION"
@@ -845,10 +872,26 @@ class HourParser:
         self.emit("link", [L], slot, {"text": t, "target": L.link}, keep_cond=slot in ("INV_PSALM",))
 
     # -- prose / poetry blocks (hymns, readings, prayers, preces, Te Deum)
+    def missing_label(self) -> str:
+        """Recover a section whose red label the source forgot (reported in TODO.md §3):
+        a hymn right after the opening (SPA 259, 2067, 2357), the second reading of the Office of Readings
+        recognised by its centred source citation (SPA 1314)."""
+        content = [e for e in self.els if e.type not in ("marker", "rubric")]
+        if self.h.code in ("OR", "LAUDS", "VESPERS", "V1", "V2") and content and \
+                all(e.slot == "OPENING" for e in content):
+            return "HYMNUS"
+        nxt = [self.peek(j) for j in (1, 2)]
+        if self.h.code == "OR" and not any(e.slot == "LECT2" for e in self.els) and any(
+                X is not None and X.kind == "rubric_c" and X.text.startswith("(") for X in nxt):
+            return "LECTIO ALTERA"
+        return ""
+
     def parse_text_block(self):
+        if not self.section or (self.section == "HYMNUS" and self.els and self.els[-1].type == "rubric"):
+            self.section = self.missing_label() or self.section
         sec = self.section
         if sec == "HYMNUS":
-            lines = self.take_while(lambda X: X.kind in ("text", "italic"))
+            lines = self.take_while(lambda X: X.kind in ("text", "italic") or (X.kind == "rubric" and is_stanza_no(X)))
             stanzas: list[list[str]] = []
             for X in lines:
                 if X.block_start or not stanzas:
@@ -879,7 +922,15 @@ class HourParser:
             # preces without their PRECES label (LQP 2522) or resumed after an interruption ("Vel aliæ:", PA 6277)
             self.parse_preces()
             return
-        lines = self.take_while(lambda X: X.kind in ("text", "italic") and X.text != "Pater noster.")
+        lines = self.take_while(lambda X: X.kind in ("text", "italic") and X.text != "Pater noster."
+                                and X.text.upper() not in LABELS)
+        if not lines and self.L[self.i].text.upper() in LABELS:
+            # a label set in black roman type ("Responsorium breve", SPA 1540): treat it as the label
+            L = self.L[self.i]
+            self.i += 1
+            self.section = L.text.upper()
+            self.emit("label", [L], self.section, {"label": self.section, "ref": ""}, keep_cond=True)
+            return
         if not lines:  # e.g. "Pater noster." alone
             L = self.L[self.i]
             self.i += 1

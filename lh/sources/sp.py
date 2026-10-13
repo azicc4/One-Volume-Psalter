@@ -4,11 +4,12 @@ Every office is printed in full with Easter-time alleluias. 19 Mar and 25 Mar (s
 2-13 Apr also appear in SQ as Lenten commemorations; May-June saints also appear in SPA (Ordinary Time) —
 see reports/sanctis_overlaps.md. Unoutlined ALTERA 486-616: alternative offices labelled in the volume's index
 (Pastor, Educator, Religiosus …), recorded as hour_instance.copy "altera <label>". ALIA EX ORDINARIO 617-647.
-Header parsing: lh/sources/sanctis_seasons.py.
+Header parsing, day keys and index check: lh/sources/sanctis.py.
 """
 from __future__ import annotations
 
-from lh.sources.sanctis_seasons import check_index, classify_lines, required_slots, sanct_day_info  # noqa: F401  (hooks)
+from lh.sources.sanctis import (  # noqa: F401  (plug-in hooks)
+    check_index, classify_lines, copies_report, day_meta, required_slots, sanct_day_info)
 
 KEY = "SP"
 TITLE = "Proprium de Sanctis — Tempus Paschæ"
@@ -36,10 +37,10 @@ COPIES = [
 _NO_CONCL = "prints no 'Conclusio Horæ, ut in Ordinario.' link after the prayer (GILH 54); every other Vespers of the " \
             "volume has it. TODO §3 T-SANCT-1."
 STRUCTURE_EXCEPTIONS = {
-    ("SANCT.04-23.georgii", "VESPERS"): {"missing": ["CONCLUSION"], "reason": "SP 146 " + _NO_CONCL},
-    ("SANCT.04-24.fidelis-de-sigmaringen", "VESPERS"): {"missing": ["CONCLUSION"], "reason": "SP 164 " + _NO_CONCL},
-    ("SANCT.04-28.petri-chanel", "VESPERS"): {"missing": ["CONCLUSION"], "reason": "SP 194 " + _NO_CONCL},
-    ("SANCT.05-25.gregorii-vii", "VESPERS"): {
+    ("SANCT.04-23.StGeorge", "VESPERS"): {"missing": ["CONCLUSION"], "reason": "SP 146 " + _NO_CONCL},
+    ("SANCT.04-24.StFidelisSigmaringen", "VESPERS"): {"missing": ["CONCLUSION"], "reason": "SP 164 " + _NO_CONCL},
+    ("SANCT.04-28.StPeterChanel", "VESPERS"): {"missing": ["CONCLUSION"], "reason": "SP 194 " + _NO_CONCL},
+    ("SANCT.05-25.StGregoryVII", "VESPERS"): {
         "missing": ["PS1", "PS2", "PS3"],
         "reason": "SP 360: Vespers of St Gregory VII prints 'Hora media de feria currente.' where every other memorial "
                   "prints 'Antiphonæ et psalmi de feria currente.' (GILH 235: psalmody of the weekday). TODO §3 T-SANCT-2.",

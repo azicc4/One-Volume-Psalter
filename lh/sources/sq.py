@@ -5,11 +5,12 @@ Lauds / Vespers antiphon) — rank `commemoration`, hour_instance.copy "commemor
 25 Mar (solemnities) are printed in full. Unoutlined ALTERA 146-165: 14 Feb (Cyril and Methodius) as a feast
 ("Vel ubi celebratur ut festum", SQ 21). ALIA EX ORDINARIO 166-192 (lh/parse/appendix.py).
 Overlaps: SPA (Feb-Mar), SP (19 Mar, 25 Mar, 2-13 Apr) — see reports/sanctis_overlaps.md.
-Header parsing: lh/sources/sanctis_seasons.py.
+Header parsing, day keys and index check: lh/sources/sanctis.py.
 """
 from __future__ import annotations
 
-from lh.sources.sanctis_seasons import check_index, classify_lines, required_slots, sanct_day_info  # noqa: F401  (hooks)
+from lh.sources.sanctis import (  # noqa: F401  (plug-in hooks)
+    check_index, classify_lines, copies_report, day_meta, required_slots, sanct_day_info)
 
 KEY = "SQ"
 TITLE = "Proprium de Sanctis — Tempus Quadragesimæ"
@@ -20,14 +21,9 @@ NON_CONTENT = [
 COPIES = [
     (147, 165, "altera Festum"),        # SS. Cyril and Methodius where kept as a feast (index: "Festum OL LD HM VP")
 ]
-# source omissions excused by the structure check until the owner decides (TODO.md §3 T-SANCT)
-STRUCTURE_EXCEPTIONS = {
-    ("SANCT.02-14.cyrilli-et-methodii", "LAUDS"): {
-        "missing": ["HYMN"],
-        "reason": "SQ 153 (ALTERA, feast form): the Lauds hymn 'Hi sacerdótes Dómini sacráti' is printed without its "
-                  "HYMNUS label, so it is parsed as plain text (GILH 42 requires the hymn). TODO §3 T-SANCT-3.",
-    },
-}
+# SQ 153 (ALTERA, feast form) prints the Lauds hymn 'Hi sacerdótes Dómini sacráti' without its HYMNUS label: the
+# parser recovers it as the hymn (HourParser.missing_label; TODO.md §3 T-SANCT-3), so no structure exception is needed.
+STRUCTURE_EXCEPTIONS: dict = {}
 
 
 def day_info(section: str, day: str, extra: list[str] | None = None) -> dict:

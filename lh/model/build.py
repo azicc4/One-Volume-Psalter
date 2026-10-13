@@ -40,6 +40,7 @@ def build(sources: list[str], db_path: Path = DB_PATH) -> None:
                     (src, meta["pdf"], meta["sha256"], int(meta["pages"]), p0, p1))
         hours, outside = parse_pdf(src, p0, p1)
         # lines on a page the plug-in declares non-content (cover, index …) are front matter, whatever they look like
+        day_meta = getattr(plugin(src), "day_meta", None)    # Sanctis: printed rank line, biography → day.extra
         con.executemany("INSERT INTO source_line VALUES (?,?,?,?,?,?,?,?)",
                         [(src, o.line.l1_ids[0], o.line.l1_ids[-1], o.line.page,
                           "front" if non_content(src, o.line.page) else o.role, o.section, o.day, o.line.text)
@@ -62,6 +63,8 @@ def build(sources: list[str], db_path: Path = DB_PATH) -> None:
                 info, vol_copy = refine(hr, info, vol_copy)
             days.setdefault(info["key"], info)
             code = hour_code(hr.code, hr.subtitle)
+            if day_meta and not getattr(hr, "day_key", None):
+                day_meta(days[info["key"]], hr, vol_copy)
             n_seen = seen_hours.get((info["key"], code, vol_copy), 0)
             seen_hours[(info["key"], code, vol_copy)] = n_seen + 1
             dup = f"#{n_seen + 1}" if n_seen else None          # e.g. Ascension's two tracks
@@ -108,9 +111,10 @@ def build(sources: list[str], db_path: Path = DB_PATH) -> None:
                     (hid, seq, otype, e.slot, e.sub, json.dumps(e.cond, ensure_ascii=False) if e.cond else None,
                      oid, e.page, e.lines[-1].page if e.lines else e.page, e.source_text,
                      json.dumps(extra, ensure_ascii=False) if extra else None))
-    con.executemany("INSERT INTO day VALUES (?,?,?,?,?,?,?,?,?)",
+    con.executemany("INSERT INTO day VALUES (?,?,?,?,?,?,?,?,?,?)",
                     [(d["key"], d["season"], d["week"], d["weekday"], d["psalter_week"], d["title"], d["rank"],
-                      d["precedence"], short_name(d)) for d in days.values()])
+                      d["precedence"], short_name(d),
+                      json.dumps(d["extra"], ensure_ascii=False) if d.get("extra") else None) for d in days.values()])
     rows = []
     for ob in objects.values():
         p = ob["payload"]

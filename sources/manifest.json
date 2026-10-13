@@ -22,5 +22,65 @@
   "nova_vulgata/psalmorum.html": {
     "url": "https://www.vatican.va/archive/bible/nova_vulgata/documents/nova-vulgata_vt_psalmorum_lt.html",
     "sha256": "e508ed1c4add8cd5f6962fcfaa6c70848023553307eb95ba1d9b62ed3575fb42"
+  },
+  "litcal/propriumdesanctis_1970.json": {
+    "url": "https://raw.githubusercontent.com/Liturgical-Calendar/LiturgicalCalendarAPI/d8efa8cf48e4f17412a2eab81ae89dad100cccb9/jsondata/sourcedata/rite/roman/missals/propriumdesanctis_1970/propriumdesanctis_1970.json",
+    "sha256": "26af3c71fb362f6334e349c95e0aeaf3fb8107c87b38defd58c7e07c04355384"
+  },
+  "litcal/propriumdesanctis_1970.la.json": {
+    "url": "https://raw.githubusercontent.com/Liturgical-Calendar/LiturgicalCalendarAPI/d8efa8cf48e4f17412a2eab81ae89dad100cccb9/jsondata/sourcedata/rite/roman/missals/propriumdesanctis_1970/i18n/la.json",
+    "sha256": "16ddd87ac9d9fc94bb2416e94cf6a631f8ac4f4e1d4cc62724a4a07bf55715b2"
+  },
+  "litcal/propriumdesanctis_1970.en.json": {
+    "url": "https://raw.githubusercontent.com/Liturgical-Calendar/LiturgicalCalendarAPI/d8efa8cf48e4f17412a2eab81ae89dad100cccb9/jsondata/sourcedata/rite/roman/missals/propriumdesanctis_1970/i18n/en.json",
+    "sha256": "3ed913bbb4e8104d7143e5bb946cdbc6bc199f7b28a4e6b51eda1ccb45c059da"
+  },
+  "litcal/propriumdesanctis_2002.json": {
+    "url": "https://raw.githubusercontent.com/Liturgical-Calendar/LiturgicalCalendarAPI/d8efa8cf48e4f17412a2eab81ae89dad100cccb9/jsondata/sourcedata/rite/roman/missals/propriumdesanctis_2002/propriumdesanctis_2002.json",
+    "sha256": "a562a253968b5a1f881799d84c43bff1ad0bb1ed4ed4f73b6aaebdf4ab6ad954"
+  },
+  "litcal/propriumdesanctis_2002.la.json": {
+    "url": "https://raw.githubusercontent.com/Liturgical-Calendar/LiturgicalCalendarAPI/d8efa8cf48e4f17412a2eab81ae89dad100cccb9/jsondata/sourcedata/rite/roman/missals/propriumdesanctis_2002/i18n/la.json",
+    "sha256": "6b284b36b72f75c4bb957540db643aaac09f2d060d56103baf7e17b81d609d2c"
+  },
+  "litcal/propriumdesanctis_2002.en.json": {
+    "url": "https://raw.githubusercontent.com/Liturgical-Calendar/LiturgicalCalendarAPI/d8efa8cf48e4f17412a2eab81ae89dad100cccb9/jsondata/sourcedata/rite/roman/missals/propriumdesanctis_2002/i18n/en.json",
+    "sha256": "6dd7ac26a220af4336e225bd17bcc8e4b1ccbf02a087bb145cde18ee42c059af"
+  },
+  "litcal/propriumdesanctis_2008.json": {
+    "url": "https://raw.githubusercontent.com/Liturgical-Calendar/LiturgicalCalendarAPI/d8efa8cf48e4f17412a2eab81ae89dad100cccb9/jsondata/sourcedata/rite/roman/missals/propriumdesanctis_2008/propriumdesanctis_2008.json",
+    "sha256": "96eabb455f32117d9667c457f107280ddc8f310e66b5f252ba838843fc5b9170"
+  },
+  "litcal/propriumdesanctis_2008.la.json": {
+    "url": "https://raw.githubusercontent.com/Liturgical-Calendar/LiturgicalCalendarAPI/d8efa8cf48e4f17412a2eab81ae89dad100cccb9/jsondata/sourcedata/rite/roman/missals/propriumdesanctis_2008/i18n/la.json",
+    "sha256": "baa297183c20b8e78f43cf21cb523d26748df12e8d37a14bf192a10d9fa926e0"
+  },
+  "litcal/propriumdesanctis_2008.en.json": {
+    "url": "https://raw.githubusercontent.com/Liturgical-Calendar/LiturgicalCalendarAPI/d8efa8cf48e4f17412a2eab81ae89dad100cccb9/jsondata/sourcedata/rite/roman/missals/propriumdesanctis_2008/i18n/en.json",
+    "sha256": "2cfa340c4b74016eb13c1176aced3aac0a877b61da4e84522212668005eff4b0"
+  },
+  "litcal/propriumdetempore.json": {
+    "url": "https://raw.githubusercontent.com/Liturgical-Calendar/LiturgicalCalendarAPI/d8efa8cf48e4f17412a2eab81ae89dad100cccb9/jsondata/sourcedata/rite/roman/missals/propriumdetempore/propriumdetempore.json",
+    "sha256": "c1eeff4c6a55e64ae213771c30a33659b644ca86ee6821a93183574b1db00b98"
+  },
+  "litcal/propriumdetempore.la.json": {
+    "url": "https://raw.githubusercontent.com/Liturgical-Calendar/LiturgicalCalendarAPI/d8efa8cf48e4f17412a2eab81ae89dad100cccb9/jsondata/sourcedata/rite/roman/missals/propriumdetempore/i18n/la.json",
+    "sha256": "3d7fcd81ad021bf7f347d1a793a1eff40dfac944ea33db6975fe739685966deb"
+  },
+  "litcal/propriumdetempore.en.json": {
+    "url": "https://raw.githubusercontent.com/Liturgical-Calendar/LiturgicalCalendarAPI/d8efa8cf48e4f17412a2eab81ae89dad100cccb9/jsondata/sourcedata/rite/roman/missals/propriumdetempore/i18n/en.json",
+    "sha256": "ab56fb614616cf632ff1f7142820f627c9847d43c38e4ca7296a643283292fbc"
+  },
+  "litcal/decrees.json": {
+    "url": "https://raw.githubusercontent.com/Liturgical-Calendar/LiturgicalCalendarAPI/d8efa8cf48e4f17412a2eab81ae89dad100cccb9/jsondata/sourcedata/rite/roman/decrees/decrees.json",
+    "sha256": "1972e491c3d3cad415bdafe6b78a2f7451b9e761282f3d0e1c768a56d4956e51"
+  },
+  "litcal/decrees.la.json": {
+    "url": "https://raw.githubusercontent.com/Liturgical-Calendar/LiturgicalCalendarAPI/d8efa8cf48e4f17412a2eab81ae89dad100cccb9/jsondata/sourcedata/rite/roman/decrees/i18n/la.json",
+    "sha256": "62db5d45930d560cbc0725456ab623949af1f441982351ba4c120155e565fa00"
+  },
+  "litcal/decrees.en.json": {
+    "url": "https://raw.githubusercontent.com/Liturgical-Calendar/LiturgicalCalendarAPI/d8efa8cf48e4f17412a2eab81ae89dad100cccb9/jsondata/sourcedata/rite/roman/decrees/i18n/en.json",
+    "sha256": "ed7b0af68484d2da642e8759923bce5f8a7fbe6d73dd7f04e11955dcdfab29b5"
   }
 }

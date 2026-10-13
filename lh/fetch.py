@@ -16,6 +16,18 @@ URLS = {
     "felix_just/Hours-Ordinary.html": "https://catholic-resources.org/LoH/Hours-Ordinary.html",
     "nova_vulgata/psalmorum.html": "https://www.vatican.va/archive/bible/nova_vulgata/documents/nova-vulgata_vt_psalmorum_lt.html",
 }
+# Liturgical Calendar API (Apache-2.0, https://github.com/Liturgical-Calendar/LiturgicalCalendarAPI): the General
+# Roman Calendar's Proper of Saints (Missale Romanum 1970 / 2002 / 2008 editions), Latin and English names, and the
+# decrees that changed the calendar since. Pinned to one commit so the cached files are reproducible.
+LITCAL_COMMIT = "d8efa8cf48e4f17412a2eab81ae89dad100cccb9"
+LITCAL_RAW = f"https://raw.githubusercontent.com/Liturgical-Calendar/LiturgicalCalendarAPI/{LITCAL_COMMIT}/jsondata/sourcedata/rite/roman"
+for _name in ("propriumdesanctis_1970", "propriumdesanctis_2002", "propriumdesanctis_2008", "propriumdetempore"):
+    URLS[f"litcal/{_name}.json"] = f"{LITCAL_RAW}/missals/{_name}/{_name}.json"
+    for _lang in ("la", "en"):
+        URLS[f"litcal/{_name}.{_lang}.json"] = f"{LITCAL_RAW}/missals/{_name}/i18n/{_lang}.json"
+URLS["litcal/decrees.json"] = f"{LITCAL_RAW}/decrees/decrees.json"
+for _lang in ("la", "en"):
+    URLS[f"litcal/decrees.{_lang}.json"] = f"{LITCAL_RAW}/decrees/i18n/{_lang}.json"
 
 
 def sha256(path) -> str:

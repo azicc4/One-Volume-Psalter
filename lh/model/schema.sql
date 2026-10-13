@@ -16,7 +16,9 @@ CREATE TABLE day (                     -- a liturgical day (or a proper/common "
     key TEXT PRIMARY KEY,              -- OT.05.SUN, SOL.TRINITY, …
     season TEXT, week INTEGER, weekday TEXT, psalter_week INTEGER,
     title TEXT, rank TEXT, precedence INTEGER,
-    short TEXT                         -- short name for margin notes: "Trinity", "26 Dec", "Easter Sun"
+    short TEXT,                        -- short name for margin notes: "Trinity", "26 Dec", "Easter Sun"
+    extra TEXT                         -- JSON, source plug-in specific (Sanctis: LitCal key, printed date/title/rank
+                                       -- line, biography, rubrics; ALTERA variants under "copies")
 );
 
 CREATE TABLE hour_refs (               -- what a reader needs ribbons for, per hour (drives page refs at hour heads)
