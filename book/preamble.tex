@@ -103,5 +103,20 @@
 \newcommand{\ant}[1]{\rubric{Ant.}\ #1}
 \newcommand{\ribbon}[2]{\rubric{#1}\,#2}      % ribbon/page pair in hour heads, e.g. \ribbon{P}{12, 15}
 
+% ---------------------------------------------------------------- full book (lh/render/book.py)
+\usepackage{multicol}
+\newcommand{\lrubr}[1]{{\color{rubric}\small #1}}                      % Latin rubric printed in the sources
+% \dayhead{title}{subtitle}{rank}{label}: a liturgical day (Proper of Saints, proper days, Commons' extra offices)
+\newcommand{\dayhead}[4]{\par\needspace{8\baselineskip}\vspace{1.1\baselineskip}\objlabel{#4}%
+  \pdfbookmark[2]{#1}{#4}\markright{#1}%
+  {\centering\large\scshape\color{rubric}#1\par}%
+  \ifx&#2&\else{\centering\small\itshape\foreignlanguage{english}{#2}\par}\fi
+  \ifx&#3&\else{\centering\footnotesize\color{rubric}\foreignlanguage{english}{#3}\par}\fi\vspace{0.3\baselineskip}}
+% \readhead{day}{label}: a day in the readings section
+\newcommand{\readhead}[2]{\par\needspace{6\baselineskip}\vspace{0.8\baselineskip}\objlabel{#2}%
+  \pdfbookmark[2]{#1}{#2}\markright{#1}{\centering\scshape\color{rubric}#1\par}\vspace{0.2\baselineskip}}
+% \budget{part}: page-budget marker (reports/page_budget.md)
+\newcommand{\budget}[1]{\label{budget:#1}}
+
 \newcommand{\partpage}[2]{\cleardoublepage\thispagestyle{empty}\vspace*{2.4in}%
   {\centering\Huge\scshape\color{rubric}#1\par\vspace{1em}\normalsize\itshape\foreignlanguage{english}{#2}\par}\cleardoublepage}

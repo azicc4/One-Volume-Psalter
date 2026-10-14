@@ -17,7 +17,11 @@ def esc(s: str) -> str:
 def tex(markup: str, marks: bool = True) -> str:
     """Inline markup → LaTeX. * and † become red pointing marks when marks=True."""
     out, stack = [], []
-    for tok in _TAG.split(markup or ""):
+    # spaces at the edge of a styled run go outside it ("Allelúia,<r> prouti" → "Allelúia, <r>prouti"): a space
+    # right after "{\color{rubric}" following punctuation is lost in the PDF (babel-latin)
+    markup = re.sub(r"(<[irv]>)(\s+)", r"\2\1", markup or "")
+    markup = re.sub(r"(\s+)(</[irv]>)", r"\2\1", markup)
+    for tok in _TAG.split(markup):
         if not tok:
             continue
         if tok in ("<i>", "<r>", "<v>"):
@@ -35,6 +39,8 @@ def tex(markup: str, marks: bool = True) -> str:
     out.extend("}" for _ in stack)
     s = "".join(out)
     s = s.replace("{\\color{rubric}\\flex{}}", "\\flex{}").replace("{\\color{rubric}\\mediant{}}", "\\mediant{}")
+    # babel-latin drops an ordinary space between punctuation and a following styled group: make it explicit
+    s = re.sub(r"([,.;:!?»]) (\{\\color|\\textit\{)", r"\1\\ \2", s)
     return s
 
 

@@ -20,6 +20,7 @@ Never silently "fix" a discrepancy: report it in `TODO.md` §3 with the PDF page
 .venv/Scripts/python -m lh build PA LQP ADV COM SPA SP SQ SADV   # sources (KEY or KEY:firstpage-lastpage)
 .venv/Scripts/python -m lh verify PA LQP COM SPA SP SQ SADV   # index checks for those; coverage etc. for all built
 .venv/Scripts/python -m pytest -q tests   # parser golden tests + book layout tests
+.venv/Scripts/python -m lh book           # full book (book/out/book.pdf, ~5 min) + reports/page_budget.md; --poc = proof of concept
 .venv/Scripts/python -m lh find <words>   # search objects;  lh show <id>;  lh hour OT.05.SUN LAUDS
 ```
 Source keys: PA (Per annum) · ADV (Advent/Christmas) · LQP (Lent/Easter) · COM (Commons + Office of the Dead) ·

@@ -93,6 +93,31 @@ Proper of Time (four-week grid with seasonal variants) → Commons → Proper of
 Every other use is a page reference. Saints' texts identical to a Common become "de Communi" references; saints'
 psalms equal to the ferial psalter become "psalmi de feria".
 
+`lh/model/attribute.py` (run by `lh build` after the overrides) sets `object.home` (section: ordinary, psalter,
+hymns, time, commons, saints, readings; `inline` for rubrics and links, which are printed where they stand) and
+`object.home_label` (location). Hymns, psalms/canticles (invitatory psalms with refrains and Gospel canticles: the
+Ordinary), Te Deum and the readings/responsories of the Office of Readings have their section by type; every other
+object goes to the first location, in priority order, where it is used:
+
+| Location | Where in the book |
+|---|---|
+| `ord:fixed`, `ord:<CHAPTER>:<hour>` | Ordinary: abbreviated opening verses; appendix chapters (INVITATORY, COMPLEMENTARY, DISMISSAL, MARIAN …; `ADV.ORD.X`, `SPA.ORD.DIMISSIO` … normalised) |
+| `ord:compline:<FORM>` | weekly Compline: SAT1 (after I Vespers), SUN, MON … FRI from the grid days; EASTER from the Easter Octave |
+| `time:grid:<pw>.<DOW>:<hour>` | the 28 psalter days, every season's text side by side |
+| `time:otweek:<NN>` | Ordinary Time week NN: Sunday Gospel antiphons (A/B/C) and collect (also the weekdays' Office of Readings prayer) |
+| `time:day:<DAY>:<hour>` | wholly proper days (17–24 Dec, Christmas Time, Ash Wednesday–Saturday, Holy Week, Triduum, Easter Octave, Ascension, Pentecost, solemnities of the Lord) |
+| `com:<DAY>:<hour>` | Commons (`COMMON.*`, seasonal copies as variants), `DEAD`, `MEM.BVM_SATURDAY` |
+| `sanct:<DAY>:<hour>` | Proper of Saints (`SANCT.*`, `SOL.IMMACULATE_CONCEPTION`) |
+| `read:<DAY>` | Office of Readings readings, first day in liturgical order |
+
+Table `reference(hour_id, slot, sub, object_id, kind, target, target_home)` records the printings replaced by a named
+reference: `de_communi` (a saint's text equal to a Common's in the same hour and slot; target = the Common),
+`de_feria` (a saint's or Common's psalmody equal to a psalter-week cell), `grid` (a seasonal grid day's text equal to
+the Per annum text of the cell). The book generator (`lh/render/book.py`) prints an object in full where it meets its
+home location for the first time and gives `\seepage{…}` everywhere else; printing variants of one psalm, canticle,
+invitatory psalm or Te Deum (punctuation/line breaks, T-DUP) are labelled at the consensus text. `\budget{…}` labels
+feed `reports/page_budget.md`.
+
 ## Book order and ribbons
 
 Proper of Saints (1) · Commons (2) · Ordinary (3) · Proper of Time (4) · Hymns (5) · Psalter with Canticles

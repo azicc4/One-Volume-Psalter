@@ -41,7 +41,7 @@ def main(argv=None):
 
     sub.add_parser("catalog", help="L7: write the searchable reference catalog to reference/index.html")
 
-    p = sub.add_parser("book", help="L8: generate LaTeX from the database and build the PDF")
+    p = sub.add_parser("book", help="L8: generate the full book (or --poc) from the database and build the PDF")
     p.add_argument("--poc", action="store_true", help="proof of concept (psalter week I, Sunday and Monday)")
     p.add_argument("--no-pdf", action="store_true", help="only write the generated .tex")
 
@@ -94,10 +94,24 @@ def main(argv=None):
         getattr(query, args.cmd)(args)
     elif args.cmd == "book":
         from lh.render.build_pdf import build_pdf
-        from lh.render.poc import write_poc
-        print(f"[book] wrote {write_poc()}")
+        if args.poc:
+            from lh.render.poc import write_poc
+            print(f"[book] wrote {write_poc()}")
+            if not args.no_pdf:
+                print(f"[book] pdf -> {build_pdf('poc')}")
+            return
+        import time
+        from lh.render.book import write_book
+        from lh.render.budget import write_budget
+        t0 = time.time()
+        path, book = write_book()
+        t1 = time.time()
+        print(f"[book] wrote {path} in {t1 - t0:.0f}s: {dict(book.stats)}")
         if not args.no_pdf:
-            print(f"[book] pdf -> {build_pdf('poc')}")
+            print(f"[book] pdf -> {build_pdf('book')}")
+            t2 = time.time()
+            print(f"[book] LaTeX {t2 - t1:.0f}s; total {t2 - t0:.0f}s")
+            print(f"[book] page budget -> {write_budget(book, {'generate': t1 - t0, 'latex': t2 - t1})}")
     elif args.cmd == "catalog":
         from lh.catalog.build import build_catalog
         print(f"[catalog] {build_catalog()}")
