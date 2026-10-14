@@ -66,6 +66,29 @@ python -m lh book --poc                # book/out/poc.pdf (proof of concept, ~30
 python -m lh book                      # book/out/book.pdf: the full book (~8 min) + reports/page_budget.md
 ```
 
+### Previewing the book as a book
+
+Double-click `preview.bat` (or `preview.bat poc`) to open the built PDF in the browser in the form of a bound book.
+- Two-page spreads with page turning.
+- The ten ribbons in a bar at the top. Click a ribbon to turn to it. Click it again on its own pages to take it out
+  ("loose"). Click a loose ribbon to lay it in the current pages.
+- Shift-click a page reference such as `O 675 · P 1673` in an hour heading to lay the matching ribbon there.
+- Ribbons on the open spread lie in the gutter, which widens to hold them, so they never cover text.
+- The mouse wheel zooms around the pointer; drag to pan; double-click or **F** fits the spread again.
+- The sections (PDF bookmarks) on the left, and a page-number box at the bottom.
+- A page-edge strip with hover thumbnails.
+
+Ribbon positions are remembered per browser. `tools/viewer/serve.py` serves only `tools/viewer/` and `book/out/*.pdf`
+on 127.0.0.1. pdf.js is vendored in `tools/viewer/vendor/pdfjs/`, so the viewer works offline. Keys and rules are
+under the **?** button.
+
+The viewer stays light on the 2,800-page book, following SumatraPDF's render cache:
+- The PDF is read in byte ranges (HTTP Range), so only the parts for the pages shown are loaded.
+- Pages render one at a time from a priority queue: pages on screen first, then the sharp zoom layer, then the
+  neighbouring spreads, then the edge thumbnails. Requests for pages you have already turned past are dropped.
+- At most 10 rendered pages and 16 thumbnails are kept, and their memory is freed as soon as they are dropped.
+- Zooming stretches the page already drawn, then re-renders only the part on screen at full sharpness.
+
 ## Verification
 
 * **Round-trip**: every printed occurrence is rebuilt from its object + occurrence data and compared with the PDF

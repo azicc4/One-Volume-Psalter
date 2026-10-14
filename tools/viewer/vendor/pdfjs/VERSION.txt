@@ -1,0 +1,2 @@
+pdf.js (pdfjs-dist 4.10.38, npm registry tarball), Apache-2.0 - see LICENSE.
+Files: build/pdf.min.mjs, build/pdf.worker.min.mjs. To upgrade: npm pack pdfjs-dist@<version> and copy the same files.

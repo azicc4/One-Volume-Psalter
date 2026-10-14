@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Book Preview</title>
+<link rel="stylesheet" href="viewer.css">
+</head>
+<body>
+<header id="hotbar">
+  <button id="navToggle" class="icon" title="Show/hide sections (N)" aria-label="Toggle sections">☰</button>
+  <div id="ribbons" role="toolbar" aria-label="Ribbons"></div>
+  <button id="resetRibbons" class="small" title="Put every ribbon back at its section start">Reset</button>
+  <button id="helpBtn" class="icon" title="Help (?)" aria-label="Help">?</button>
+</header>
+
+<nav id="outline" aria-label="Sections"><div id="outlineTree"></div></nav>
+
+<main id="stage">
+  <div id="view">
+    <div id="book">
+      <div class="slot left" id="slotL"></div>
+      <div id="spine"><div id="gutter"></div></div>
+      <div class="slot right" id="slotR"></div>
+    </div>
+  </div>
+  <div id="loading">Opening the book…</div>
+</main>
+
+<div id="edge" aria-label="Page edge: click or drag to riffle">
+  <div id="edgeTrack"></div>
+  <div id="edgeTip" hidden><div id="edgeThumbs"></div><div id="edgeTipText"></div></div>
+</div>
+
+<footer id="bar">
+  <button id="prev" class="icon" title="Previous spread (←)" aria-label="Previous spread">◀</button>
+  <form id="goForm" autocomplete="off">
+    <label for="pageInput">Page</label>
+    <input id="pageInput" inputmode="text" placeholder="e.g. 684" title="Printed page number (G or / to focus)">
+    <button type="submit" class="small">Go</button>
+  </form>
+  <button id="next" class="icon" title="Next spread (→)" aria-label="Next spread">▶</button>
+  <span id="where"></span>
+  <span id="crumb"></span>
+  <div class="spacer"></div>
+  <button id="zoomBtn" class="small" title="Zoom (% of the printed size): wheel to zoom, drag to pan · click, double-click or F to fit">100%</button>
+  <select id="fileSelect" title="Which PDF from book/out/"></select>
+</footer>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<div id="help" hidden>
+  <div class="card">
+    <h2>Book preview</h2>
+    <h3>Ribbons (top bar)</h3>
+    <ul>
+      <li>A ribbon lies between two pages, shown as <b>684 | 685</b>.</li>
+      <li>Click a ribbon to turn to its pages. It stays there while you read elsewhere.</li>
+      <li>Click it again while you are on its pages to take it out (<b>loose</b>).</li>
+      <li>Click a loose ribbon to lay it in the pages you are on.</li>
+      <li><b>Shift-click</b> a page reference in the book (e.g. <b>O 675 · P 1673</b> in an hour heading) to lay the matching ribbon there: O → Ordinary, P → P1, P2, P3 in order (the Invitatory psalm → P4), R → Readings; other references go to the ribbon of the section they point into.</li>
+    </ul>
+    <h3>Keys</h3>
+    <table>
+      <tr><td>← → · PgUp PgDn · Space</td><td>turn a leaf</td></tr>
+      <tr><td>Home · End</td><td>first · last page</td></tr>
+      <tr><td>1 … 9, 0</td><td>click ribbon 1 … 10</td></tr>
+      <tr><td>G or /</td><td>type a page number</td></tr>
+      <tr><td>Wheel · + −</td><td>zoom in and out (drag to move about; double-click or F to fit)</td></tr>
+      <tr><td>N</td><td>show/hide the sections</td></tr>
+      <tr><td>?</td><td>this help</td></tr>
+    </table>
+    <p>The strip under the book is its page edge: coloured marks are ribbons; hover to preview, click or drag to riffle. Ribbons and your place are remembered in this browser.</p>
+    <button id="helpClose" class="small">Close</button>
+  </div>
+</div>
+
+<script type="module" src="viewer.js"></script>
+</body>
+</html>
