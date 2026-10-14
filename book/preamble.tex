@@ -4,7 +4,7 @@
 % ---------------------------------------------------------------- page: 6 x 9.25 in, wide outer margin for notes
 \setstocksize{9.25in}{6in}
 \settrimmedsize{\stockheight}{\stockwidth}{*}
-\setlrmarginsandblock{0.6in}{1.25in}{*}        % inner (spine), outer (margin notes)
+\setlrmarginsandblock{0.75in}{1.25in}{*}       % inner (spine: a ~2,800-page binding swallows more), outer (margin notes)
 \setulmarginsandblock{0.7in}{0.8in}{*}
 \setmarginnotes{0.12in}{1.02in}{4pt}           % sep, width, push: \marginpar stacks notes instead of overlapping
 \setheadfoot{\baselineskip}{0.35in}
@@ -42,14 +42,22 @@
 \setsecnumdepth{none}
 \settocdepth{section}
 
+% every page but the title carries its number in the outer head corner; running heads are cut short ("…") so a
+% long saint's title never runs into the number
+\usepackage[fit]{truncate}                    % fit: a head that fits keeps its natural width
+\newcommand{\runhead}[1]{\small\scshape\truncate{\dimexpr\textwidth-1in\relax}{#1}}
 \makepagestyle{breviary}
-\makeevenhead{breviary}{\liningfont\thepage}{\small\scshape\leftmark}{}
-\makeoddhead{breviary}{}{\small\scshape\rightmark}{\liningfont\thepage}
+\makeevenhead{breviary}{\liningfont\thepage}{\runhead{\leftmark}}{}
+\makeoddhead{breviary}{}{\runhead{\rightmark}}{\liningfont\thepage}
 \makepsmarks{breviary}{%
   \def\chaptermark##1{\markboth{##1}{##1}}%
   \def\sectionmark##1{\markright{##1}}}
+\makepagestyle{folio}                          % section openers and blank pages: the number only
+\makeevenhead{folio}{\liningfont\thepage}{}{}
+\makeoddhead{folio}{}{}{\liningfont\thepage}
 \pagestyle{breviary}
-\aliaspagestyle{chapter}{empty}
+\aliaspagestyle{chapter}{folio}
+\aliaspagestyle{cleared}{folio}
 
 % ---------------------------------------------------------------- liturgical macros
 \newcommand{\rubric}[1]{{\color{rubric}#1}}
@@ -118,5 +126,5 @@
 % \budget{part}: page-budget marker (reports/page_budget.md)
 \newcommand{\budget}[1]{\label{budget:#1}}
 
-\newcommand{\partpage}[2]{\cleardoublepage\thispagestyle{empty}\vspace*{2.4in}%
+\newcommand{\partpage}[2]{\cleardoublepage\thispagestyle{folio}\vspace*{2.4in}%
   {\centering\Huge\scshape\color{rubric}#1\par\vspace{1em}\normalsize\itshape\foreignlanguage{english}{#2}\par}\cleardoublepage}
