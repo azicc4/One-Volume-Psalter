@@ -89,6 +89,13 @@ The viewer stays light on the 2,800-page book, following SumatraPDF's render cac
 - At most 10 rendered pages and 16 thumbnails are kept, and their memory is freed as soon as they are dropped.
 - Zooming stretches the page already drawn, then re-renders only the part on screen at full sharpness.
 
+**Online:** <https://azicc4.github.io/One-Volume-Psalter/> serves the same viewer from GitHub Pages.
+- **Setup (once):** in the repository's Settings → Pages, set Source to "GitHub Actions".
+- **Updates:** `.github/workflows/pages.yml` republishes the viewer whenever `book/out/*.pdf` or `tools/viewer/` changes
+  on `main`.
+- **Static copy:** `tools/viewer/build_site.py` writes it to `build/site/`, saving as files what `serve.py` would
+  answer live.
+
 ## Verification
 
 * **Round-trip**: every printed occurrence is rebuilt from its object + occurrence data and compared with the PDF
