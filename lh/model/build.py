@@ -121,7 +121,8 @@ def build(sources: list[str], db_path: Path = DB_PATH) -> None:
         rows.append((ob["id"], ob["type"], incipit(ob["type"], p), plain_text(ob["type"], p),
                      json.dumps(p, ensure_ascii=False), hashlib.sha1(ob["key"].encode("utf-8")).hexdigest(),
                      ob["n"], "unverified", None))
-    con.executemany("INSERT INTO object VALUES (?,?,?,?,?,?,?,?,?)", rows)
+    con.executemany("INSERT INTO object (id, type, incipit, plain, payload, hash, n_occ, status, home) "
+                    "VALUES (?,?,?,?,?,?,?,?,?)", rows)
     con.execute("INSERT INTO object_fts (id, type, plain) SELECT id, type, plain FROM object")
     build_psalm_use(con)
     build_hour_refs(con)
@@ -130,6 +131,10 @@ def build(sources: list[str], db_path: Path = DB_PATH) -> None:
     n_over = apply_overrides(con)          # reviewed corrections (data/overrides/*.yaml)
     if n_over:
         print(f"[build] applied {n_over} override(s)")
+    from lh.model.attribute import attribute
+    a = attribute(con)                     # WS6: one home per object; references (de Communi, de feria, grid)
+    print(f"[build] attribution: {a['objects_printed']} objects printed once ({a['by_section']}), "
+          f"{a['references']} of {a['uses']} uses by reference; {a['kinds']}")
     con.commit()
     n_occ = con.execute("SELECT count(*) FROM occurrence").fetchone()[0]
     print(f"[build] {', '.join(sources)}: {len(days)} days, {len(objects)} objects, {n_occ} occurrences "

@@ -2,200 +2,30 @@
 
 Sections follow the planned book order: Psalter (+ Canticles) · Hymns · Ordinary · Propers of Time · OR Readings.
 Every object is printed once at its home and referenced elsewhere by \\pageref, so page numbers stay correct.
+Shared pieces (data access, variant grid, Psalter writer) are in lh/render/common.py; the full book is book.py.
 """
 from __future__ import annotations
 
 import collections
 import json
 import re
-import sqlite3
-from dataclasses import dataclass, field
 
-import yaml
-
-from lh.config import BOOK, DB_PATH, SEED
-from lh.model.canon import plain, psalm_base, unit_verses
+from lh.config import BOOK
+from lh.model.canon import plain, psalm_base
 from lh.model.days import DAY_NAMES
-from lh.psalter.refs import fmt, parse_ref, psalm_ranges
 from lh.render import latex as L
+from lh.render.common import (DB, GOSPEL, HOUR_TITLE, ROMAN, SEASON_LABEL, SEASON_ORDER, SLOT_NAME, SLOT_ORDER,
+                              SUB_TITLE, PsalterWriter, finding_the_office, labels_for, load_supplement, obj_ref,
+                              opening_block, ribbon_refs, slot_groups, unit_anchor)
 from lh.render.latex import esc, label, tex
 
-ROMAN = {1: "I", 2: "II", 3: "III", 4: "IV"}
-HOURCODE = {"OR": "OR", "LAUDS": "L", "MIDDAY": "D", "VESPERS": "V", "V1": "1V", "V2": "2V", "INV": "Inv"}
-DAYABBR = {"SUN": "Sun", "MON": "Mon", "TUE": "Tue", "WED": "Wed", "THU": "Thu", "FRI": "Fri", "SAT": "Sat"}
-SEASON_LABEL = {"OT": "OT", "ADV": "Adv.", "LENT": "Lent", "EAS": "Easter"}
-SEASON_ORDER = {"OT": 0, "ADV": 1, "LENT": 2, "EAS": 3}
-HOUR_TITLE = {"V1": "First Vespers", "COMPLINE1": "Compline after First Vespers", "INV": "Invitatory",
-              "OR": "Office of Readings", "LAUDS": "Lauds", "MIDDAY": "Daytime Prayer", "VESPERS": "Vespers",
-              "V2": "Second Vespers", "COMPLINE": "Compline"}
-SUB_TITLE = {"TERCE": "Terce", "SEXT": "Sext", "NONE": "None"}
-GOSPEL = {"LAUDS": "Benedictus", "VESPERS": "Magnificat", "V1": "Magnificat", "V2": "Magnificat", "COMPLINE": "Nunc dimittis"}
 
-VESPERS_SLOTS = ["HYMN", "ANT1", "PS1", "ANT2", "PS2", "ANT3", "PS3", "LB", "RB", "GOSPEL_ANT", "PRECES", "ORATIO"]
-SLOT_ORDER = {
-    "INV": ["INV_ANT"],
-    "OR": ["HYMN", "ANT1", "PS1", "ANT2", "PS2", "ANT3", "PS3", "OR_VERSE", "LECT1", "LECT2", "ORATIO"],
-    "LAUDS": VESPERS_SLOTS, "VESPERS": VESPERS_SLOTS, "V1": VESPERS_SLOTS, "V2": VESPERS_SLOTS,
-    "MIDDAY": [("HYMN", "TERCE"), ("ANT", "TERCE"), ("HYMN", "SEXT"), ("ANT", "SEXT"), ("HYMN", "NONE"), ("ANT", "NONE"),
-               "ANT", "ANT1", "PS1", "ANT2", "PS2", "ANT3", "PS3",
-               ("LB", "TERCE"), ("V", "TERCE"), ("ORATIO", "TERCE"), ("LB", "SEXT"), ("V", "SEXT"), ("ORATIO", "SEXT"),
-               ("LB", "NONE"), ("V", "NONE"), ("ORATIO", "NONE")],
-}
-SLOT_NAME = {"HYMN": "Hymn", "ANT": "Antiphon", "ANT1": "Ant. 1", "ANT2": "Ant. 2", "ANT3": "Ant. 3", "PS1": "Psalm 1",
-             "PS2": "Psalm 2", "PS3": "Psalm 3", "LB": "Short reading", "RB": "Short responsory",
-             "GOSPEL_ANT": "Gospel canticle antiphon", "PRECES": "Intercessions", "ORATIO": "Concluding prayer",
-             "INV_ANT": "Invitatory antiphon", "OR_VERSE": "Versicle", "V": "Versicle", "LECT1": "First reading",
-             "LECT2": "Second reading"}
-COND_LABEL = {"year": lambda v: f"Year {v}:", "variant": lambda v: {"night": "At night or early morning:",
-                                                                    "day": "During the day:"}.get(v, v),
-              "alt": lambda v: "Or:"}
-
-
-def con():
-    c = sqlite3.connect(DB_PATH)
-    c.row_factory = sqlite3.Row
-    return c
-
-
-# ============================================================================================ data access
-
-@dataclass
-class Obj:
-    id: str
-    type: str
-    payload: dict
-    n_occ: int = 0
-
-
-class DB:
-    def __init__(self):
-        self.c = con()
-        self._obj: dict[str, Obj] = {}
-
-    def obj(self, oid: str) -> Obj:
-        if oid not in self._obj:
-            r = self.c.execute("SELECT id, type, payload, n_occ FROM object WHERE id=?", (oid,)).fetchone()
-            self._obj[oid] = Obj(r["id"], r["type"], json.loads(r["payload"]), r["n_occ"])
-        return self._obj[oid]
-
-    def days(self, pw: int, wd: str):
-        return self.c.execute("""SELECT * FROM day WHERE psalter_week=? AND weekday=? AND season IN ('OT','ADV','LENT','EAS')
-                                 AND key NOT LIKE 'ADV.DEC%' ORDER BY season, week""", (pw, wd)).fetchall()
-
-    def hour(self, day_key: str, hour: str):
-        return self.c.execute("SELECT * FROM hour_instance WHERE day_key=? AND hour=? ORDER BY copy IS NOT NULL, id LIMIT 1",
-                              (day_key, hour)).fetchone()
-
-    def occ(self, hour_id: int):
-        return self.c.execute("SELECT * FROM occurrence WHERE hour_id=? ORDER BY seq", (hour_id,)).fetchall()
-
-
-# ============================================================================================ variant grid
-
-def day_tag(d) -> tuple[str, int]:
-    return d["season"], d["week"]
-
-
-def cond_text(cond_json: str | None) -> str:
-    if not cond_json:
-        return ""
-    c = json.loads(cond_json)
-    for k in ("year", "variant", "alt"):
-        if c.get(k):
-            return COND_LABEL[k](c[k])
-    return ""
-
-
-def labels_for(days: list, all_ot: set[int]) -> str:
-    by = collections.defaultdict(list)
-    for d in days:
-        by[d["season"]].append(d["week"])
-    parts = []
-    for s in sorted(by, key=lambda s: SEASON_ORDER[s]):
-        weeks = sorted(set(by[s]))
-        if s == "OT" and set(weeks) == all_ot and len(all_ot) > 1:
-            parts.append("Per annum")
-        else:
-            parts.append(f"{SEASON_LABEL[s]} {', '.join(map(str, weeks))}")
-    return " · ".join(parts)
-
-
-@dataclass
-class Group:
-    days: list
-    items: list           # [(cond_text, object_id)]
-    label: str = ""
-
-
-def slot_groups(db: DB, days: list, hour: str, slot: str, sub: str) -> list[Group]:
-    per_day = {}
-    for d in days:
-        h = db.hour(d["key"], hour)
-        if not h:
-            continue
-        items = []
-        for o in db.occ(h["id"]):
-            if o["slot"] == slot and (o["sub"] or "") == sub and o["object_id"]:
-                items.append((cond_text(o["cond"]), o["object_id"]))
-        if items:
-            # keep first occurrence order, drop exact duplicates
-            seen, uniq = set(), []
-            for it in items:
-                if it not in seen:
-                    seen.add(it)
-                    uniq.append(it)
-            per_day[d["key"]] = (d, tuple(uniq))
-    groups: dict[tuple, Group] = {}
-    for d, items in per_day.values():
-        groups.setdefault(items, Group([], list(items))).days.append(d)
-    all_ot = {d["week"] for d in days if d["season"] == "OT"}
-    out = list(groups.values())
-    for g in out:
-        g.label = labels_for(g.days, all_ot)
-    out.sort(key=lambda g: (min(SEASON_ORDER[d["season"]] for d in g.days), min(d["week"] or 0 for d in g.days)))
-    return out
-
-
-# ============================================================================================ references
-
-def psalm_unit_ref(p: dict) -> str:
-    base = psalm_base(p["psalm"])
-    verses, starts_mid = unit_verses(p["lines"])
-    nums = sorted({int(re.match(r"\(?(\d+)", v).group(1)) for v in verses if re.match(r"\(?\d", v)})
-    if starts_mid and nums:
-        nums = [nums[0] - 1] + nums
-    rng = fmt("Ps", psalm_ranges(base, [str(n) for n in nums])).replace("Ps ", "")
-    return f"Ps {rng}"
-
-
-def obj_ref(db: DB, oid: str) -> str:
-    o = db.obj(oid)
-    p = o.payload
-    if o.type == "psalm":
-        return f"{esc(psalm_unit_ref(p))} {{\\footnotesize ({esc(p['vulg'])})}}\\enspace\\seepage{{{label('psu:' + oid)}}}"
-    if o.type == "canticle":
-        try:
-            b, r, _ = parse_ref(p["ref"])
-            ref = fmt(b, r).replace("-end", "ff.")
-        except ValueError:
-            ref = p["ref"]
-        return f"Canticle {esc(ref)}\\enspace\\seepage{{{label(oid)}}}"
-    if o.type == "hymn":
-        return f"\\textit{{{tex(p['stanzas'][0][0], marks=False)}}}\\enspace\\seepage{{{label(oid)}}}"
-    if o.type == "reading":
-        intro = plain(" ".join(p.get("intro", []))) or plain(p["lines"][0][1])[:60]
-        return f"{{\\small {esc(intro)}}}\\enspace\\seepage{{{label(oid)}}}"
-    return L.render(o.type, p)
-
-
-# ============================================================================================ book builder
-
-class POC:
+class POC(PsalterWriter):
     PW, WEEKDAYS = 1, ("SUN", "MON")
 
     def __init__(self):
         self.db = DB()
-        self.supp = yaml.safe_load((SEED / "ordinary_supplement.yaml").read_text(encoding="utf-8"))
+        self.supp = load_supplement()
         self.used_objects: set[str] = set()         # referenced from the grid
         self.printed: set[str] = set()              # labels actually placed (for safe refs)
         self.or_readings: list[tuple[str, str]] = []  # (label text, reading object id)
@@ -235,207 +65,23 @@ class POC:
         nums.add(95)   # invitatory
         return sorted(nums)
 
+
     # ---------------------------------------------------------------- PSALTER
-    def use_codes(self, rows) -> tuple[list, list]:
-        """psalm_use-like rows → (four-week-cycle codes, other uses each as its own line), deduplicated in order."""
-        cycle, other = [], []
-        for r in rows:
-            m = re.match(r"PS(\d+)", r["slot"] or "")
-            n = m.group(1) if m else ""
-            hc = HOURCODE.get(r["hour"], "C" if r["hour"].startswith("COMPLINE") else r["hour"])
-            code, is_cycle = None, True
-            if r["hour"] in ("COMPLINE", "COMPLINE1"):
-                if not (r["season"] == "OT" and r["rank"] in ("sunday", "weekday")):
-                    continue       # Compline of solemnities/seasons repeats the weekly cycle (Sunday Compline)
-                code = "C " + ("Sat" if r["hour"] == "COMPLINE1" else DAYABBR[r["weekday"]])
-            elif r["season"] == "OT" and r["rank"] in ("sunday", "weekday") and r["psalter_week"]:
-                code = f"{ROMAN[r['psalter_week']]} {DAYABBR[r['weekday']]} {hc}.{n}"
-            elif r["day_key"] == "ORD.INVITATORY":
-                code = "Inv"
-            elif r["day_key"].startswith("ORD.COMPLEMENTARY"):
-                code = None if r["day_key"].endswith("NO_ANT") else f"Compl.{n}"
-            elif r["season"] in ("ADV", "LENT", "EAS") and r["rank"] in ("sunday", "weekday", "privileged_weekday") and r["psalter_week"]:
-                continue       # same psalter-week use as Ordinary Time
-            elif not r["day_key"].startswith(("ORD.", "PROP.")) and "ORD." not in r["day_key"] and "PROP." not in r["day_key"]:
-                code, is_cycle = f"{r['short'] or r['title']} {hc}.{n}".rstrip("."), False
-            if code:
-                bucket = cycle if is_cycle else other
-                if code not in bucket:
-                    bucket.append(code)
-        return cycle, other
-
-    def margin_codes(self, num: int) -> dict:
-        """unit object id → (cycle codes, other uses) for every printing of that psalm portion."""
-        rows = self.db.c.execute("""SELECT u.unit, u.day_key, u.hour, u.slot, u.psalter_week, u.weekday, d.season, d.rank,
-                                           d.title, d.short
-                                    FROM psalm_use u JOIN day d ON d.key=u.day_key WHERE u.psalm=? ORDER BY u.rowid""",
-                                 (num,)).fetchall()
-        by_unit = collections.defaultdict(list)
-        for r in rows:
-            by_unit[r["unit"]].append(r)
-        return {u: self.use_codes(rs) for u, rs in by_unit.items()}
-
-    @staticmethod
-    def margin_note(cycle: list, other: list, rng: str = "") -> str:
-        parts = r"\\ ".join(esc(c) for c in cycle)
-        if rng:
-            parts += esc(rng)
-        if other:
-            parts += (r"\otheruses " if cycle else "") + r"\\ ".join(esc(o) for o in other)
-        return r"\usemark{" + parts + "}" if parts else ""
-
-    def strophe_breaks(self, num: int) -> set[tuple]:
-        """(verse, k) keys preceded by a strophe break in the majority of printings (page breaks excluded)."""
-        votes = collections.Counter()
-        totals = collections.Counter()
-        for r in self.db.c.execute("""SELECT ob.payload, o.extra FROM occurrence o JOIN object ob ON ob.id=o.object_id
-                                      WHERE ob.type='psalm' AND ob.payload LIKE ?""", (f'%"psalm": "{num}%',)):
-            p = json.loads(r["payload"])
-            if psalm_base(p["psalm"]) != num:
-                continue
-            brk = {int(k): v for k, v in json.loads(r["extra"] or "{}").get("brk", {}).items()}
-            v, k = None, 0
-            for i, l in enumerate(p["lines"]):
-                if l["v"]:
-                    v, k = l["v"], 0
-                else:
-                    k += 1
-                if i == 0:
-                    continue
-                totals[(v, k)] += 1
-                if brk.get(i) == "block":
-                    votes[(v, k)] += 1
-        return {key for key, n in votes.items() if n * 2 > totals[key]}
-
-    def unit_starts(self, num: int, rows) -> dict[int, list[str]]:
-        """row index in psalm_verse order → unit ids starting there (matched by line text sequence)."""
-        texts = [r["text"] for r in rows]
-        out = collections.defaultdict(list)
-        for r in self.db.c.execute("SELECT id, payload FROM object WHERE type='psalm'"):
-            p = json.loads(r["payload"])
-            if psalm_base(p["psalm"]) != num:
-                continue
-            first = [l["t"] for l in p["lines"] if not l.get("refrain")][:2]
-            for i in range(len(texts)):
-                if texts[i] == first[0] and (len(first) < 2 or (i + 1 < len(texts) and texts[i + 1] == first[1])):
-                    out[i].append(r["id"])
-                    break
-        return out
-
-    def psalm_title(self, num: int) -> str:
-        c = collections.Counter()
-        for (payload,) in self.db.c.execute("SELECT payload FROM object WHERE type='psalm'"):
-            p = json.loads(payload)
-            if psalm_base(p["psalm"]) == num and p.get("title"):
-                c[p["title"]] += 1
-        return c.most_common(1)[0][0] if c else ""
-
     def psalter(self) -> str:
-        out = [r"\chapter{The Psalter}", r"\objlabel{sec:psalter}",
-               r"\rubr{Psalms are numbered as in the English Liturgy of the Hours (Hebrew numbering), with the Vulgate "
-               r"number of the Latin edition in parentheses. The margin shows where each portion is prayed in the "
-               r"four-week cycle: \emph{week} (I–IV), \emph{day}, \emph{hour} and \emph{psalm number}, e.g. "
-               r"\rubric{I Mon L.1} = Week I, Monday, Lauds, first psalm. Hours: Inv = Invitatory, OR = Office of "
-               r"Readings, L = Lauds, D = Daytime Prayer, 1V/2V = First/Second Vespers, V = Vespers, C = Compline. "
-               r"A verse range follows when only part of the psalm is used. Verses printed in "
-               r"{\footnotesize smaller type} are not used in the Liturgy of the Hours (text: Nova Vulgata).}",
-               r"\par\vspace{\baselineskip}"]
+        out = [r"\chapter{The Psalter}", r"\objlabel{sec:psalter}", self.PSALTER_INTRO, r"\par\vspace{\baselineskip}"]
         for num in self.psalms_needed():
             out.append(self.psalm(num))
         out.append(self.canticles())
-        return "\n".join(out)
-
-    def psalm(self, num: int) -> str:
-        prow = self.db.c.execute("SELECT * FROM psalm WHERE num=?", (num,)).fetchone()
-        rows = self.db.c.execute("SELECT * FROM psalm_verse WHERE psalm=? ORDER BY seq", (num,)).fetchall()
-        vul = prow["vulgate"] if prow and prow["vulgate"] else str(num)
-        head = f"Psalm {num}" + (f" ({esc(vul)})" if vul and vul != str(num) else "")
-        # keep the heading with one whole verse; otherwise the psalm may start at the bottom of a page
-        first = [r for r in rows if r["source"] != "NVT"]
-        first_v = first[0]["verse"] if first else None
-        n_first = sum(1 for r in first if r["verse"] == first_v) if first else 1
-        n_titles = sum(1 for r in rows if r["source"] == "NVT")
-        out = [f"\\psalmhead[{3 + n_titles + n_first}]{{{head}}}{{{tex(self.psalm_title(num), marks=False)}}}",
-               f"\\objlabel{{{label(f'ps:{num}')}}}"]
-        codes = self.margin_codes(num)
-        breaks = self.strophe_breaks(num)
-        starts = self.unit_starts(num, rows)
-        lh_verses = {r["verse"] for r in rows if r["source"] == "LH"}
-        in_unused = False
-        prev_v = None
-        k = 0
-        pending: list[str] = []
-        for i, r in enumerate(rows):
-            v = r["verse"]
-            k = r["line"]
-            unused = r["source"] != "LH"
-            if unused and not in_unused:
-                out.append(r"\begin{unused}")
-                in_unused = True
-            if not unused and in_unused:
-                out.append(r"\end{unused}")
-                in_unused = False
-            # a strophe gap only where a verse or couplet begins — never inside a couplet/triplet
-            if (v, k) in breaks and i > 0 and r["x"] == 0:
-                out.append(r"\psbreak")
-            # one margin note per line, merging every portion that starts here; a verse range follows each code
-            # when that portion is only part of the psalm
-            cyc_all, oth_all = [], []
-            for uid in starts.get(i, []):
-                out.append(f"\\objlabel{{{label('psu:' + uid)}}}")
-                cycle, other = codes.get(uid, ([], []))
-                p = self.db.obj(uid).payload
-                partial = bool(lh_verses - set(unit_verses(p["lines"])[0]))
-                ref = psalm_unit_ref(p)
-                rng = f" ({ref.split(':', 1)[1]})" if partial and ":" in ref else ""
-                cyc_all += [c + rng for c in cycle if c + rng not in cyc_all]
-                oth_all += [c + rng for c in other if c + rng not in oth_all]
-            if cyc_all or oth_all:
-                pending.append(self.margin_note(cyc_all, oth_all))
-            t = tex(r["text"]) if r["source"] == "LH" else tex(r["text"], marks=False)
-            if pending:            # margin notes ride inside the line they belong to (horizontal mode)
-                t = "".join(pending) + t
-                pending = []
-            if r["source"] == "NVT":
-                out.append(r"\pstitle{" + t + "}")
-            elif k == 0 and v != prev_v:
-                out.append(f"\\psl{{{esc(v or '')}}}{{{t}}}")
-            elif r["x"] >= 2:
-                out.append(f"\\psk{{{t}}}")
-            else:
-                out.append(f"\\psc{{{t}}}")
-            prev_v = v
-        if in_unused:
-            out.append(r"\end{unused}")
         return "\n".join(out)
 
     def canticles(self) -> str:
         out = [r"\chapter{Canticles}", r"\objlabel{sec:canticles}",
                r"\rubr{Old and New Testament canticles of Lauds and Vespers. The Gospel canticles (Benedictus, "
                r"Magnificat, Nunc dimittis) are in the Ordinary.}"]
-        cants = [self.db.obj(oid) for oid in self.used_objects if self.db.obj(oid).type == "canticle"
-                 and not self.db.obj(oid).payload.get("gospel")]
-        seen = set()
-        for o in sorted(cants, key=lambda o: o.payload["ref"]):
-            p = o.payload
-            if o.id in seen:
-                continue
-            seen.add(o.id)
-            uses = self.db.c.execute("""SELECT h.day_key, d.psalter_week, d.weekday, h.hour, oc.slot, d.season, d.rank,
-                                               d.title, d.short
-                                        FROM occurrence oc JOIN hour_instance h ON h.id=oc.hour_id JOIN day d ON d.key=h.day_key
-                                        WHERE oc.object_id=? ORDER BY h.id""", (o.id,)).fetchall()
-            cycle, other = self.use_codes(uses)
-            n_first = next((i for i, l in enumerate(p["lines"][1:], 1) if l.get("v")), 2)
-            out.append(f"\\psalmhead[{3 + n_first}]{{Canticle {esc(p['ref'])}}}{{{tex(p.get('title', ''), marks=False)}}}")
-            out.append(f"\\objlabel{{{label(o.id)}}}")
-            lines = L.canticle_lines(p["lines"])
-            note = self.margin_note(cycle, other)
-            if note:   # attach to the first line (horizontal mode)
-                lines = re.sub(r"(\\psl\{[^}]*\}\{|\\psc\{|\\psk\{)", lambda m: m.group(1) + note, lines, count=1)
-            out.append(lines)
-            if p.get("no_gloria"):
-                out.append(r"\par{\footnotesize\rubric{Glória Patri is not said after this canticle.}}\par")
+        cants = {oid: self.db.obj(oid) for oid in self.used_objects if self.db.obj(oid).type == "canticle"
+                 and not self.db.obj(oid).payload.get("gospel")}
+        for o in sorted(cants.values(), key=lambda o: (o.payload["ref"], o.id)):
+            out.append(self.canticle(o))
         return "\n".join(out)
 
     # ---------------------------------------------------------------- HYMNS
@@ -476,36 +122,7 @@ class POC:
         marian = [db.obj(o["object_id"]) for o in db.occ(db.hour("ORD.MARIAN", "APPX")["id"])
                   if o["object_id"] and o["type"] in ("text", "rubric")]
         out = [r"\chapter{The Ordinary}", r"\objlabel{sec:ordinary}"]
-        # --- finding the office: order of checking and the ten ribbons
-        out += [r"\section{Finding the Office}", r"\objlabel{sec:finding}",
-                r"\begin{enumerate}[leftmargin=1.4em,itemsep=2pt]",
-                r"\item \textbf{The day.} From the calendar, find the season, the week, and any celebration of the date.",
-                r"\item \textbf{Saints first.} Look the date up in the Proper of Saints (ribbon 1). If the celebration "
-                r"outranks the day of the season (solemnity, feast, memorial over a weekday; Table of Liturgical Days), "
-                r"take what it gives, and what it lacks from the Common it names (ribbon 2). On a memorial only the "
-                r"proper parts change; the psalms are usually those of the weekday. In the evening, compare today's "
-                r"Vespers with tomorrow's First Vespers the same way.",
-                r"\item \textbf{The psalter week.} Ordinary Time week $N$ uses psalter week $((N-1) \bmod 4)+1$; "
-                r"Advent weeks 1–4 use I–IV; Lent: Ash Wednesday IV, weeks 1–5 I, II, III, IV, I; Holy Week II; "
-                r"Easter weeks 2–7: II, III, IV, I, II, III.",
-                r"\item \textbf{The hour.} Open the Ordinary at the hour (ribbon 3), then the Proper of Time at the week "
-                r"and day (ribbon 4). Each hour heading in the Proper of Time gives the pages to mark: "
-                r"\rubric{O} the Ordinary, \rubric{P} the psalms (ribbons 6–9), \rubric{R} the readings (ribbon 10). "
-                r"Hymns (ribbon 5) are referred to at the top of each hour.",
-                r"\end{enumerate}",
-                r"\subsection{The ten ribbons}",
-                r"\begin{enumerate}[leftmargin=1.8em,itemsep=0pt,label=\rubric{\arabic*.}]",
-                r"\item Proper of Saints \item Commons \item Ordinary \item Proper of Time \item Hymns",
-                r"\item Psalter — first psalm \item Psalter — second psalm \item Psalter — third psalm",
-                r"\item Psalter — invitatory psalm (Ps 95, 100, 67 or 24) \item Readings of the Office of Readings",
-                r"\end{enumerate}"]
-        # --- common texts
-        out += [r"\section{Opening and Gloria}", r"\objlabel{ord:opening}",
-                r"\rubr{Every hour except the Invitatory begins:}\par", sup_pairs(s["opening"]),
-                r"\par " + tex(s["gloria_short"]) + r" \rubr{Allelúia (omitted in Lent).}",
-                r"\par\vspace{4pt}\rubr{At the end of every psalm and canticle (unless noted):}\par",
-                r"\objlabel{ord:gloria}\psl{}{Glória Patri et Fílio \mediant{}}\psk{et Spirítui Sancto.}"
-                r"\psc{Sicut erat in princípio et nunc et semper \mediant{}}\psk{et in sǽcula sæculórum. Amen.}"]
+        out += [finding_the_office(), opening_block(s)]
         def ordhour(title, anchor, refs):
             """Hour heading in the Ordinary with the pages of its fixed parts at the right."""
             r = r" \enspace·\enspace ".join(f"{name} \\pg{{{lab}}}" for name, lab in refs)
@@ -601,40 +218,7 @@ class POC:
         return "\n".join(out)
 
     def ribbon_refs(self, days: list, hour: str) -> str:
-        """Hour head: O = Ordinary page, P = psalm pages (ribbons 6–9), R = readings page when it is the same for all."""
-        db = self.db
-        anchor = {"INV": "ord:invitatory", "OR": "ord:or", "LAUDS": "ord:lauds", "MIDDAY": "ord:midday"}.get(hour, "ord:vespers")
-        parts = [r"\ribbon{O}{\pg{" + anchor + "}}"]
-        if hour == "INV":
-            parts.append(r"\ribbon{P}{\pg{" + label("ps:95") + "}}")
-            return r"\enspace ".join(parts)
-        groups: dict[tuple, list] = collections.defaultdict(list)
-        reads: set = set()
-        for d in days:
-            h = db.hour(d["key"], hour)
-            if not h:
-                continue
-            ref = db.c.execute("SELECT psalm_units, readings FROM hour_refs WHERE hour_id=?", (h["id"],)).fetchone()
-            if not ref:
-                continue
-            units = json.loads(ref["psalm_units"] or "{}")
-            labs = []
-            for slot in sorted(units):
-                o = db.obj(units[slot])
-                labs.append(label("psu:" + o.id) if o.type == "psalm" else label(o.id))
-            if labs:
-                groups[tuple(labs)].append(d)
-            if ref["readings"]:
-                reads.add(json.loads(ref["readings"]).get("LECT1"))
-        all_ot = {d["week"] for d in days if d["season"] == "OT"}
-        ordered = sorted(groups.items(), key=lambda kv: min(SEASON_ORDER[d["season"]] for d in kv[1]))
-        for i, (labs, ds) in enumerate(ordered):
-            pages = ", ".join(r"\pg{" + l + "}" for l in labs)
-            prefix = "" if i == 0 else r"\enspace/\enspace{\scshape " + esc(labels_for(ds, all_ot)) + "} "
-            parts.append(prefix + r"\ribbon{P}{" + pages + "}")
-        if len(reads) == 1 and None not in reads:
-            parts.append(r"\ribbon{R}{\pg{" + label(next(iter(reads))) + "}}")
-        return r"\enspace ".join(parts)
+        return ribbon_refs(self.db, days, hour)
 
     def proper_day(self, wd: str) -> str:
         db = self.db

@@ -42,7 +42,7 @@ Each worktree builds its own `build/lh.sqlite` and `build/latex/`; never write i
 | PDF index | 100 % where the source has an index check |
 | Structure | no new failures; any remaining one is explained in `TODO.md` (T-STRUCT) |
 | Tests | all pass; a source workstream adds golden tests for ≥ 5 tricky pages (see `docs/source-pdf-format.md`) |
-| Book | `lh book --poc` builds with 0 undefined references and 0 missing glyphs |
+| Book | `lh book --poc` builds with 0 undefined references and 0 missing glyphs; changes to `lh/render/` or `lh/model/attribute.py` also build the full book (`lh book`, same requirement) and pass `tests/test_book*.py` |
 
 ## PR template
 

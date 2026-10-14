@@ -51,7 +51,17 @@ CREATE TABLE object (                  -- a canonical text, stored once
     hash TEXT,
     n_occ INTEGER,                     -- number of printed occurrences across all sources
     status TEXT,                       -- unverified | consensus | flagged
-    home TEXT                          -- section of the new book where it is printed (set by attribution)
+    home TEXT,                         -- section of the new book where it is printed (lh/model/attribute.py):
+                                       -- ordinary psalter hymns time commons saints readings | inline (rubrics, links)
+    home_label TEXT                    -- location in that section, e.g. time:grid:1.SUN:LAUDS, sanct:<day>:OR
+);
+
+CREATE TABLE reference (               -- printings replaced by a reference of a named kind (lh/model/attribute.py)
+    hour_id INTEGER, slot TEXT, sub TEXT, object_id TEXT,
+    kind TEXT,                         -- de_communi (saint's text = the Common's, same slot) · de_feria (psalmody =
+                                       -- a psalter-week cell) · grid (seasonal text = the Per annum text of the cell)
+    target TEXT,                       -- Common day key, or grid location
+    target_home TEXT                   -- object.home_label (where the text is printed)
 );
 CREATE INDEX object_type ON object(type);
 

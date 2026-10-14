@@ -62,7 +62,8 @@ python -m lh find ad te orabo          # accent-insensitive search
 python -m lh show ant.ad-te-orabo-domine.d967f7
 python -m lh hour OT.05.SUN LAUDS      # reassemble an hour from the database
 python -m lh catalog                   # reference/index.html
-python -m lh book --poc                # book/out/poc.pdf
+python -m lh book --poc                # book/out/poc.pdf (proof of concept, ~30 s)
+python -m lh book                      # book/out/book.pdf: the full book (~8 min) + reports/page_budget.md
 ```
 
 ## Verification
