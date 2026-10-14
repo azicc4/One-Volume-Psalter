@@ -29,6 +29,15 @@ def test_trim_size_6_by_9_25_inches(name):
 
 
 @pytest.mark.parametrize("name", BOOKS)
+def test_every_page_but_the_title_shows_its_number(name):
+    """Section openers and blank pages carry the folio too, and no running head runs into it ("martyrum245")."""
+    doc = pymupdf.open(pdf(name))
+    missing = [page.get_label() for page in doc
+               if page.number and page.get_label() not in {w[4] for w in page.get_text("words")}]
+    assert not missing, f"pages without a separate page number: {missing[:20]}"
+
+
+@pytest.mark.parametrize("name", BOOKS)
 def test_margin_notes_do_not_overlap(name):
     """Text blocks in the outer margin (outside the text block) must not intersect on any page."""
     doc = pymupdf.open(pdf(name))
