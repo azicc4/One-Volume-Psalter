@@ -39,6 +39,8 @@ def tex(markup: str, marks: bool = True) -> str:
     out.extend("}" for _ in stack)
     s = "".join(out)
     s = s.replace("{\\color{rubric}\\flex{}}", "\\flex{}").replace("{\\color{rubric}\\mediant{}}", "\\mediant{}")
+    # babel-latin drops an ordinary space between punctuation and a following styled group: make it explicit
+    s = re.sub(r"([,.;:!?»]) (\{\\color|\\textit\{)", r"\1\\ \2", s)
     return s
 
 
