@@ -66,6 +66,7 @@ def test_hour_heads_carry_ribbon_refs(name):
     t = tex(name)
     start = t.index(r"\chapter{Propers of Time}" if name == "poc" else r"\chapter{Proper of Time}")
     end = t.index(r"\chapter{Hymns}") if name == "poc" else t.index(r"\section{Ordinary Time: proper to each week}")
-    heads = re.findall(r"\\hourhead\{(.*?)\}\{(.*)", t[start:end])
+    body = re.sub(r"\\objlabel\{hh:[^}]*\}", "", t[start:end])        # invisible hour labels (lh/sim)
+    heads = re.findall(r"\\hourhead\{(.*?)\}\{(.*)", body)
     assert heads and all(r"\ribbon{O}" in refs for _, refs in heads)
     assert all(r"\ribbon{P}" in refs for title, refs in heads if not title.startswith("Compline"))

@@ -66,6 +66,17 @@ python -m lh book --poc                # book/out/poc.pdf (proof of concept, ~30
 python -m lh book                      # book/out/book.pdf: the full book (~8 min) + reports/page_budget.md
 ```
 
+### Simulating its use
+
+`python -m lh simulate` simulates someone praying every hour of every day of 28 liturgical years from the built
+book. It logs each page turn, page-number look-up and ribbon movement, then tries layout and ribbon variants
+(an Ordinary card, self-contained Compline, a weekly psalter, …). The results are in `reports/simulation.md`, the
+full log in `build/sim/`, and the code in `lh/sim/`.
+- **Where texts are:** every text's page is taken from the LaTeX labels of the last `lh book` build, including
+  invisible labels at each hour heading.
+- **Ribbon models:** the ten ribbons used by section, as the book instructs; used freely (the best case); or not
+  used at all.
+
 ### Previewing the book as a book
 
 Double-click `preview.bat` (or `preview.bat poc`) to open the built PDF in the browser in the form of a bound book.

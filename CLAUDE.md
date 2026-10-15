@@ -23,6 +23,7 @@ Never silently "fix" a discrepancy: report it in `TODO.md` §3 with the PDF page
 .venv/Scripts/python -m lh book           # full book (book/out/book.pdf, ~5 min) + reports/page_budget.md; --poc = proof of concept
 .venv/Scripts/python -m lh find <words>   # search objects;  lh show <id>;  lh hour OT.05.SUN LAUDS
 preview.bat [poc]                         # browser viewer of book/out/*.pdf: spreads, 10 ribbons (tools/viewer/; --no-browser)
+.venv/Scripts/python -m lh simulate       # simulated readers: page turns + ribbons over 28 years, layout what-ifs -> reports/simulation.md (needs lh book)
 ```
 Source keys: PA (Per annum) · ADV (Advent/Christmas) · LQP (Lent/Easter) · COM (Commons + Office of the Dead) ·
 SPA / SADV / SP / SQ (Proper of Saints by season). PDFs live in the repo root (gitignored); `python -m lh fetch`
