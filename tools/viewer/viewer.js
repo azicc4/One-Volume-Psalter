@@ -1,16 +1,16 @@
-// Book preview viewer: two-page spreads, ten ribbons, page turning. Served by tools/viewer/serve.py (preview.bat).
+// Book preview viewer: two-page spreads, nine ribbons, the Ordinary card, page turning. Served by tools/viewer/serve.py (preview.bat).
 import * as pdfjsLib from './vendor/pdfjs/pdf.min.mjs';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
 
-// The ten ribbons of the one-volume book, assigned by use (TODO B-16, reports/simulation.md; the book's
-// "Finding the Office"). `home` finds the ribbon's starting place among the PDF's bookmarks (`deep`: any level).
+// The nine ribbons of the one-volume book, assigned by use (TODO B-16, reports/simulation.md; the book's
+// "Finding the Office", lh/render/common.py RIBBONS). `home` finds the ribbon's starting place among the PDF's
+// bookmarks (`deep`: any level).
 const RIBBONS = [
   { id: 'S',  name: 'Saints',            color: '#b3261e', home: /saints/i },
   { id: 'C',  name: 'Commons',           color: '#d4a017', home: /^commons/i },
   { id: 'O',  name: 'Ordinary: Compline', color: '#efe6cf', home: /^compline$/i, deep: true },
   { id: 'T1', name: 'Time: the hour',    color: '#2e7d32', home: /propers? of time/i },
-  { id: 'T2', name: 'Time: next page',   color: '#7cb342', home: /propers? of time/i },
   { id: 'T3', name: 'Time: the week',    color: '#00897b', home: /proper to each week/i, deep: true },
   { id: 'H',  name: 'Hymns',             color: '#1e63b5', home: /^hymns/i },
   { id: 'P1', name: 'Psalter',           color: '#7b1fa2', home: /psalter/i },
@@ -42,7 +42,7 @@ const label = (i) => (i == null ? '–' : S.labels[i] || String(i + 1));
 const spreadLabel = (s) => { const [l, r] = pagesOf(s); return `${label(l)} | ${label(r)}`; };
 
 // ------------------------------------------------------------------------------------------ persistence
-const storeKey = () => `ovp-viewer:v2:${S.file}`;          // v2: ribbons by use (B-16)
+const storeKey = () => `ovp-viewer:v3:${S.file}`;          // v3: nine ribbons by use (B-16)
 function save() {
   try { localStorage.setItem(storeKey(), JSON.stringify({ ribbons: S.ribbons, spread: S.spread, n: S.n })); } catch {}
 }
@@ -247,6 +247,7 @@ function applyView() {
   // percentage of the printed size (96 CSS px to the inch)
   $('#zoomBtn').textContent = `${Math.round(((S.scale * Z.z) / (96 / 72)) * 100)}%`;
   scheduleDetail();
+  placeCard();
 }
 
 function zoomAt(px, py, z) {
@@ -737,6 +738,79 @@ function setupEdge() {
   t.addEventListener('lostpointercapture', () => { dragging = false; hide(); });
 }
 
+// ------------------------------------------------------------------------------------------ the Ordinary card
+// book/out/card.pdf (TODO B-14): one sheet, front and back. It rests at the right edge of the stage with its left
+// edge showing; a click takes it out in front of the book, nearly as wide as the open book; a click on it turns it
+// over; the faint outline where it rests (or C, Esc) puts it back.
+const CARD = { pdf: null, out: false, aspect: 8.5 / 11, w: 0, h: 0, drawn: 0 };
+const PEEK = 46;                                   // px of the card's left edge showing at rest
+
+async function setupCard() {
+  try {
+    CARD.pdf = await pdfjsLib.getDocument({ url: 'pdf/card.pdf', disableAutoFetch: true, disableStream: true }).promise;
+  } catch { return; }                              // no card built: nothing shown
+  if (CARD.pdf.numPages < 2) return;
+  const vp = (await CARD.pdf.getPage(1)).getViewport({ scale: 1 });
+  CARD.aspect = vp.height / vp.width;
+  const card = $('#card');
+  card.hidden = false;
+  card.addEventListener('click', (e) => { e.stopPropagation(); if (CARD.out) card.classList.toggle('flipped'); else takeCard(true); });
+  card.addEventListener('pointerdown', (e) => e.stopPropagation());        // not a pan of the book
+  $('#cardSlot').addEventListener('click', (e) => { e.stopPropagation(); takeCard(false); });
+  placeCard();
+}
+
+function takeCard(out) {
+  if (!CARD.pdf) return;
+  CARD.out = out;
+  const card = $('#card');
+  card.classList.toggle('aside', !out);
+  if (!out) card.classList.remove('flipped');
+  card.title = out ? 'Ordinary card: click to turn it over' : 'Ordinary card: click to take it out (C)';
+  $('#cardSlot').hidden = !out;
+  placeCard();
+}
+
+function placeCard() {
+  if (!CARD.pdf) return;
+  const st = $('#stage'), card = $('#card'), slot = $('#cardSlot');
+  const bookW = (2 * S.pw + (parseFloat($('#book').style.getPropertyValue('--gap')) || 0)) * (Z.fit || 1);
+  const w = Math.max(240, Math.min(st.clientWidth - 40, bookW * 0.92));    // as wide as the open book, edges showing
+  const h = Math.min(w * CARD.aspect, st.clientHeight - 24);
+  const ww = h / CARD.aspect;
+  CARD.w = ww; CARD.h = h;
+  card.style.width = `${ww}px`;
+  card.style.height = `${h}px`;
+  const top = (st.clientHeight - h) / 2;
+  card.style.transform = CARD.out
+    ? `translate(${(st.clientWidth - ww) / 2}px, ${top}px)`
+    : `translate(${st.clientWidth - PEEK}px, ${top + 10}px) rotate(-2deg)`;
+  Object.assign(slot.style, { left: `${st.clientWidth - PEEK - 8}px`, top: `${top + 4}px`,
+    width: `${PEEK + 2}px`, height: `${h - 8}px` });
+  renderCard();
+}
+
+let cardTimer;
+function renderCard() {
+  clearTimeout(cardTimer);
+  cardTimer = setTimeout(async () => {
+    const w = Math.round(CARD.w);
+    if (!w || CARD.drawn === w) return;
+    CARD.drawn = w;
+    const dpr = window.devicePixelRatio || 1;
+    for (const [n, face] of [[1, '#card .front'], [2, '#card .back']]) {
+      const page = await CARD.pdf.getPage(n);
+      const vp = page.getViewport({ scale: (w / page.getViewport({ scale: 1 }).width) * dpr });
+      const c = el('canvas');
+      c.width = Math.floor(vp.width); c.height = Math.floor(vp.height);
+      await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+      const box = $(face);
+      box.querySelectorAll('canvas').forEach(free);
+      box.replaceChildren(c);
+    }
+  }, 120);
+}
+
 // ------------------------------------------------------------------------------------------ page-number box
 function findPage(q) {
   q = q.trim();
@@ -783,6 +857,7 @@ function setupUI() {
   });
   document.addEventListener('keydown', (e) => {
     if (!$('#help').hidden) { if (e.key === 'Escape' || e.key === '?') $('#help').hidden = true; return; }
+    if (CARD.out && e.key === 'Escape') { takeCard(false); e.preventDefault(); return; }
     if (e.target.matches?.('input, select, textarea')) { if (e.key === 'Escape') e.target.blur(); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const k = e.key;
@@ -790,12 +865,13 @@ function setupUI() {
     else if (k === 'ArrowLeft' || k === 'PageUp' || (k === ' ' && e.shiftKey)) go(S.spread - 1);
     else if (k === 'Home') go(0);
     else if (k === 'End') go(lastSpread());
-    else if (/^[0-9]$/.test(k)) clickRibbon((+k + 9) % 10);
+    else if (/^[1-9]$/.test(k) && +k <= RIBBONS.length) clickRibbon(+k - 1);
     else if (k === 'g' || k === 'G' || k === '/') { $('#pageInput').focus(); $('#pageInput').select(); }
     else if (k === 'n' || k === 'N') toggleNav();
     else if (k === '+' || k === '=') zoomCentre(1.25);
     else if (k === '-' || k === '_') zoomCentre(0.8);
     else if (k === 'f' || k === 'F') fit();
+    else if (k === 'c' || k === 'C') takeCard(!CARD.out);
     else if (k === '?') $('#help').hidden = false;
     else return;
     e.preventDefault();
@@ -822,7 +898,7 @@ async function setupFiles() {
   const sel = $('#fileSelect');
   try {
     const list = await (await fetch('pdfs.json', { cache: 'no-store' })).json();
-    for (const f of list) {
+    for (const f of list.filter((f) => f.name !== 'card')) {      // the Ordinary card is not a book
       const o = el('option', null, `${f.name}.pdf · ${new Date(f.mtime * 1000).toLocaleString()}`);
       o.value = f.name; o.selected = f.name === S.file;
       sel.append(o);
@@ -870,6 +946,7 @@ async function main() {
   applyView();
   afterMove();
   prefetch(S.spread);
+  setupCard();
 }
 
 window.bookViewer = S;   // for debugging from the console

@@ -12,10 +12,10 @@ AUX = BUILD / "latex" / "book.aux"
 pytestmark = pytest.mark.skipif(not CARD.exists() or not AUX.exists(), reason="run `python -m lh book` first")
 
 
-def test_card_is_two_cards_printed_on_both_sides():
+def test_card_is_one_sheet_printed_on_both_sides():
     doc = pymupdf.open(CARD)
-    assert doc.page_count == 4
-    assert all((round(p.rect.width), round(p.rect.height)) == (396, 612) for p in doc)     # 5.5 x 8.5 in
+    assert doc.page_count == 2                                                      # front, back
+    assert all((round(p.rect.width), round(p.rect.height)) == (792, 612) for p in doc)     # 11 x 8.5 in landscape
 
 
 def test_card_carries_the_fixed_parts():

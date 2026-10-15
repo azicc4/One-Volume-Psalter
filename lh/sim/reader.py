@@ -1,4 +1,4 @@
-"""A reader with the book's ten ribbons, turning through the steps of a day.
+"""A reader with the book's ribbons, turning through the steps of a day.
 
 Moving to another spread is one of:
   turn    the next or previous spread (a page turn)
@@ -11,7 +11,7 @@ Ribbon policies:
          that will be needed again (later today or tomorrow), the reader moves one of that part's ribbons there —
          the one whose place is needed last — unless every one of them marks a place needed sooner.
   free   any ribbon may mark any place; a ribbon is laid only where the reader will come back, taking the ribbon
-         whose place is needed last (Belady's rule): the best ten ribbons can do for this layout.
+         whose place is needed last (Belady's rule): the best these ribbons can do for this layout.
   none   no ribbons: a lower baseline.
 Ribbons stay where they are from one day to the next.
 
@@ -23,18 +23,23 @@ from dataclasses import dataclass, field
 
 COST = {"turn": 1.5, "ribbon": 2.5, "search": 8.0, "lay": 3.0}
 
-# A scheme: the ten ribbons in order, (id, name, part). Parts: S Saints, C Commons, O Ordinary, T Proper of Time,
+# A scheme: the ribbons in order, (id, name, part). Parts: S Saints, C Commons, O Ordinary, T Proper of Time,
 # H Hymns, P Psalter and Canticles, R Readings; P1–P3 the n-th psalm of an hour, P4 the Invitatory psalm.
 SCHEMES = {
     "by_section": [("S", "1 Saints", "S"), ("C", "2 Commons", "C"), ("O", "3 Ordinary", "O"),
                    ("T", "4 Proper of Time", "T"), ("H", "5 Hymns", "H"), ("P1", "6 Psalter — first psalm", "P1"),
                    ("P2", "7 Psalter — second psalm", "P2"), ("P3", "8 Psalter — third psalm", "P3"),
                    ("P4", "9 Psalter — Invitatory psalm", "P4"), ("R", "10 Readings", "R")],
-    # the scheme of the book from B-16 on (lh/render/common.py RIBBONS; tools/viewer)
+    # the scheme of the book (B-16): nine ribbons (lh/render/common.py RIBBONS; tools/viewer)
     "by_use": [("S", "1 Saints", "S"), ("C", "2 Commons", "C"), ("O", "3 Ordinary: Compline, Daytime Prayer", "O"),
-               ("T1", "4 Proper of Time: the hour", "T"), ("T2", "5 Proper of Time: the hour, next page", "T"),
-               ("T3", "6 Proper of Time: the week", "T"), ("H", "7 Hymns", "H"), ("P1", "8 Psalter", "P"),
-               ("P2", "9 Psalter, Canticles", "P"), ("R", "10 Readings", "R")],
+               ("T1", "4 Proper of Time: the hour", "T"), ("T3", "5 Proper of Time: the week", "T"),
+               ("H", "6 Hymns", "H"), ("P1", "7 Psalter", "P"), ("P2", "8 Psalter, Canticles", "P"),
+               ("R", "9 Readings", "R")],
+    # the first B-16 scheme: ten ribbons, with a third for the Proper of Time (where the hour continues)
+    "by_use10": [("S", "1 Saints", "S"), ("C", "2 Commons", "C"), ("O", "3 Ordinary", "O"),
+                 ("T1", "4 Time: the hour", "T"), ("T2", "5 Time: next page", "T"), ("T3", "6 Time: the week", "T"),
+                 ("H", "7 Hymns", "H"), ("P1", "8 Psalter", "P"), ("P2", "9 Psalter, Canticles", "P"),
+                 ("R", "10 Readings", "R")],
     "use_b": [("S", "1 Saints", "S"), ("C", "2 Commons", "C"), ("O", "3 Ordinary", "O"), ("T1", "4 Time", "T"),
               ("T2", "5 Time", "T"), ("H", "6 Hymns", "H"), ("P1", "7 Psalter", "P"), ("P2", "8 Psalter", "P"),
               ("P3", "9 Psalter", "P"), ("R", "10 Readings", "R")],

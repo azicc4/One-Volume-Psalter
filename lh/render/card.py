@@ -1,17 +1,17 @@
-"""The Ordinary card: the fixed parts of the hours on two loose cards that live in the book (TODO B-14).
+"""The Ordinary card: the fixed parts of the hours on one card that lives in the book (TODO B-14).
 
 The simulation (reports/simulation.md) found the Ordinary's fixed parts — on four spreads of the book — to be the
-largest single cost in turning: about ten look-ups a day. The cards carry them, so that each hour is said from its
-heading in the Proper (or the Psalter) with the card in hand:
+largest single cost in turning: about ten look-ups a day. The card carries them, so that each hour is said from its
+heading in the Proper (or the Psalter) with the card in hand. One sheet, 11 × 8.5 in landscape, printed on both
+sides, two panels a side (folded along the faint line between them, it fits inside the book):
 
-  card 1, front   Invitatory (opening versicle, Psalm 95, alternatives by page); opening of the other hours
-  card 1, back    Benedictus, Pater noster, prayer endings, dismissal of Lauds and Vespers
-  card 2, front   Magnificat, dismissal of the other hours, Nunc dimittis, blessing at Compline
-  card 2, back    Te Deum, antiphons of the Blessed Virgin Mary
+  front, left    Invitatory (opening versicle, Psalm 95, alternatives by page); opening of the other hours
+  front, right   Benedictus, Pater noster, prayer endings, dismissal of Lauds and Vespers
+  back, left     Magnificat, dismissal of the other hours, Nunc dimittis, blessing at Compline
+  back, right    Te Deum, antiphons of the Blessed Virgin Mary
 
 Texts come from the database (and the Ordinary supplement), rendered by the book's own renderers; page numbers of
-the book come from its last build (build/latex/book.aux). Output: book/out/card.pdf (5.5 × 8.5 in, 4 pages, to be
-printed on both sides of two cards).
+the book come from its last build (build/latex/book.aux). Output: book/out/card.pdf (2 pages, front and back).
 """
 from __future__ import annotations
 
@@ -130,15 +130,16 @@ class Card:
         rc = sorted((o for o in b.objs.values() if o.id.startswith("txt.regina-caeli")), key=lambda o: -o.n_occ)
         for ob in [b.objs[o["object_id"]] for o in marian] + rc[:1]:
             f4.append(r"\cardant{" + L.render(ob.type, ob.payload) + "}")
-        return [("Card 1 · Invitatory, opening of the hours", f1), ("Card 1 · Lauds, Pater noster, dismissal", f2),
-                ("Card 2 · Vespers and Compline", f3), ("Card 2 · Te Deum, Marian antiphons", f4)]
+        return [("Front · Invitatory, opening of the hours", f1), ("Front · Lauds, Pater noster, dismissal", f2),
+                ("Back · Vespers and Compline", f3), ("Back · Te Deum, Marian antiphons", f4)]
 
     def body(self) -> str:
+        """Four panels in two columns: panels 1–2 the front, 3–4 the back."""
         out = []
         for i, (name, parts) in enumerate(self.faces()):
             out.append(r"\cardface{" + name + "}")
             out += parts
-            out.append(r"\clearpage")
+            out.append(r"\newpage" if i % 2 == 0 else r"\clearpage")       # next column / next side
         return "\n".join(out)
 
 

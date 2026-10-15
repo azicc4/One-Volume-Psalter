@@ -146,7 +146,7 @@ def write_budget(book, timings: dict, name: str = "book") -> str:
     lines.append(f"| Smaller type for the readings (9 pt instead of 10 pt) | ≈ {readings * 0.19:,.0f} pp | "
                  f"area scales with the square of the size: (9/10)² ≈ 0.81 of {readings:,} pp |")
     lines.append(f"| Smaller type for the readings (8.5 pt) | ≈ {readings * 0.28:,.0f} pp | (8.5/10)² ≈ 0.72 |")
-    lines.append(f"| Companion volume for the Office of Readings readings (ribbon 10) | {readings:,} pp | main volume "
+    lines.append(f"| Companion volume for the Office of Readings readings (Readings ribbon) | {readings:,} pp | main volume "
                  f"{total - readings:,} pp; R page references at the Office of Readings would point into the "
                  f"companion volume |")
     lines += ["", "## For the owner to decide (B-12)", "",

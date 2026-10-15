@@ -471,41 +471,53 @@ def sup_pairs(prs) -> str:
     return r"\par ".join((r"\Vs " if k == "V" else r"\Rs ") + tex(v) for k, v in prs)
 
 
+# The ribbons of the book, assigned by use (B-16; chosen with lh/sim — reports/simulation.md): (part, use). The text
+# of the book takes its ribbon numbers from here (rib()); tools/viewer/viewer.js and lh/sim/reader.py ("by_use")
+# list the same ribbons.
+RIBBONS = [("S", "Proper of Saints — the saint of the day"),
+           ("C", "Commons — the Common it refers to"),
+           ("O", "Ordinary — Compline (the form of the day) and Daytime Prayer"),
+           ("T", "Proper of Time — the hour being said"),
+           ("T", "Proper of Time — the texts of the week (Ordinary Time: Sunday antiphons and collect) or the "
+                 "season's day"),
+           ("H", "Hymns"),
+           ("P", "Psalter — the psalms of the hour"),
+           ("P", "Psalter or Canticles — the canticle or the next psalm"),
+           ("R", "Readings of the Office of Readings")]
+
+
+def rib(part: str) -> str:
+    """'ribbon 3' / 'ribbons 7–8' for a part of the book."""
+    ns = [i for i, (p, _) in enumerate(RIBBONS, 1) if p == part]
+    return f"ribbon {ns[0]}" if len(ns) == 1 else f"ribbons {ns[0]}–{ns[-1]}"
+
+
 def finding_the_office() -> str:
-    """Ordinary: how to find the office (order of checking) and the ten ribbons."""
+    """Ordinary: how to find the office (order of checking) and the ribbons."""
     return "\n".join([r"\section{Finding the Office}", r"\objlabel{sec:finding}",
         r"\begin{enumerate}[leftmargin=1.4em,itemsep=2pt]",
         r"\item \textbf{The day.} From the calendar, find the season, the week, and any celebration of the date.",
-        r"\item \textbf{Saints first.} Look the date up in the Proper of Saints (ribbon 1). If the celebration "
+        r"\item \textbf{Saints first.} Look the date up in the Proper of Saints (" + rib("S") + "). If the celebration "
         r"outranks the day of the season (solemnity, feast, memorial over a weekday; Table of Liturgical Days), "
-        r"take what it gives, and what it lacks from the Common it names (ribbon 2). On a memorial only the "
+        r"take what it gives, and what it lacks from the Common it names (" + rib("C") + "). On a memorial only the "
         r"proper parts change; the psalms are usually those of the weekday. In the evening, compare today's "
         r"Vespers with tomorrow's First Vespers the same way.",
         r"\item \textbf{The psalter week.} Ordinary Time week $N$ uses psalter week $((N-1) \bmod 4)+1$; "
         r"Advent weeks 1–4 use I–IV; Lent: Ash Wednesday IV, weeks 1–5 I, II, III, IV, I; Holy Week II; "
         r"Easter weeks 2–7: II, III, IV, I, II, III.",
-        r"\item \textbf{The hour.} Open the Proper of Time at the day and hour (ribbons 4–6). Say the hour from its "
-        r"heading, with the \textbf{Ordinary card} in hand: the opening verses, the Invitatory psalm, the Gospel "
-        r"canticles, the Pater noster, the dismissals, the Te Deum and the antiphons of Our Lady are on the two "
-        r"cards (and in this Ordinary). Each hour heading gives the pages to mark: \rubric{P} the psalms and "
-        r"canticles (ribbons 8–9), \rubric{R} the readings (ribbon 10), \rubric{O} this Ordinary for Daytime "
-        r"Prayer (ribbon 3). The hymn is referred to at the top of each hour (ribbon 7). Compline is printed whole "
-        r"in the weekly forms of this Ordinary (ribbon 3).",
+        r"\item \textbf{The hour.} Open the Proper of Time at the day and hour (" + rib("T") + "). Say the hour "
+        r"from its heading, with the \textbf{Ordinary card} in hand: the opening verses, the Invitatory psalm, the "
+        r"Gospel canticles, the Pater noster, the dismissals, the Te Deum and the antiphons of Our Lady are on the "
+        r"card (and in this Ordinary). Each hour heading gives the pages to mark: \rubric{P} the psalms and "
+        r"canticles (" + rib("P") + r"), \rubric{R} the readings (" + rib("R") + r"), \rubric{O} this Ordinary "
+        r"for Daytime Prayer (" + rib("O") + "). The hymn is referred to at the top of each hour (" + rib("H")
+        + "). Compline is printed whole in the weekly forms of this Ordinary (" + rib("O") + ").",
         r"\end{enumerate}",
-        r"\subsection{The ten ribbons}",
+        r"\subsection{The " + {9: "nine", 10: "ten"}.get(len(RIBBONS), str(len(RIBBONS))) + " ribbons}",
         r"\rubr{Assigned by use: the places the reader comes back to most often have the most ribbons (TODO B-16; "
         r"reports/simulation.md).}",
-        r"\begin{enumerate}[leftmargin=1.8em,itemsep=0pt,label=\rubric{\arabic*.}]",
-        r"\item Proper of Saints — the saint of the day \item Commons — the Common it refers to",
-        r"\item Ordinary — Compline (the form of the day) and Daytime Prayer",
-        r"\item Proper of Time — the hour being said",
-        r"\item Proper of Time — where that hour continues, or the next hour",
-        r"\item Proper of Time — the texts of the week (Ordinary Time: Sunday antiphons and collect) or of the "
-        r"season's day",
-        r"\item Hymns",
-        r"\item Psalter — the psalms of the hour \item Psalter or Canticles — the canticle or the next psalm",
-        r"\item Readings of the Office of Readings",
-        r"\end{enumerate}"])
+        r"\begin{enumerate}[leftmargin=1.8em,itemsep=0pt,label=\rubric{\arabic*.}]"]
+        + [r"\item " + use for _, use in RIBBONS] + [r"\end{enumerate}"])
 
 
 def opening_block(s: dict) -> str:
@@ -519,11 +531,11 @@ def opening_block(s: dict) -> str:
 
 
 def ribbon_refs(db: DB, days: list, hour: str, inv_label: str = label("ps:95"), anchor=None) -> str:
-    """Hour head (B-16): P = psalm pages (ribbons 8–9), R = readings page when it is the same for all, O = the
-    Ordinary page of Daytime Prayer (ribbon 3). The fixed parts of the other hours are on the Ordinary card."""
+    """Hour head (B-16): P = psalm pages (Psalter ribbons), R = readings page when it is the same for all, O = the
+    Ordinary page of Daytime Prayer. The fixed parts of the other hours are on the Ordinary card."""
     anchor_of = anchor or unit_anchor
     if hour == "INV":
-        return r"\cardref{1}"
+        return r"\cardref{front}"
     parts = [r"\ribbon{O}{\pg{ord:midday}}"] if hour == "MIDDAY" else []
     groups: dict[tuple, list] = collections.defaultdict(list)
     reads: set = set()
