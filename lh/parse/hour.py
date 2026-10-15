@@ -23,6 +23,7 @@ PSALM_HEAD_RE = re.compile(r"^Psalmus (\d+)(?: ([AB]))?(?: \((\d+)(?: ([AB]))?\)
 # reference on the same line "Canticum Eph 1, 3-10" (ADV 286, Immaculate Conception Vespers)
 CANT_HEAD_RE = re.compile(r"^Canticum(?: ([IVX]+|[1-4]? ?[A-Z][a-z]+ \d.*))?$")
 ANNO_RE = re.compile(r"^Anno ([ABC])$")
+REFRAIN_CUE = re.compile(r"^\([^()]{2,40}\.?\)$")     # a hymn's refrain repeated between stanzas: "(O María.)"
 ALT_RE = re.compile(r"^(?:vel|aut)\b|^Ad libitum etiam", re.I)   # "Vel:", "Vel alia:", "vel de Communi…", "aut de die…"
 # Sanctis / Commons parser refinements (see is_inline_alt_ant, parse_ant, parse_rubric); ADV opted in by WS1: its
 # Epiphany Complines print "Vel, si … dominica:" alternative orations (ADV 1090, 1117 …)
@@ -893,10 +894,24 @@ class HourParser:
             self.section = self.missing_label() or self.section
         sec = self.section
         if sec == "HYMNUS":
-            lines = self.take_while(lambda X: X.kind in ("text", "italic") or (X.kind == "rubric" and is_stanza_no(X)))
+            def hymn_line(X):
+                return X.kind in ("text", "italic") or (X.kind == "rubric" and is_stanza_no(X))
+            lines = self.take_while(hymn_line)
+            # a refrain cue between stanzas — "(O María.)" (SPA 1926–1927, Presentation of Mary) — belongs to the
+            # hymn: it is kept as a line of it, and the stanzas after it are the same hymn
+            while lines:
+                X, Y = self.peek(0), self.peek(1)
+                if X is None or Y is None or X.kind != "rubric" or not REFRAIN_CUE.fullmatch(X.text.strip()) \
+                        or Y.kind not in ("text", "italic"):
+                    break
+                lines.append(X)
+                self.i += 1
+                lines += self.take_while(hymn_line)
             stanzas: list[list[str]] = []
-            for X in lines:
-                if X.block_start or not stanzas:
+            for n, X in enumerate(lines):
+                # a page break inside a stanza (the line before ends mid-sentence) does not start a new stanza
+                cont = X.page_top and n > 0 and lines[n - 1].text.rstrip().endswith((",", ";", ":"))
+                if (X.block_start and not cont) or not stanzas:
                     stanzas.append([])
                 stanzas[-1].append(markup(X))
             breaks = ["page" if X.page_top else "block" for X in lines if X.block_start][1:] if lines else []

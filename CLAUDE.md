@@ -24,6 +24,7 @@ Never silently "fix" a discrepancy: report it in `TODO.md` §3 with the PDF page
 .venv/Scripts/python -m lh find <words>   # search objects;  lh show <id>;  lh hour OT.05.SUN LAUDS
 "preview main.bat" [poc]                   # browser viewer of book/out/book.pdf: spreads, 9 ribbons, the Ordinary card, Main | Experiment (tools/viewer/)
 "preview experiment.bat"                   # the same viewer on book-weekly.pdf (lh book --variant weekly; lh/config.py VARIANTS)
+.venv/Scripts/python -m lh ribbons        # page arrangement table: each ribbon's page, every hour, next 6 months (also run by lh book)
 .venv/Scripts/python -m lh simulate       # simulated readers: page turns + ribbons over 28 years, layout what-ifs -> reports/simulation.md (needs lh book)
 ```
 Source keys: PA (Per annum) · ADV (Advent/Christmas) · LQP (Lent/Easter) · COM (Commons + Office of the Dead) ·

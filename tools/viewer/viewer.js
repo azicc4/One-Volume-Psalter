@@ -815,6 +815,146 @@ function renderCard() {
   }, 120);
 }
 
+// ------------------------------------------------------------------------------------------ page arrangement table
+// book/out/<file>-ribbons.json (python -m lh ribbons; lh/sim/arrangement.py): for every hour of the coming months,
+// the page each ribbon marks. "Page arrangement table" shows it; "Set the ribbons" lays one hour's ribbons (now, or
+// any day and hour in the table) and opens the book where that hour begins.
+const ARR = { data: null, built: false };
+const FAMILY = { V1: 'VESPERS', V2: 'VESPERS', COMPLINE1: 'COMPLINE' };   // First/Second Vespers are Vespers
+
+async function setupTools() {
+  try {
+    const r = await fetch(`pdf/${encodeURIComponent(S.file)}-ribbons.json`, { cache: 'no-store' });
+    ARR.data = r.ok ? await r.json() : null;
+  } catch { ARR.data = null; }
+  if (!ARR.data || !ARR.data.days?.length) return;
+  $('#tools').hidden = false;
+  $('#tableBtn').addEventListener('click', openTable);
+  $('#setBtn').addEventListener('click', openSet);
+  document.querySelectorAll('.pop .close').forEach((b) => b.addEventListener('click', closePops));
+  document.querySelectorAll('.pop').forEach((p) => p.addEventListener('click', (e) => { if (e.target === p) closePops(); }));
+  $('#setNow').addEventListener('click', () => fillSet(nowSlot()));
+  $('#setDate').addEventListener('change', () => fillSet({ date: $('#setDate').value, hour: $('#setHour').value }));
+  $('#setHour').addEventListener('change', () => fillSet({ date: $('#setDate').value, hour: $('#setHour').value }));
+  $('#setForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const row = findRow($('#setDate').value, $('#setHour').value);
+    if (row) { applyHour(row.day, row.hour); closePops(); }
+  });
+}
+
+function closePops() { document.querySelectorAll('.pop').forEach((p) => { p.hidden = true; }); }
+
+// the hour of the day now: before 5 the Compline of the evening before; Lauds till 9, Daytime Prayer till 15,
+// Vespers till 20, then Compline
+function nowSlot(t = new Date()) {
+  const h = t.getHours();
+  const d = new Date(t);
+  if (h < 5) d.setDate(d.getDate() - 1);
+  const hour = h < 5 ? 'COMPLINE' : h < 9 ? 'LAUDS' : h < 15 ? 'MIDDAY' : h < 20 ? 'VESPERS' : 'COMPLINE';
+  const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return { date: iso, hour };
+}
+
+function findRow(date, hour) {
+  const day = ARR.data.days.find((d) => d.date === date);
+  if (!day) return null;
+  const fam = (h) => FAMILY[h] || h;
+  const h = day.hours.find((x) => x.hour === hour) || day.hours.find((x) => fam(x.hour) === fam(hour));
+  return h ? { day, hour: h } : null;
+}
+
+const labelIndex = (lab) => { const i = S.labels.indexOf(lab); return i >= 0 ? i : null; };
+
+function applyHour(day, hour) {
+  let n = 0;
+  for (const [k, lab] of Object.entries(hour.ribbons)) {
+    const i = labelIndex(lab);
+    if (i != null && RIBBONS[+k - 1]) { S.ribbons[+k - 1] = spreadOf(i); n++; }
+  }
+  save(); drawRibbons(); drawGutter(); drawEdge();
+  const s = labelIndex(hour.start);
+  if (s != null) go(spreadOf(s), { flash: s });
+  toast(`${day.weekday} ${day.date} · ${hour.name}: ${n} ribbon${n === 1 ? '' : 's'} laid`);
+}
+
+function openTable() {
+  const tab = $('#arrTable');
+  if (!ARR.built) {
+    ARR.built = true;
+    $('#tableRange').textContent = `${ARR.data.from} to ${ARR.data.to} · made ${ARR.data.generated}`;
+    const head = el('tr');
+    head.append(el('th', null, 'Day'), el('th', null, 'Hour'));
+    RIBBONS.forEach((r, k) => {
+      const th = el('th');
+      const sw = el('span', 'sw'); sw.style.setProperty('--c', r.color);
+      th.append(sw, `${k + 1}`);
+      th.title = ARR.data.ribbons?.[k] || r.name;
+      head.append(th);
+    });
+    head.append(el('th'));
+    tab.append(head);
+    let prev = {};
+    for (const day of ARR.data.days) {
+      day.hours.forEach((h, j) => {
+        const tr = el('tr', j === 0 ? 'first' : '');
+        tr.dataset.key = `${day.date}|${FAMILY[h.hour] || h.hour}`;
+        const dc = el('td', 'day');
+        if (j === 0) { dc.append(el('b', null, `${day.weekday} ${day.date}`), el('br'), day.office); }
+        tr.append(dc, el('td', 'hr', h.name));
+        RIBBONS.forEach((r, k) => {
+          const lab = h.ribbons[String(k + 1)];
+          const td = el('td', lab ? 'pg' : '', lab || '');
+          if (lab) {
+            if (prev[k] === lab) { td.classList.add('same'); td.title = 'the ribbon stays where it is'; }
+            td.addEventListener('click', () => { const i = labelIndex(lab); closePops(); if (i != null) go(spreadOf(i), { flash: i }); });
+            prev[k] = lab;
+          }
+          tr.append(td);
+        });
+        const b = el('button', 'small', 'Set');
+        b.title = 'lay the ribbons for this hour';
+        b.addEventListener('click', () => { applyHour(day, h); closePops(); });
+        const tdb = el('td'); tdb.append(b); tr.append(tdb);
+        tab.append(tr);
+      });
+    }
+  }
+  $('#tablePop').hidden = false;
+  const now = nowSlot();
+  tab.querySelectorAll('tr.now').forEach((r) => r.classList.remove('now'));
+  const row = tab.querySelector(`tr[data-key="${now.date}|${now.hour}"]`);
+  if (row) { row.classList.add('now'); row.scrollIntoView({ block: 'center' }); }
+}
+
+function openSet() {
+  const inp = $('#setDate');
+  inp.min = ARR.data.from; inp.max = ARR.data.to;
+  fillSet(nowSlot());
+  $('#setPop').hidden = false;
+}
+
+function fillSet({ date, hour }) {
+  const inp = $('#setDate'), sel = $('#setHour');
+  inp.value = date;
+  const day = ARR.data.days.find((d) => d.date === date);
+  sel.replaceChildren();
+  if (!day) {
+    $('#setInfo').textContent = `The table covers ${ARR.data.from} to ${ARR.data.to} (python -m lh ribbons --from … for other dates).`;
+    return;
+  }
+  for (const h of day.hours) {
+    const o = el('option', null, h.name);
+    o.value = h.hour;
+    sel.append(o);
+  }
+  const fam = (h) => FAMILY[h] || h;
+  const pick = day.hours.find((h) => h.hour === hour) || day.hours.find((h) => fam(h.hour) === fam(hour)) || day.hours[0];
+  sel.value = pick.hour;
+  $('#setInfo').textContent = `${day.weekday} ${day.date}: ${day.office}. ${pick.name} begins on p. ${pick.start}; `
+    + `${Object.keys(pick.ribbons).length} ribbons to lay.`;
+}
+
 // ------------------------------------------------------------------------------------------ page-number box
 function findPage(q) {
   q = q.trim();
@@ -861,6 +1001,8 @@ function setupUI() {
   });
   document.addEventListener('keydown', (e) => {
     if (!$('#help').hidden) { if (e.key === 'Escape' || e.key === '?') $('#help').hidden = true; return; }
+    const popOpen = [...document.querySelectorAll('.pop')].some((p) => !p.hidden);
+    if (popOpen) { if (e.key === 'Escape') { closePops(); e.preventDefault(); } return; }
     if (CARD.out && e.key === 'Escape') { takeCard(false); e.preventDefault(); return; }
     if (e.target.matches?.('input, select, textarea')) { if (e.key === 'Escape') e.target.blur(); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -991,6 +1133,7 @@ async function main() {
   afterMove();
   prefetch(S.spread);
   setupCard();
+  setupTools();
 }
 
 window.bookViewer = S;   // for debugging from the console

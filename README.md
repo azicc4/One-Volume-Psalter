@@ -109,6 +109,10 @@ Double-click `preview main.bat` to open the built book in the browser in the for
 - Two-page spreads with page turning.
 - The Ordinary card rests at the right edge. Click it (or press C) to take it out in front of the book; click it
   again to turn it over; click "return card to side" (or press Esc) to put it back.
+- **Page arrangement table** (top left): for every hour of the next six months, the page each ribbon marks.
+  **Set the ribbons** lays the ribbons for now, or for any day and hour, and opens the book where that
+  hour begins. The tables are `book/out/<file>-ribbons.json`, written with each book build (or
+  `python -m lh ribbons [--variant weekly] [--from YYYY-MM-DD] [--months 6]`).
 - **Two versions:** Main | Experiment switches between the main book and the experimental version, keeping your
   place. `preview experiment.bat` opens the experimental version directly.
 - The nine ribbons in a bar at the top. Click a ribbon to turn to it. Click it again on its own pages to take it out

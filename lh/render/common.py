@@ -296,11 +296,12 @@ class PsalterWriter:
 
     @staticmethod
     def margin_note(cycle: list, other: list, rng: str = "") -> str:
-        parts = r"\\ ".join(esc(c) for c in cycle)
+        # one use per paragraph: a use that wraps hangs under its first word (\usemark)
+        parts = r"\par ".join(esc(c) for c in cycle)
         if rng:
             parts += esc(rng)
         if other:
-            parts += (r"\otheruses " if cycle else "") + r"\\ ".join(esc(o) for o in other)
+            parts += (r"\otheruses " if cycle else "") + r"\par ".join(esc(o) for o in other)
         return r"\usemark{" + parts + "}" if parts else ""
 
     def psalm_objects(self, num: int) -> list[Obj]:
@@ -381,7 +382,7 @@ class PsalterWriter:
             if o.home in (None, "psalter") and o.id not in placed:
                 out.append(f"\\objlabel{{{label('psu:' + o.id)}}}")
         lh_verses = {r["verse"] for r in rows if r["source"] == "LH"}
-        in_unused = False
+        in_unused = skip_said = False
         prev_v = None
         pending: list[str] = []
         for i, r in enumerate(rows):
@@ -390,10 +391,15 @@ class PsalterWriter:
             unused = r["source"] != "LH"
             if unused and not in_unused:
                 out.append(r"\begin{unused}")
-                in_unused = True
+                in_unused, skip_said = True, False
             if not unused and in_unused:
                 out.append(r"\end{unused}")
                 in_unused = False
+            # verses not said in the Liturgy of the Hours: "(in recitation, skip)" before the first of each run
+            # (not before a psalm's superscription, which is never said)
+            if unused and not skip_said and r["source"] != "NVT":
+                out.append(r"\skipmark")
+                skip_said = True
             # a strophe gap only where a verse or couplet begins — never inside a couplet/triplet
             if (v, k) in breaks and i > 0 and r["x"] == 0:
                 out.append(r"\psbreak")

@@ -248,3 +248,41 @@ select { background: var(--panel-2); border: 1px solid var(--line); border-radiu
 .seg button { border: 0; border-radius: 0; padding: 4px 11px; background: var(--panel-2); color: var(--muted); }
 .seg button + button { border-left: 1px solid var(--line); }
 .seg button.on { background: #3a3326; color: var(--text); box-shadow: inset 0 -2px 0 var(--accent); }
+
+/* ------------------------------------------------------------ page arrangement table, set the ribbons */
+#tools { position: absolute; top: 10px; left: 10px; z-index: 16; display: flex; flex-direction: column; gap: 6px; }
+#tools[hidden] { display: none; }
+#tools button { background: rgba(29, 28, 26, .85); text-align: left; }
+.pop { position: fixed; inset: 0; z-index: 45; background: rgba(0, 0, 0, .55); display: grid; place-items: center; }
+.pop[hidden] { display: none; }
+.paper {
+  background: #fffdf8; color: #2a2620; border-radius: 8px; box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
+  width: min(1180px, 94vw); max-height: 88vh; display: flex; flex-direction: column; padding: 14px 18px;
+}
+.paper.narrow { width: min(420px, 94vw); }
+.paper header { display: flex; align-items: baseline; gap: 12px; }
+.paper h2 { margin: 0; font-size: 18px; color: #9c1414; font-variant: small-caps; letter-spacing: .02em; }
+.paper .note, #tableRange { color: #6d6457; font-size: 12px; margin: 6px 0 8px; }
+.paper button { color: #2a2620; background: #f1ebde; border-color: #d8cfbf; }
+.paper button.primary { background: #9c1414; color: #fff; border-color: #9c1414; }
+.paper .scroll { overflow: auto; border: 1px solid #e3dccd; border-radius: 4px; }
+#arrTable { border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+#arrTable th { position: sticky; top: 0; background: #f4eee2; z-index: 1; padding: 5px 6px; text-align: center;
+  border-bottom: 1px solid #d8cfbf; font-weight: 600; white-space: nowrap; }
+#arrTable th .sw { display: inline-block; width: 8px; height: 12px; margin-right: 4px; vertical-align: -1px; background: var(--c);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%); }
+#arrTable td { padding: 3px 6px; border-bottom: 1px solid #efe8da; text-align: center; white-space: nowrap; }
+#arrTable td.day { text-align: left; white-space: normal; min-width: 180px; color: #5a5146; }
+#arrTable td.day b { color: #2a2620; }
+#arrTable td.hr { text-align: left; color: #9c1414; }
+#arrTable tr.first td { border-top: 2px solid #d8cfbf; }
+#arrTable td.pg { cursor: pointer; }
+#arrTable td.pg:hover { background: #f1e3c3; }
+#arrTable td.same { color: #b5ab9a; }
+#arrTable tr.now td { background: #fbf0d4; }
+#arrTable button { padding: 1px 8px; font-size: 11px; }
+#setForm { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+#setForm label { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+#setForm input, #setForm select { color: #2a2620; background: #fff; border: 1px solid #d8cfbf; border-radius: 5px; padding: 4px 6px; }
+#setForm .row { display: flex; gap: 8px; }
+#setInfo { margin: 0; color: #6d6457; font-size: 12px; min-height: 2.6em; }

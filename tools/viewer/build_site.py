@@ -5,6 +5,7 @@ Writes what serve.py answers live as plain files, so any static host can serve t
   build/site/pdfs.json                                     the PDFs in book/out/
   build/site/outline/<name>.json                           their bookmarks (needs PyMuPDF)
   build/site/pdf/<name>.pdf                                the PDFs
+  build/site/pdf/<file>-ribbons.json                       the page arrangement tables
 
     python tools/viewer/build_site.py [--out build/site]
 """
@@ -41,6 +42,8 @@ def build(out: Path) -> Path:
             sys.exit("[site] PyMuPDF is needed to read the bookmarks: pip install pymupdf")
         (out / "outline" / f"{p['name']}.json").write_text(json.dumps(toc), encoding="utf-8")
         shutil.copy2(OUT / f"{p['name']}.pdf", out / "pdf" / f"{p['name']}.pdf")
+    for table in OUT.glob("*-ribbons.json"):              # the page arrangement tables (python -m lh ribbons)
+        shutil.copy2(table, out / "pdf" / table.name)
     return out
 
 
