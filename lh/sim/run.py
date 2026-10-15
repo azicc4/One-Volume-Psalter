@@ -14,7 +14,7 @@ import sqlite3
 import statistics
 import time
 
-from lh.config import BUILD, DB_PATH, REPORTS
+from lh.config import BOOK, BUILD, DB_PATH, REPORTS, VARIANTS
 from lh.sim.calendar import Calendar, advent1
 from lh.sim.layout import Layout
 from lh.sim.office import Offices
@@ -32,11 +32,16 @@ def without_card(steps):
 
 
 class Sim:
-    def __init__(self):
+    """The simulator for one variant of the book (lh/config.py VARIANTS; main by default)."""
+
+    def __init__(self, variant: str = "main"):
         t0 = time.time()
         self.con = sqlite3.connect(DB_PATH)
         self.con.row_factory = sqlite3.Row
-        self.L = Layout()
+        v = VARIANTS[variant]
+        self.variant = variant
+        self.L = Layout(BUILD / "latex" / f"{v['file']}.aux", BOOK / "out" / f"{v['file']}.pdf",
+                        weekly_psalter=v.get("weekly_psalter", False))
         _ = self.L.book
         self.cals = {False: Calendar(self.con, optional=False), True: Calendar(self.con, optional=True)}
         self.off = {k: Offices(self.con, self.L, c) for k, c in self.cals.items()}
@@ -146,6 +151,8 @@ def experiments(sim: Sim, years: int, first_year: int = 2026, deadline: float | 
     with (OUT / "experiments.jsonl").open("w", encoding="utf-8") as out:
         for e in EXPERIMENTS:
             name, variants = e["name"], tuple(e.get("variants", ()))
+            if variants and sim.variant != "main":
+                continue                         # layout what-ifs are measured against the main book only
             policy, scheme, card = e.get("policy", "roles"), e.get("scheme", "by_use"), e.get("card", True)
             t0 = time.time()
             rows = sim.run_days(dates, policy, transform=wi.transform(variants) if variants else None,
@@ -183,7 +190,9 @@ def profiles(sim: Sim, years: int, first_year: int = 2026):
     dates = [d for y in range(first_year, first_year + years) for d in liturgical_year(y)]
     out = []
     for pname, hours in PROFILES:
-        for lname, variants in (("as printed", ()), ("+ psalms and hymns at each hour", ("psalmody", "hymn"))):
+        layouts = [("as printed", ())] + ([("+ psalms and hymns at each hour", ("psalmody", "hymn"))]
+                                          if sim.variant == "main" else [])
+        for lname, variants in layouts:
             rows = sim.run_days(dates, "roles", hours=hours, transform=wi.transform(variants) if variants else None,
                                 tag=f"{pname} / {lname}", scheme="by_use")
             r = {"profile": pname, "layout": lname, "days": len(rows)}
@@ -197,10 +206,12 @@ def profiles(sim: Sim, years: int, first_year: int = 2026):
     return out
 
 
-def main(budget_min: float = 90, seed: int = 1, first_year: int = 2026):
+def main(budget_min: float = 90, seed: int = 1, first_year: int = 2026, variant: str = "main"):
+    global OUT
+    OUT = BUILD / ("sim" if variant == "main" else f"sim-{variant}")      # build/sim, build/sim-weekly
     OUT.mkdir(parents=True, exist_ok=True)
     t_start = time.time()
-    sim = Sim()
+    sim = Sim(variant)
     print(f"[sim] init {sim.init_seconds:.1f}s (book generator, page labels, calendar)")
     trial_rows, per_day = trial(sim, 10, seed)
     print(f"[sim] trial: 10 days, {per_day * 1000:.0f} ms per simulated day (all six hours)")
@@ -246,6 +257,7 @@ def main(budget_min: float = 90, seed: int = 1, first_year: int = 2026):
     timing["phase4_min"] = (time.time() - t4) / 60
     timing["total_min"] = (time.time() - t_start) / 60
     timing["budget_min"] = budget_min
+    timing["variant"] = variant
     from lh.sim.report import write_report
     path = write_report(sim, trial_rows, all_rows, exp, prof, timing)
     print(f"[sim] report -> {path}  ({timing['total_min']:.1f} min in all)")

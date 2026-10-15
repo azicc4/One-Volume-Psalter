@@ -67,6 +67,18 @@ python -m lh book --poc                # book/out/poc.pdf (proof of concept, ~30
 python -m lh book                      # book/out/book.pdf: the full book (~8 min) + reports/page_budget.md
 ```
 
+### Versions of the book
+
+The same database builds more than one version of the book side by side (`lh/config.py` `VARIANTS`):
+
+| Variant | Build | Output | What is different |
+|---|---|---|---|
+| `main` | `python -m lh book` | `book.pdf`, `card.pdf`, `reports/page_budget.md` | — |
+| `weekly` | `python -m lh book --variant weekly` | `book-weekly.pdf`, `card-weekly.pdf`, `reports/page_budget-weekly.md` | the psalms and hymns of the four-week cycle printed at each hour (B-17) |
+
+`python -m lh simulate --variant weekly` simulates the experimental version (`reports/simulation-weekly.md`). The
+viewer, locally and on GitHub Pages, switches between the two with Main | Experiment.
+
 ### The Ordinary card
 
 `python -m lh book` also writes `book/out/card.pdf` (or `python -m lh book --card` alone): one 11 × 8.5 in card,
@@ -92,8 +104,13 @@ full log in `build/sim/`, and the code in `lh/sim/`.
 
 ### Previewing the book as a book
 
-Double-click `preview.bat` (or `preview.bat poc`) to open the built PDF in the browser in the form of a bound book.
+Double-click `preview main.bat` to open the built book in the browser in the form of a bound book
+(`preview main.bat poc` opens the proof of concept).
 - Two-page spreads with page turning.
+- The Ordinary card rests at the right edge. Click it (or press C) to take it out in front of the book; click it
+  again to turn it over; click "return card to side" (or press Esc) to put it back.
+- **Two versions:** Main | Experiment switches between the main book and the experimental version, keeping your
+  place. `preview experiment.bat` opens the experimental version directly.
 - The nine ribbons in a bar at the top. Click a ribbon to turn to it. Click it again on its own pages to take it out
   ("loose"). Click a loose ribbon to lay it in the current pages.
 - Shift-click a page reference such as `O 675 · P 1673` in an hour heading to lay the matching ribbon there.

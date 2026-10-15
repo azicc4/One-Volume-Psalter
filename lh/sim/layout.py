@@ -25,7 +25,8 @@ SECTION_ROLE = [("Proper of Saints", "S"), ("Commons", "C"), ("The Ordinary", "O
 
 
 class Layout:
-    def __init__(self, aux=AUX, pdf=PDF):
+    def __init__(self, aux=AUX, pdf=PDF, weekly_psalter: bool = False):
+        self.weekly_psalter = weekly_psalter
         if not aux.exists() or not pdf.exists():
             raise SystemExit("build the full book first: python -m lh book")
         doc = pymupdf.open(pdf)
@@ -49,7 +50,7 @@ class Layout:
     def book(self):
         """The book generator with every home and alias resolved (as when the book was written)."""
         from lh.render.book import Book
-        b = Book()
+        b = Book(weekly_psalter=self.weekly_psalter)
         b.body()
         return b
 

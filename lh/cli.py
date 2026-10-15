@@ -1,7 +1,7 @@
 """Command line entry point: python -m lh <command> ..."""
 import argparse
 
-from lh.config import PDFS
+from lh.config import PDFS, VARIANTS
 
 
 def main(argv=None):
@@ -38,6 +38,8 @@ def main(argv=None):
                                         "movement, layout experiments -> reports/simulation.md (needs `lh book`)")
     p.add_argument("--budget-min", type=float, default=90, help="time budget in minutes (default 90)")
     p.add_argument("--seed", type=int, default=1)
+    p.add_argument("--variant", choices=list(VARIANTS), default="main",
+                   help="which version of the book (needs `lh book --variant ...`): reports/simulation[-weekly].md")
 
     p = sub.add_parser("all", help="run the whole pipeline: build, verify, psalter, export, catalog, book --poc")
     p.add_argument("keys", nargs="*", default=["PA", "LQP", "ADV", "COM", "SPA", "SP", "SQ", "SADV"])
@@ -49,6 +51,8 @@ def main(argv=None):
     p = sub.add_parser("book", help="L8: generate the full book (or --poc) from the database and build the PDF")
     p.add_argument("--poc", action="store_true", help="proof of concept (psalter week I, Sunday and Monday)")
     p.add_argument("--no-pdf", action="store_true", help="only write the generated .tex")
+    p.add_argument("--variant", choices=list(VARIANTS), default="main",
+                   help="which version of the book (lh/config.py VARIANTS): main -> book.pdf, weekly -> book-weekly.pdf")
     p.add_argument("--card", action="store_true", help="only the Ordinary card (book/out/card.pdf; uses the last "
                                                        "full build for page numbers)")
 
@@ -108,29 +112,30 @@ def main(argv=None):
                 print(f"[book] pdf -> {build_pdf('poc')}")
             return
         from lh.render.card import write_card
+        v = VARIANTS[args.variant]
         if args.card:
             from lh.render.book import Book
-            print(f"[book] wrote {write_card(Book())}")
+            print(f"[book] wrote {write_card(Book(weekly_psalter=v.get('weekly_psalter', False)), args.variant)}")
             if not args.no_pdf:
-                print(f"[book] card -> {build_pdf('card')}")
+                print(f"[book] card -> {build_pdf(v['card'], 'card')}")
             return
         import time
         from lh.render.book import write_book
         from lh.render.budget import write_budget
         t0 = time.time()
-        path, book = write_book()
+        path, book = write_book(args.variant)
         t1 = time.time()
         print(f"[book] wrote {path} in {t1 - t0:.0f}s: {dict(book.stats)}")
         if not args.no_pdf:
-            print(f"[book] pdf -> {build_pdf('book')}")
+            print(f"[book] pdf -> {build_pdf(v['file'], 'book')}")
             t2 = time.time()
             print(f"[book] LaTeX {t2 - t1:.0f}s; total {t2 - t0:.0f}s")
-            print(f"[book] page budget -> {write_budget(book, {'generate': t1 - t0, 'latex': t2 - t1})}")
-            write_card(book)                         # after the book: the card quotes its page numbers
-            print(f"[book] card -> {build_pdf('card')}")
+            print(f"[book] page budget -> {write_budget(book, {'generate': t1 - t0, 'latex': t2 - t1}, v['file'])}")
+            write_card(book, args.variant)           # after the book: the card quotes its page numbers
+            print(f"[book] card -> {build_pdf(v['card'], 'card')}")
     elif args.cmd == "simulate":
         from lh.sim.run import main as simulate
-        simulate(budget_min=args.budget_min, seed=args.seed)
+        simulate(budget_min=args.budget_min, seed=args.seed, variant=args.variant)
     elif args.cmd == "catalog":
         from lh.catalog.build import build_catalog
         print(f"[catalog] {build_catalog()}")

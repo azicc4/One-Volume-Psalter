@@ -1,6 +1,8 @@
-% The one-volume Liturgia Horarum, generated in full from the database. Body: book/generated/book_body.tex
-% Build: python -m lh book   (the proof of concept is book/poc.tex: python -m lh book --poc)
+% The one-volume Liturgia Horarum, generated in full from the database. Body: book/generated/<jobname>_body.tex
+% Build: python -m lh book [--variant weekly]   (each variant is this file run under its own job name, e.g.
+% book-weekly; lh/config.py VARIANTS)   The proof of concept is book/poc.tex: python -m lh book --poc
 \input{preamble}
+\InputIfFileExists{generated/\jobname_variant}{}{}   % \variantnote: the edition, for a variant of the book
 \settocdepth{section}
 \setpnumwidth{2.4em}\setrmarg{3.4em}   % four-digit page numbers in the contents
 \setlength{\emergencystretch}{1.5em}   % long references and variant labels in narrow lines
@@ -15,6 +17,7 @@
 {\Large\scshape In uno volumine\par}
 \vspace{1.4em}
 {\large\itshape\foreignlanguage{english}{The Liturgy of the Hours in one volume}\par}
+\ifdefined\variantnote\vspace{1.2em}{\small\scshape\color{rubric}\foreignlanguage{english}{\variantnote}\par}\fi
 \vfill
 {\footnotesize\foreignlanguage{english}{Latin text: Liturgia Horarum, editio typica altera (digital edition by
 J.~Diéguez and F.~Fernández Labastida, from the MTF 2010 printing). Unused psalm verses: Nova Vulgata.
@@ -23,5 +26,5 @@ Generated from the project database; every text is printed once and cross-refere
 \clearpage
 \foreignlanguage{english}{\tableofcontents*}
 \mainmatter
-\input{generated/book_body}
+\input{generated/\jobname_body}
 \end{document}

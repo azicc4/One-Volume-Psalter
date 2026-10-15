@@ -1,4 +1,4 @@
-// Book preview viewer: two-page spreads, nine ribbons, the Ordinary card, page turning. Served by tools/viewer/serve.py (preview.bat).
+// Book preview viewer: two-page spreads, nine ribbons, the Ordinary card, page turning. Served by tools/viewer/serve.py ("preview main.bat").
 import * as pdfjsLib from './vendor/pdfjs/pdf.min.mjs';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
@@ -747,7 +747,11 @@ const PEEK = 46;                                   // px of the card's left edge
 
 async function setupCard() {
   try {
-    CARD.pdf = await pdfjsLib.getDocument({ url: 'pdf/card.pdf', disableAutoFetch: true, disableStream: true }).promise;
+    // each version of the book has its own card (book → card, book-weekly → card-weekly), else the main card
+    const own = S.file.replace(/^book/, 'card');
+    const names = await fetch('pdfs.json', { cache: 'no-store' }).then((r) => r.json()).then((l) => l.map((f) => f.name)).catch(() => []);
+    const card = names.includes(own) ? own : 'card';
+    CARD.pdf = await pdfjsLib.getDocument({ url: `pdf/${card}.pdf`, disableAutoFetch: true, disableStream: true }).promise;
   } catch { return; }                              // no card built: nothing shown
   if (CARD.pdf.numPages < 2) return;
   const vp = (await CARD.pdf.getPage(1)).getViewport({ scale: 1 });
@@ -896,16 +900,54 @@ function setupUI() {
 
 async function setupFiles() {
   const sel = $('#fileSelect');
+  let names = [];
   try {
     const list = await (await fetch('pdfs.json', { cache: 'no-store' })).json();
-    for (const f of list.filter((f) => f.name !== 'card')) {      // the Ordinary card is not a book
+    names = list.map((f) => f.name);
+    for (const f of list.filter((f) => !f.name.startsWith('card'))) {      // the Ordinary cards are not books
       const o = el('option', null, `${f.name}.pdf · ${new Date(f.mtime * 1000).toLocaleString()}`);
       o.value = f.name; o.selected = f.name === S.file;
       sel.append(o);
     }
   } catch {}
   sel.hidden = sel.options.length < 2;
-  sel.addEventListener('change', () => { location.search = `?file=${encodeURIComponent(sel.value)}`; });
+  sel.addEventListener('change', () => switchTo(sel.value));
+  // Main | Experiment: the versions of the book (lh/config.py VARIANTS) when both are built
+  const tog = $('#variantToggle');
+  const files = [...tog.querySelectorAll('button')].map((b) => b.dataset.file);
+  tog.hidden = !files.every((f) => names.includes(f)) || !files.includes(S.file);
+  tog.querySelectorAll('button').forEach((b) => {
+    b.classList.toggle('on', b.dataset.file === S.file);
+    b.addEventListener('click', () => { if (b.dataset.file !== S.file) switchTo(b.dataset.file); });
+  });
+}
+
+// Switch to another PDF, keeping the place: the bookmark the reader is in (its titles from the top) and how far
+// into it; the other version opens at the same bookmark (lh/config.py VARIANTS print the same parts).
+function switchTo(file) {
+  const [l, r] = pagesOf(S.spread);
+  const at = r ?? l;
+  const mark = S.flat.length ? bookmarkAt(at) : null;
+  if (mark) {
+    const trail = [];
+    for (let p = mark; p; p = p.parent) trail.unshift(p.title);
+    try { sessionStorage.setItem('ovp-viewer:jump', JSON.stringify({ trail, offset: at - mark.index })); } catch {}
+  }
+  location.search = `?file=${encodeURIComponent(file)}`;
+}
+
+function takeJump() {
+  let jump = null;
+  try { jump = JSON.parse(sessionStorage.getItem('ovp-viewer:jump') || 'null'); sessionStorage.removeItem('ovp-viewer:jump'); } catch {}
+  if (!jump) return null;
+  const trailOf = (n) => { const t = []; for (let p = n; p; p = p.parent) t.unshift(p.title); return t.join('\u0001'); };
+  const want = jump.trail.join('\u0001');
+  const i = S.flat.findIndex((n) => trailOf(n) === want);
+  if (i < 0) return null;
+  const node = S.flat[i];
+  const next = S.flat.slice(i + 1).find((n) => n.index > node.index);
+  const room = (next ? next.index : S.n) - node.index - 1;            // stay inside the same bookmark
+  return spreadOf(node.index + Math.max(0, Math.min(jump.offset, room)));
 }
 
 // ------------------------------------------------------------------------------------------ start
@@ -939,6 +981,8 @@ async function main() {
   } else {
     S.ribbons = defaults();
   }
+  const jumped = takeJump();                       // switched from the other version: the same place
+  if (jumped != null) S.spread = Math.min(jumped, lastSpread());
   measure();
   showSpread(S.spread);
   $('#loading').hidden = true;

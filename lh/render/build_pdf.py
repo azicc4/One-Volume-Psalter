@@ -9,13 +9,16 @@ import subprocess
 from lh.config import BOOK, BUILD
 
 
-def build_pdf(name: str) -> str:
+def build_pdf(name: str, tex: str | None = None) -> str:
+    """Build book/<tex>.tex under the job name `name` (a variant of the book: book.tex as book-weekly) into
+    book/out/<name>.pdf."""
     outdir = BUILD / "latex"
     outdir.mkdir(parents=True, exist_ok=True)
     cache = BUILD / "texmf-cache"
     cache.mkdir(parents=True, exist_ok=True)
     env = dict(os.environ, TEXMFCACHE=str(cache))
-    cmd = ["latexmk", "-lualatex", "-interaction=nonstopmode", "-halt-on-error", f"-outdir={outdir}", f"{name}.tex"]
+    cmd = ["latexmk", "-lualatex", "-interaction=nonstopmode", "-halt-on-error", f"-outdir={outdir}",
+           f"-jobname={name}", f"{tex or name}.tex"]
     r = subprocess.run(cmd, cwd=BOOK, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace")
     log = outdir / f"{name}.log"
     if r.returncode != 0:
