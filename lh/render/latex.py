@@ -64,9 +64,11 @@ def prose(p: dict) -> str:
     return r"\par ".join(tex(x) for x in paragraphs(p.get("lines", [])))
 
 
-def hymn(p: dict) -> str:
-    st = [r"\\ ".join(tex(l, marks=False) for l in stanza) for stanza in p["stanzas"]]
-    return r"\begin{hymn}" + r"\stanza ".join(st) + r"\end{hymn}"
+def hymn(p: dict, env: str = "hymn") -> str:
+    """env "hymn": two columns of its own; "hymnflow": inside the two page-high columns of the Hymns section.
+    Each verse is a paragraph of its own (a long one wraps under a hanging indent), with no break inside a stanza."""
+    st = [r"\par\nobreak ".join(tex(l, marks=False) for l in stanza) for stanza in p["stanzas"]]
+    return r"\begin{" + env + "}" + r"\stanza ".join(st) + r"\end{" + env + "}"
 
 
 def preces(p: dict) -> str:

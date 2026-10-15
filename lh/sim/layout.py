@@ -22,6 +22,8 @@ NEWLABEL = re.compile(r"\\newlabel\{([^}]*)\}\{\{[^}]*\}\{([^}]*)\}")
 SECTION_ROLE = [("Proper of Saints", "S"), ("Commons", "C"), ("The Ordinary", "O"), ("Proper of Time", "T"),
                 ("Hymns", "H"), ("The Psalter", "P"), ("Canticles", "P"), ("Readings of the Office of Readings", "R"),
                 ("Indexes", "X")]
+# the first part of the Proper of Time after the four-week cycle (lh/render/book.py proper_of_time)
+TIME_AFTER_GRID = "Ordinary Time: proper to each week"
 
 
 class Layout:
@@ -36,9 +38,12 @@ class Layout:
             self.index_of_label.setdefault(p.get_label(), p.number)
         self.sections = []                              # (first page index, title, role)
         roles = dict(SECTION_ROLE)
+        self.time_weeks = None                          # first page after the four-week cycle (Proper of Time)
         for lvl, title, page in doc.get_toc():
             if lvl == 1 and page > 0:
                 self.sections.append((page - 1, title, roles.get(title, "X")))
+            if lvl == 2 and page > 0 and self.time_weeks is None and title.startswith(TIME_AFTER_GRID):
+                self.time_weeks = page - 1
         self.sections.sort()
         self.page_label = {}                            # LaTeX label → page index
         for name, printed in NEWLABEL.findall(aux.read_text(encoding="utf-8", errors="replace")):
@@ -79,6 +84,11 @@ class Layout:
 
     def role(self, i: int) -> str:
         return self.section(i)[1]
+
+    def time_part(self, i: int) -> str:
+        """In the Proper of Time: "TG" the four-week cycle, "TW" what follows it (the weeks of Ordinary Time, the
+        days with wholly proper offices). Ribbon 4 keeps the first, ribbon 5 the second, so 5 always lies after 4."""
+        return "TW" if self.time_weeks is not None and self.time_weeks <= i < VIRTUAL else "TG"
 
     def label(self, i: int) -> str:
         return self.labels[i] if 0 <= i < self.n else "?"

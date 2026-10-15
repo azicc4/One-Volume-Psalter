@@ -32,7 +32,8 @@ SCHEMES = {
                    ("P4", "9 Psalter — Invitatory psalm", "P4"), ("R", "10 Readings", "R")],
     # the scheme of the book (B-16): nine ribbons (lh/render/common.py RIBBONS; tools/viewer)
     "by_use": [("S", "1 Saints", "S"), ("C", "2 Commons", "C"), ("O", "3 Ordinary: Compline, Daytime Prayer", "O"),
-               ("T1", "4 Proper of Time: the hour", "T"), ("T3", "5 Proper of Time: the week", "T"),
+               ("T1", "4 Proper of Time: the four-week cycle", "TG"),
+               ("T3", "5 Proper of Time: the week, the season's day", "TW"),
                ("H", "6 Hymns", "H"), ("P1", "7 Psalter", "P"), ("P2", "8 Psalter, Canticles", "P"),
                ("R", "9 Readings", "R")],
     # the first B-16 scheme: ten ribbons, with a third for the Proper of Time (where the hour continues)
@@ -108,6 +109,8 @@ class Reader:
             if role == "P":
                 n = step.slot[2:3] if step.slot.startswith("PS") else "1"
                 return {"1": "P1", "2": "P2", "3": "P3"}.get(n, "P1")
+        if role == "T" and self.scheme == "by_use":          # ribbon 4 the four-week cycle, 5 what follows it
+            return self.layout.time_part(step.page)
         return role if role in "SCOTHPR" else None
 
     def next_use(self, spreads: list[int], i: int, s: int | None) -> float:
