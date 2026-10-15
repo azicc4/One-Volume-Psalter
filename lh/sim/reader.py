@@ -7,10 +7,9 @@ Moving to another spread is one of:
 and, after arriving, the reader may lay a ribbon there (lay).
 
 Ribbon policies:
-  roles  the book's design: each ribbon keeps its section (1 Saints, 2 Commons, 3 Ordinary, 4 Proper of Time,
-         5 Hymns, 6–9 Psalter 1–4, 10 Readings; the n-th psalm of an hour → Psalter n, the Invitatory psalm →
-         Psalter 4). Arriving at a page of a section that will be needed again (later today or tomorrow), the
-         reader moves that section's ribbon there, unless the place it marks now is needed sooner.
+  roles  each ribbon keeps a part of the book, as a ribbon scheme says (SCHEMES). Arriving at a page of a part
+         that will be needed again (later today or tomorrow), the reader moves one of that part's ribbons there —
+         the one whose place is needed last — unless every one of them marks a place needed sooner.
   free   any ribbon may mark any place; a ribbon is laid only where the reader will come back, taking the ribbon
          whose place is needed last (Belady's rule): the best ten ribbons can do for this layout.
   none   no ribbons: a lower baseline.
@@ -22,8 +21,41 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-RIBBONS = ["S", "C", "O", "T", "H", "P1", "P2", "P3", "P4", "R"]
 COST = {"turn": 1.5, "ribbon": 2.5, "search": 8.0, "lay": 3.0}
+
+# A scheme: the ten ribbons in order, (id, name, part). Parts: S Saints, C Commons, O Ordinary, T Proper of Time,
+# H Hymns, P Psalter and Canticles, R Readings; P1–P3 the n-th psalm of an hour, P4 the Invitatory psalm.
+SCHEMES = {
+    "by_section": [("S", "1 Saints", "S"), ("C", "2 Commons", "C"), ("O", "3 Ordinary", "O"),
+                   ("T", "4 Proper of Time", "T"), ("H", "5 Hymns", "H"), ("P1", "6 Psalter — first psalm", "P1"),
+                   ("P2", "7 Psalter — second psalm", "P2"), ("P3", "8 Psalter — third psalm", "P3"),
+                   ("P4", "9 Psalter — Invitatory psalm", "P4"), ("R", "10 Readings", "R")],
+    # the scheme of the book from B-16 on (lh/render/common.py RIBBONS; tools/viewer)
+    "by_use": [("S", "1 Saints", "S"), ("C", "2 Commons", "C"), ("O", "3 Ordinary: Compline, Daytime Prayer", "O"),
+               ("T1", "4 Proper of Time: the hour", "T"), ("T2", "5 Proper of Time: the hour, next page", "T"),
+               ("T3", "6 Proper of Time: the week", "T"), ("H", "7 Hymns", "H"), ("P1", "8 Psalter", "P"),
+               ("P2", "9 Psalter, Canticles", "P"), ("R", "10 Readings", "R")],
+    "use_b": [("S", "1 Saints", "S"), ("C", "2 Commons", "C"), ("O", "3 Ordinary", "O"), ("T1", "4 Time", "T"),
+              ("T2", "5 Time", "T"), ("H", "6 Hymns", "H"), ("P1", "7 Psalter", "P"), ("P2", "8 Psalter", "P"),
+              ("P3", "9 Psalter", "P"), ("R", "10 Readings", "R")],
+    "use_c": [("S", "1 Saints", "S"), ("C", "2 Commons", "C"), ("O", "3 Ordinary", "O"), ("T1", "4 Time", "T"),
+              ("T2", "5 Time", "T"), ("T3", "6 Time", "T"), ("T4", "7 Time", "T"), ("H", "8 Hymns", "H"),
+              ("P1", "9 Psalter", "P"), ("R", "10 Readings", "R")],
+    "use_e": [("S", "1 Saints, Commons", "S/C"), ("C", "2 Saints, Commons", "S/C"), ("O", "3 Ordinary", "O"),
+              ("T1", "4 Time", "T"), ("T2", "5 Time", "T"), ("T3", "6 Time", "T"), ("H", "7 Hymns", "H"),
+              ("P1", "8 Psalter", "P"), ("P2", "9 Psalter", "P"), ("R", "10 Readings", "R")],
+    "use_f": [("S", "1 Saints, Commons", "S/C"), ("C", "2 Saints, Commons, Time", "S/C/T"), ("O", "3 Ordinary", "O"),
+              ("T1", "4 Time", "T"), ("T2", "5 Time", "T"), ("T3", "6 Time, Hymns", "T/H"), ("H", "7 Hymns", "H"),
+              ("P1", "8 Psalter", "P"), ("P2", "9 Psalter, Readings", "P/R"), ("R", "10 Readings", "R")],
+    "use_d": [("S", "1 Saints", "S"), ("C", "2 Commons", "C"), ("O", "3 Ordinary", "O"), ("T1", "4 Time", "T"),
+              ("T2", "5 Time", "T"), ("T3", "6 Time", "T"), ("H", "7 Hymns", "H"), ("P1", "8 Psalter", "P"),
+              ("R1", "9 Readings", "R"), ("R2", "10 Readings", "R")],
+}
+RIBBONS = [r for r, _, _ in SCHEMES["by_section"]]          # ids of the by-section scheme (logs, report)
+
+
+def ribbon_names(scheme: str) -> dict[str, str]:
+    return {r: n for r, n, _ in SCHEMES[scheme]}
 
 
 @dataclass
@@ -48,22 +80,30 @@ class Event:
 class Reader:
     layout: object
     policy: str = "roles"
-    ribbons: dict = field(default_factory=lambda: {r: None for r in RIBBONS})
+    split_ordinary: bool = False           # by-section variant: ribbon 9 keeps the Ordinary's end-of-hour parts
+    scheme: str = "by_section"
+    ribbons: dict = field(default_factory=dict)
     at: int | None = None
-    split_ordinary: bool = False           # roles variant: ribbon 9 keeps the Ordinary's end-of-hour parts
 
     END_PARTS = {"PATER", "CONCLUSION", "BLESSING", "MARIAN"}
 
-    def role_ribbon(self, step) -> str | None:
+    def __post_init__(self):
+        if not self.ribbons:
+            self.ribbons = {r: None for r, _, _ in SCHEMES[self.scheme]}
+        self.part = {r: p for r, _, p in SCHEMES[self.scheme]}
+
+    def part_of(self, step) -> str | None:
+        """The part of the book a step's page belongs to, in the terms of the scheme."""
         role = self.layout.role(step.page)
-        if self.split_ordinary and role == "O" and (step.slot in self.END_PARTS or step.hour.startswith("COMPLINE")):
-            return "P4"
-        if step.slot == "INV_PSALM":
-            return "O" if self.split_ordinary else "P4"
-        if role == "P":
-            n = step.slot[2:3] if step.slot.startswith("PS") else "1"
-            return {"1": "P1", "2": "P2", "3": "P3"}.get(n, "P1")
-        return {"S": "S", "C": "C", "O": "O", "T": "T", "H": "H", "R": "R"}.get(role)
+        if self.scheme == "by_section":
+            if self.split_ordinary and role == "O" and (step.slot in self.END_PARTS or step.hour.startswith("COMPLINE")):
+                return "P4"
+            if step.slot == "INV_PSALM":
+                return "O" if self.split_ordinary else "P4"
+            if role == "P":
+                n = step.slot[2:3] if step.slot.startswith("PS") else "1"
+                return {"1": "P1", "2": "P2", "3": "P3"}.get(n, "P1")
+        return role if role in "SCOTHPR" else None
 
     def next_use(self, spreads: list[int], i: int, s: int | None) -> float:
         if s is None:
@@ -102,20 +142,19 @@ class Reader:
         if self.policy == "none" or any(s == to for s in self.ribbons.values()):
             return
         nxt = self.next_use(spreads, i, to)
+        if nxt == float("inf"):
+            return
         if self.policy == "roles":
-            r = self.role_ribbon(st)
-            if r is None:
-                return
-            cur = self.ribbons[r]
-            # keep the ribbon where it is if that place is needed again before this one
-            if nxt == float("inf") or cur is not None and self.next_use(spreads, i, cur) < nxt:
-                return
-        else:                                    # free: only where the reader will come back; Belady's eviction
-            if nxt == float("inf"):
-                return
-            r = max(RIBBONS, key=lambda k: (self.next_use(spreads, i, self.ribbons[k]), self.ribbons[k] is None))
-            if self.next_use(spreads, i, self.ribbons[r]) < nxt:
-                return
+            part = self.part_of(st)
+            pool = [r for r, p in self.part.items() if part in p.split("/")]      # "S/C": either part
+        else:                                    # free: any ribbon
+            pool = list(self.ribbons)
+        if not pool:
+            return
+        # Belady within the pool: the ribbon whose place is needed last (or that marks nothing)
+        r = max(pool, key=lambda k: (self.next_use(spreads, i, self.ribbons[k]), self.ribbons[k] is None))
+        if self.next_use(spreads, i, self.ribbons[r]) < nxt:
+            return
         ev.laid, ev.laid_from = r, self.ribbons[r]
         self.ribbons[r] = to
         ev.cost += COST["lay"]

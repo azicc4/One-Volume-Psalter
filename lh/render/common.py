@@ -484,16 +484,27 @@ def finding_the_office() -> str:
         r"\item \textbf{The psalter week.} Ordinary Time week $N$ uses psalter week $((N-1) \bmod 4)+1$; "
         r"Advent weeks 1–4 use I–IV; Lent: Ash Wednesday IV, weeks 1–5 I, II, III, IV, I; Holy Week II; "
         r"Easter weeks 2–7: II, III, IV, I, II, III.",
-        r"\item \textbf{The hour.} Open the Ordinary at the hour (ribbon 3), then the Proper of Time at the week "
-        r"and day (ribbon 4). Each hour heading in the Proper of Time gives the pages to mark: "
-        r"\rubric{O} the Ordinary, \rubric{P} the psalms (ribbons 6–9), \rubric{R} the readings (ribbon 10). "
-        r"Hymns (ribbon 5) are referred to at the top of each hour.",
+        r"\item \textbf{The hour.} Open the Proper of Time at the day and hour (ribbons 4–6). Say the hour from its "
+        r"heading, with the \textbf{Ordinary card} in hand: the opening verses, the Invitatory psalm, the Gospel "
+        r"canticles, the Pater noster, the dismissals, the Te Deum and the antiphons of Our Lady are on the two "
+        r"cards (and in this Ordinary). Each hour heading gives the pages to mark: \rubric{P} the psalms and "
+        r"canticles (ribbons 8–9), \rubric{R} the readings (ribbon 10), \rubric{O} this Ordinary for Daytime "
+        r"Prayer (ribbon 3). The hymn is referred to at the top of each hour (ribbon 7). Compline is printed whole "
+        r"in the weekly forms of this Ordinary (ribbon 3).",
         r"\end{enumerate}",
         r"\subsection{The ten ribbons}",
+        r"\rubr{Assigned by use: the places the reader comes back to most often have the most ribbons (TODO B-16; "
+        r"reports/simulation.md).}",
         r"\begin{enumerate}[leftmargin=1.8em,itemsep=0pt,label=\rubric{\arabic*.}]",
-        r"\item Proper of Saints \item Commons \item Ordinary \item Proper of Time \item Hymns",
-        r"\item Psalter — first psalm \item Psalter — second psalm \item Psalter — third psalm",
-        r"\item Psalter — invitatory psalm (Ps 95, 100, 67 or 24) \item Readings of the Office of Readings",
+        r"\item Proper of Saints — the saint of the day \item Commons — the Common it refers to",
+        r"\item Ordinary — Compline (the form of the day) and Daytime Prayer",
+        r"\item Proper of Time — the hour being said",
+        r"\item Proper of Time — where that hour continues, or the next hour",
+        r"\item Proper of Time — the texts of the week (Ordinary Time: Sunday antiphons and collect) or of the "
+        r"season's day",
+        r"\item Hymns",
+        r"\item Psalter — the psalms of the hour \item Psalter or Canticles — the canticle or the next psalm",
+        r"\item Readings of the Office of Readings",
         r"\end{enumerate}"])
 
 
@@ -508,13 +519,12 @@ def opening_block(s: dict) -> str:
 
 
 def ribbon_refs(db: DB, days: list, hour: str, inv_label: str = label("ps:95"), anchor=None) -> str:
-    """Hour head: O = Ordinary page, P = psalm pages (ribbons 6–9), R = readings page when it is the same for all."""
+    """Hour head (B-16): P = psalm pages (ribbons 8–9), R = readings page when it is the same for all, O = the
+    Ordinary page of Daytime Prayer (ribbon 3). The fixed parts of the other hours are on the Ordinary card."""
     anchor_of = anchor or unit_anchor
-    anchor_ = {"INV": "ord:invitatory", "OR": "ord:or", "LAUDS": "ord:lauds", "MIDDAY": "ord:midday"}.get(hour, "ord:vespers")
-    parts = [r"\ribbon{O}{\pg{" + anchor_ + "}}"]
     if hour == "INV":
-        parts.append(r"\ribbon{P}{\pg{" + inv_label + "}}")
-        return r"\enspace ".join(parts)
+        return r"\cardref{1}"
+    parts = [r"\ribbon{O}{\pg{ord:midday}}"] if hour == "MIDDAY" else []
     groups: dict[tuple, list] = collections.defaultdict(list)
     reads: set = set()
     for d in days:

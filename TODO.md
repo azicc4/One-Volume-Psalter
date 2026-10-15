@@ -45,10 +45,12 @@ Order: WS0 first (lead), then WS1–WS5 in parallel (one git worktree + PR each)
 | B-11 | [ ] | | Front matter: title page, calendar tables (Easter dates, psalter week per Sunday), how-to-use |
 | B-12 | [?] | owner | Page budget: decide after WS6's report whether the Office of Readings readings become a companion volume — see `reports/page_budget.md` (WS6) |
 | B-13 | [ ] | | Superscription of Ps 9 prints NV's `*` ("Mut labben *"); render NV titles without pointing marks |
-| B-14 | [?] | owner | Usability (`reports/simulation.md`, `python -m lh simulate`): an **Ordinary card** (opening verses, Benedictus, Magnificat, Nunc dimittis, Ps 95, Pater noster, dismissals, blessing, Te Deum) as a loose card or on the endpapers — the largest saving, no pages |
-| B-15 | [?] | owner | Usability: print each weekly **Compline** form whole (its psalm and the shared responsory, Gospel canticle, prayer) — ~+24 pages |
-| B-16 | [?] | owner | Usability: ribbons by use rather than by section (8–9 Psalter 3–4, 2 Commons, 5 Hymns are rarely used; a second ribbon for the Ordinary or the week's propers) — rewrite "Finding the Office" accordingly |
-| B-17 | [?] | owner | Usability trade-off: print the psalms (~+207 pp) and hymns (~+245 pp) of the four-week cycle at each hour, as the four-volume breviary does — conflicts with the one-volume page budget (B-12) |
+| B-14 | [x] | `book/card-compline-ribbons` | **Ordinary card** (`book/out/card.pdf`, `lh/render/card.py`): two cards 5.5 × 8.5 in printed on both sides — Invitatory and Ps 95, opening verses, Benedictus, Magnificat, Nunc dimittis, Pater noster, prayer endings, dismissals, blessing, Te Deum, Marian antiphons; built after the book (`lh book`, or `lh book --card`) |
+| B-15 | [x] | `book/card-compline-ribbons` | **Compline printed whole**: each weekly form and the Easter Octave print their psalms, hymns, shared responsory and Nunc dimittis in full (copies labelled `cp:`); +24 pages |
+| B-16 | [x] | `book/card-compline-ribbons` | **Ribbons by use** ("Finding the Office", hour headings, viewer): 1 Saints, 2 Commons, 3 Ordinary (Compline, Daytime Prayer), 4–6 Proper of Time (the hour, where it continues, the week), 7 Hymns, 8–9 Psalter and Canticles, 10 Readings — 19.7 look-ups a day against 22.4 by section (`reports/simulation.md`) |
+| B-17 | [~] | `exp/weekly-psalter` | Experiment: psalms and hymns of the four-week cycle printed at each hour (as the four-volume breviary), in addition to the Psalter in biblical order — measured on its branch |
+| B-18 | [?] | owner | Proposal (`reports/simulation.md`): **psalmody blocks** — the Psalter in the order of the four-week cycle with each hour's antiphons beside its psalms; psalms the cycle does not use follow in biblical order; index by number. No text added; ~15 % less handling |
+| B-19 | [?] | owner | Proposal: **thumb-index tabs** on the fore-edge for the seven parts (bleed tabs in the page style); no pages, faster look-ups |
 
 ## 3. Data review (needs evidence; resolve via `data/overrides/` or a "no change" note)
 
