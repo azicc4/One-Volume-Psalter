@@ -68,6 +68,7 @@ def test_hour_heads_carry_ribbon_refs(name):
     start = t.index(r"\chapter{Propers of Time}" if name == "poc" else r"\chapter{Proper of Time}")
     end = t.index(r"\chapter{Hymns}") if name == "poc" else t.index(r"\section{Ordinary Time: proper to each week}")
     body = re.sub(r"\\objlabel\{hh:[^}]*\}", "", t[start:end])        # invisible hour labels (lh/sim)
+    body = re.sub(r"\\hourmark\{[^}]*\}", "", body)                    # footer marks of the day and hour
     heads = re.findall(r"\\hourhead\{(.*?)\}\{(.*)", body)
     assert heads
     if name == "poc":                                  # the proof of concept keeps the first ribbon scheme
@@ -80,3 +81,35 @@ def test_hour_heads_carry_ribbon_refs(name):
             assert r"\ribbon{O}" in refs
         if not title.startswith(("Compline", "Invitatory")):
             assert r"\ribbon{P}" in refs, title
+
+
+@pytest.mark.parametrize("name", [n for n in BOOKS if n != "poc"])
+def test_proper_of_time_pages_show_the_day_and_hour(name):
+    """Every page of the four-week cycle carries its day and hour in the outer bottom corner ("Wk. 1 Sun: 1st V.")."""
+    doc = pymupdf.open(pdf(name))
+    toc = [(t[1], t[2] - 1) for t in doc.get_toc() if t[0] == 1]
+    start = next(p for t, p in toc if t == "Proper of Time")
+    end = next(p for t, p in toc if t.startswith("Proper of Time")) + 300          # the grid: weeks I–IV
+    missing = []
+    for i in range(start + 1, end):
+        page = doc[i]
+        foot = " ".join(w[4] for w in page.get_text("words") if w[1] > page.rect.height - 50)
+        if not foot.startswith(("Wk.", "OT Wk.")):
+            missing.append((page.get_label(), foot))
+    assert not missing, missing[:10]
+
+
+@pytest.mark.parametrize("name", [n for n in BOOKS if n != "poc"])
+def test_psalter_margin_notes_keep_a_quarter_inch_from_the_trim(name):
+    doc = pymupdf.open(pdf(name))
+    toc = [(t[1], t[2] - 1) for t in doc.get_toc() if t[0] == 1]
+    a = next(p for t, p in toc if t == "The Psalter")
+    b = next(p for t, p in toc if t == "Canticles")
+    bad = []
+    for i in range(a, b):
+        page = doc[i]
+        w = page.rect.width
+        for x0, y0, x1, y1, *_ in page.get_text("blocks"):
+            if (x0 < 17.5 or x1 > w - 17.5) and y1 < page.rect.height - 40:      # 18 pt = 1/4 in, less rounding
+                bad.append(page.get_label())
+    assert not bad, sorted(set(bad))[:20]

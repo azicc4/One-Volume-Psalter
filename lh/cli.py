@@ -41,6 +41,12 @@ def main(argv=None):
     p.add_argument("--variant", choices=list(VARIANTS), default="main",
                    help="which version of the book (needs `lh book --variant ...`): reports/simulation[-weekly].md")
 
+    p = sub.add_parser("ribbons", help="the page arrangement table: where each ribbon lies for every hour of the next "
+                                       "months -> book/out/<file>-ribbons.json (the viewer's table; needs `lh book`)")
+    p.add_argument("--variant", choices=list(VARIANTS), default="main")
+    p.add_argument("--from", dest="start", help="first day, YYYY-MM-DD (default: today)")
+    p.add_argument("--months", type=float, default=6)
+
     p = sub.add_parser("all", help="run the whole pipeline: build, verify, psalter, export, catalog, book --poc")
     p.add_argument("keys", nargs="*", default=["PA", "LQP", "ADV", "COM", "SPA", "SP", "SQ", "SADV"])
 
@@ -133,6 +139,13 @@ def main(argv=None):
             print(f"[book] page budget -> {write_budget(book, {'generate': t1 - t0, 'latex': t2 - t1}, v['file'])}")
             write_card(book, args.variant)           # after the book: the card quotes its page numbers
             print(f"[book] card -> {build_pdf(v['card'], 'card')}")
+            from lh.sim.arrangement import write as write_ribbons
+            print(f"[book] page arrangement table -> {write_ribbons(args.variant)}")
+    elif args.cmd == "ribbons":
+        import datetime
+        from lh.sim.arrangement import write as write_ribbons
+        start = datetime.date.fromisoformat(args.start) if args.start else None
+        print(f"[ribbons] {write_ribbons(args.variant, start, args.months)}")
     elif args.cmd == "simulate":
         from lh.sim.run import main as simulate
         simulate(budget_min=args.budget_min, seed=args.seed, variant=args.variant)

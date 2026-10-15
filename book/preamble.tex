@@ -6,7 +6,11 @@
 \settrimmedsize{\stockheight}{\stockwidth}{*}
 \setlrmarginsandblock{0.75in}{1.25in}{*}       % inner (spine: a ~2,800-page binding swallows more), outer (margin notes)
 \setulmarginsandblock{0.7in}{0.8in}{*}
-\setmarginnotes{0.12in}{1.02in}{4pt}           % sep, width, push: \marginpar stacks notes instead of overlapping
+\setmarginnotes{0.12in}{0.88in}{4pt}           % sep, width (≥ 1/4 in from the trim), push: notes stack, never overlap
+\marginparmargin{outer}                         % the outer margin, always: never by the spine
+\strictpagecheck                                % left or right page from where the note really fell (the .aux),
+                                                % not the page number while its paragraph is set: notes near a page
+                                                % break went to the inner margin and ran off the page (TODO B-20)
 \setheadfoot{\baselineskip}{0.35in}
 \setheaderspaces{*}{0.2in}{*}
 \checkandfixthelayout
@@ -55,6 +59,21 @@
 \makepagestyle{folio}                          % section openers and blank pages: the number only
 \makeevenhead{folio}{\liningfont\thepage}{}{}
 \makeoddhead{folio}{}{}{\liningfont\thepage}
+% the day and hour being read, in the outer bottom corner ("Wk. 1 Sun: 1st V.", "Wk. 3 Wed: Day"; the week alone
+% in the weekly propers): the last \hourmark on the page, or the one before it. Recorded through the .aux file
+% (sheet → mark) rather than TeX marks, which a two-column hymn (multicol) swallows when it shares the page.
+\makeatletter
+\newcommand{\hourmark}[1]{\protected@write\@auxout{}{\string\hm@set{\the\c@sheetsequence}{#1}}}
+\providecommand{\hm@set}[2]{\global\@namedef{hm@#1}{#2}}
+\newcount\hm@n
+\def\hm@find{\@ifundefined{hm@\the\hm@n}{\ifnum\hm@n>0 \advance\hm@n\m@ne\expandafter\hm@find\fi}%
+  {\csname hm@\the\hm@n\endcsname}}
+\newcommand{\hourfoot}{{\footnotesize\scshape\color{rubric}\liningfont\hm@n=\c@sheetsequence\relax\hm@find}}
+\makeatother
+\makeevenfoot{breviary}{\hourfoot}{}{}
+\makeoddfoot{breviary}{}{}{\hourfoot}
+\makeevenfoot{folio}{\hourfoot}{}{}
+\makeoddfoot{folio}{}{}{\hourfoot}
 \pagestyle{breviary}
 \aliaspagestyle{chapter}{folio}
 \aliaspagestyle{cleared}{folio}
@@ -81,18 +100,26 @@
 \newcommand{\psc}[1]{\par\noindent\hangindent=\vnowidth\hangafter=0 #1\par}          % new couplet, same verse
 \newcommand{\psk}[1]{\par\noindent\hangindent=\vnowidth\hangafter=0 #1\par}          % continuation (2nd half)
 \newcommand{\psbreak}{\par\vspace{0.45\baselineskip}}                                % strophe gap (couplet starts only)
-\newenvironment{unused}{\par\footnotesize\color{black!75}}{\par}
+% verses the Liturgy of the Hours does not say (Nova Vulgata fill): smaller, grey, indented, under a red rubric
+\newenvironment{unused}{\par\footnotesize\color{black!75}\leftskip=1.2em}{\par}
+\newcommand{\skipmark}{\par{\footnotesize\itshape\color{rubric}\foreignlanguage{english}{(in recitation, skip)}\par}}
 \newcommand{\pstitle}[1]{\par{\centering\footnotesize\itshape #1\par}}
 % \psalmhead[lines needed]{heading}{title}: start on this page if the heading and one whole verse fit
 \newcommand{\psalmhead}[3][5]{\needspace{#1\baselineskip}\par\vspace{0.5\baselineskip}%
   {\centering\large\scshape\liningfont\color{rubric}#2\par}{\centering\itshape #3\par}\vspace{0.15\baselineskip}}
 % margin notes: outer margin, stacked by memoir so they never overlap
-\newcommand{\usemark}[1]{\marginpar[{\footnotesize\color{rubric}\raggedleft #1\par}]{\footnotesize\color{rubric}\raggedright #1\par}}
+% one use per paragraph (\par between them); a use that wraps hangs under its first word
+% (\relax ends the number: "\hangafter=1 27 Dec" would read as \hangafter=127)
+\newcommand{\usemark}[1]{\marginpar[{\footnotesize\color{rubric}\raggedleft\parindent=0pt
+  \everypar{\hangindent=0.7em\hangafter=1\relax}#1\par}]{\footnotesize\color{rubric}\raggedright\parindent=0pt
+  \everypar{\hangindent=0.7em\hangafter=1\relax}#1\par}}
 \newcommand{\otheruses}{\par\vspace{1pt}\hrule height 0.3pt\vspace{1pt}}
 \newcommand{\gloria}{\par\vspace{0.2\baselineskip}{\footnotesize\rubric{Glória Patri.}}\par}
 
 % hymns
-\newenvironment{hymn}{\par\begin{list}{}{\leftmargin=1.2em\itemsep=0pt\parsep=0pt\topsep=2pt}\item[]}{\end{list}}
+% hymns in two columns; a stanza is never split (between columns or pages)
+\newenvironment{hymn}{\par\vspace{2pt}\begin{multicols}{2}\raggedcolumns\interlinepenalty=10000
+  \leftskip=0.6em\parindent=0pt}{\end{multicols}\vspace{-2pt}}
 \newcommand{\stanza}{\par\vspace{0.35\baselineskip}}
 
 % ---------------------------------------------------------------- propers grid: indentation shows the hierarchy
@@ -127,5 +154,5 @@
 % \budget{part}: page-budget marker (reports/page_budget.md)
 \newcommand{\budget}[1]{\label{budget:#1}}
 
-\newcommand{\partpage}[2]{\cleardoublepage\thispagestyle{folio}\vspace*{2.4in}%
+\newcommand{\partpage}[2]{\cleardoublepage\thispagestyle{folio}\hourmark{}\vspace*{2.4in}%
   {\centering\Huge\scshape\color{rubric}#1\par\vspace{1em}\normalsize\itshape\foreignlanguage{english}{#2}\par}\cleardoublepage}

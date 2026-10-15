@@ -66,10 +66,29 @@ def card_line(gospel: str) -> str:
             + r"}; \rubric{Pater noster:} \cardref{front}, \pgref{ord:pater}.}\par")
 
 
-def hh_label(where: str, hour: str) -> str:
+def hh_label(where: str, hour: str, mark: str = "") -> str:
     """Invisible label at an hour heading (hh:<day key or grid:pw.DOW>:<hour>), so lh/sim can find where each hour
-    starts. It sits inside the heading text, so it cannot move a line or page break."""
-    return r"\objlabel{hh:" + where + ":" + hour + "}"
+    starts, and the running mark of the day and hour shown in the outer bottom corner (\\hourmark). Both sit inside
+    the heading text, so they cannot move a line or page break."""
+    return r"\objlabel{hh:" + where + ":" + hour + "}" + hour_mark(mark)
+
+
+HOUR_ABBR = {"V1": "1st V.", "INV": "Inv.", "OR": "O.R.", "LAUDS": "Lauds", "MIDDAY": "Day", "VESPERS": "Vesp.",
+             "V2": "2nd V.", "COMPLINE": "Compl.", "COMPLINE1": "Compl."}
+WD_ABBR = {"SUN": "Sun", "MON": "Mon", "TUE": "Tue", "WED": "Wed", "THU": "Thu", "FRI": "Fri", "SAT": "Sat"}
+FORM_ABBR = {"SAT1": "Sat (after 1st V.)", "SUN": "Sun", "MON": "Mon", "TUE": "Tue", "WED": "Wed", "THU": "Thu",
+             "FRI": "Fri", "EASTER": "Easter Oct.", "CHRISTMAS": "Christmas Oct."}
+
+
+def form_heading(title: str, mark: str) -> str:
+    """A Compline form's heading, its footer mark inside the heading text: a mark on its own between a heading and
+    a two-column hymn is lost (multicol), one inside a line of text is kept."""
+    return r"\subsection[" + title + "][" + title + "]{" + hour_mark(mark) + title + "}"
+
+
+def hour_mark(text: str) -> str:
+    """The running mark of the day and hour (footer): "Wk. 1 Sun: 1st V.", "Wk. 3 Wed: Day"; "" clears it."""
+    return r"\hourmark{" + esc(text).replace("Wk. ", r"Wk.\,") + "}" if text is not None else ""
 
 
 def hour_title(hour: str) -> str:
@@ -272,13 +291,24 @@ class Book(PsalterWriter):
                 return form
         return None
 
+    def time_mark(self, day_key: str, hour: str) -> str:
+        """Footer mark of an hour of a day of the Proper of Time ("17 Dec: Lauds"); "" elsewhere."""
+        if day_section(day_key) != "time":
+            return ""
+        d = self.days.get(day_key)
+        name = (d["short"] or d["title"] or day_key) if d is not None else day_key
+        if len(name) > 22:                         # a source heading used as the name ("CANTICA … PRO VIGILIA …")
+            name = "Christmas Vigil" if "VIGILIA" in name.upper() else name[:21] + "…"
+        return f"{name}: {HOUR_ABBR.get(hour, hour_title(hour))}"
+
     def render_hour(self, day_key: str, hour: str, loc: str, extra_head: str = "") -> list[str]:
         insts = self.db.instances(day_key, hour)
         if not insts:
             return []
         base = insts[0]
         bid = base["id"]
-        out = [r"\hourhead{" + hh_label(day_key, hour) + hour_title(hour) + extra_head + "}{"
+        out = [r"\hourhead{" + hh_label(day_key, hour, self.time_mark(day_key, hour)) + hour_title(hour)
+               + extra_head + "}{"
                + self.hour_ribbons(day_key, hour, base) + "}"]
         if hour in ("COMPLINE", "COMPLINE1") and not any(
                 oid not in self.printed and self.objs[oid].home_label == loc
@@ -410,7 +440,7 @@ class Book(PsalterWriter):
             if loc.startswith("ord:compline:"):
                 insts = self.db.instances(day_key, hour)
                 form = loc.split(":")[2]
-                out.append(r"\hourhead{" + hh_label(day_key, hour) + hour_title(hour)
+                out.append(r"\hourhead{" + hh_label(day_key, hour, self.time_mark(day_key, hour)) + hour_title(hour)
                            + r"}{\ribbon{O}{\pg{ord:compline:" + form + "}}}")
                 out.append(r"{\footnotesize\rubric{As in the Ordinary:} " + FORM_NAME.get(form, form)
                            + r", \pgref{ord:compline:" + form + r"}.\par}")
@@ -431,7 +461,7 @@ class Book(PsalterWriter):
 
         def ordhour(title, anchor, refs):
             r = r" \enspace·\enspace ".join(f"{name} \\pg{{{lab}}}" for name, lab in refs)
-            return [f"\\objlabel{{{anchor}}}", f"\\hourhead{{\\large {title}}}{{{r}}}",
+            return [f"\\objlabel{{{anchor}}}", f"\\hourhead{{{hour_mark('Ordinary: ' + title)}\\large {title}}}{{{r}}}",
                     f"\\addcontentsline{{toc}}{{section}}{{{title}}}\\markright{{{title}}}"]
 
         # --- invitatory psalms (B-8)
@@ -511,16 +541,16 @@ class Book(PsalterWriter):
         out += gospel_canticle("Nunc dimittis", cant_key("Lc 2, 29-32"))
         for form in ("SAT1", "SUN", "MON", "TUE", "WED", "THU", "FRI"):
             out += self.compline_form(form)
-        out += [r"\subsection{Compline in the Easter Octave}", r"\objlabel{ord:compline:EASTER}"]
+        out += [form_heading("Compline in the Easter Octave", "Easter Oct.: Compl."), r"\objlabel{ord:compline:EASTER}"]
         out += self.ordinary_chapter("compline:EASTER", "", sub=True, whole=True)
         out += self.flush(["ord:compline:EASTER"])
-        out += [r"\subsection{Compline in the Christmas Octave}", r"\objlabel{ord:compline:CHRISTMAS}",
+        out += [form_heading("Compline in the Christmas Octave", "Christmas Oct.: Compl."), r"\objlabel{ord:compline:CHRISTMAS}",
                 r"\rubr{From 26 to 31 December Compline is that of Sunday, after First or Second Vespers "
                 r"(\pgref{ord:compline:SAT1}, \pgref{ord:compline:SUN}), as each day's office indicates. On "
                 r"solemnities: after First Vespers the Compline of Saturday, after Second Vespers that of Sunday.}"]
         out += self.ordinary_chapter("COMPLETORIUM", "Compline after First Vespers (Advent and Christmas volume)")
         out += self.ordinary_chapter("COMPLINE_HYMNS", "Hymns at Compline")
-        out += [r"\section{Psalms of Sunday, Week I}", r"\objlabel{ord:sundaywk1}",
+        out += [r"\section{Psalms of Sunday, Week I}", r"\objlabel{ord:sundaywk1}" + hour_mark(""),
                 r"\rubr{Used at Lauds of solemnities and feasts.}"]
         out += self.ordinary_chapter("SUNDAY_WK1_PSALMS", "", sub=True)
         rest = self.flush_prefix("ord:", "Other texts of the Ordinary")
@@ -606,7 +636,7 @@ class Book(PsalterWriter):
             days += [d for d in db.days(pw, wd) if is_grid(d)]
         days.sort(key=lambda d: (SEASON_ORDER[d["season"]], d["week"]))
         loc = f"ord:compline:{form}"
-        out = [r"\subsection{" + FORM_NAME[form] + "}", r"\objlabel{" + loc + "}"]
+        out = [form_heading(FORM_NAME[form], f"{FORM_ABBR[form]}: Compl."), r"\objlabel{" + loc + "}"]
         ot = [d for d in days if d["season"] == "OT"]
         if ot:
             h = db.hour(ot[0]["key"], hour)
@@ -700,7 +730,8 @@ class Book(PsalterWriter):
                        key=HOURS.index)
         for hour in hours:
             ht = r"First Vespers \rubric{\footnotesize (Saturday evening)}" if hour == "V1" else HOUR_TITLE[hour]
-            out.append(r"\hourhead{" + hh_label(f"grid:{pw}.{wd}", hour) + ht + "}{"
+            out.append(r"\hourhead{" + hh_label(f"grid:{pw}.{wd}", hour, f"Wk. {pw} {WD_ABBR[wd]}: {HOUR_ABBR[hour]}")
+                       + ht + "}{"
                        + ribbon_refs(db, days, hour, self.inv_label, self.anchor) + "}")
             gloc = f"time:grid:{pw}.{wd}:{hour}"
             slots = list(SLOT_ORDER.get("VESPERS" if hour in ("V1", "V2") else hour, []))
@@ -770,7 +801,8 @@ class Book(PsalterWriter):
             out += self.flush([gloc])
         form = "SUN" if wd == "SUN" else wd
         if wd != "SAT":
-            out.append(r"\hourhead{" + hh_label(f"grid:{pw}.{wd}", "COMPLINE") + r"Compline}{\ribbon{O}{\pg{ord:compline:"
+            out.append(r"\hourhead{" + hh_label(f"grid:{pw}.{wd}", "COMPLINE", f"Wk. {pw} {WD_ABBR[wd]}: Compl.")
+                       + r"Compline}{\ribbon{O}{\pg{ord:compline:"
                        + form + "}}}")
         if wd == "SUN":
             out.append(r"{\footnotesize After First Vespers: \pgref{ord:compline:SAT1}; after Second Vespers: "
@@ -796,7 +828,8 @@ class Book(PsalterWriter):
         sun = f"OT.{wk:02d}.SUN"
         if not self.homed.get(loc) and sun not in self.days:
             return []
-        out = [r"\sublabel{" + f"Week {wk} of Ordinary Time" + "}", r"\objlabel{otweek:" + str(wk) + "}"]
+        out = [r"\sublabel{" + f"Week {wk} of Ordinary Time" + "}", r"\objlabel{otweek:" + str(wk) + "}",
+               hour_mark(f"OT Wk. {wk}")]               # the week alone (footer)
         if sun in self.days:
             for hour in ("V1", "LAUDS", "V2"):
                 h = self.db.hour(sun, hour)

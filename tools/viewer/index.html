@@ -17,6 +17,10 @@
 <nav id="outline" aria-label="Sections"><div id="outlineTree"></div></nav>
 
 <main id="stage">
+  <div id="tools" hidden>
+    <button id="tableBtn" class="small" title="Where each ribbon lies, every hour of the coming months">Page arrangement table</button>
+    <button id="setBtn" class="small" title="Lay the ribbons for a day and hour (now, or any other)">Set the ribbons</button>
+  </div>
   <div id="view">
     <div id="book">
       <div class="slot left" id="slotL"></div>
@@ -56,6 +60,30 @@
 
 <div id="toast" role="status" aria-live="polite"></div>
 
+<div id="tablePop" class="pop" hidden>
+  <div class="paper">
+    <header><h2>Page arrangement table</h2><span id="tableRange"></span><span class="spacer"></span>
+      <button type="button" class="icon close" aria-label="Close">×</button></header>
+    <p class="note">For every hour, the page each ribbon marks (blank: not needed that hour). The fixed parts are on the
+      Ordinary card. Click a page to turn there; click <b>Set</b> to lay that hour's ribbons.</p>
+    <div class="scroll"><table id="arrTable"></table></div>
+  </div>
+</div>
+
+<div id="setPop" class="pop" hidden>
+  <div class="paper narrow">
+    <header><h2>Set the ribbons</h2><span class="spacer"></span>
+      <button type="button" class="icon close" aria-label="Close">×</button></header>
+    <form id="setForm">
+      <label>Day <input type="date" id="setDate" required></label>
+      <label>Hour <select id="setHour"></select></label>
+      <p id="setInfo"></p>
+      <div class="row"><button type="button" id="setNow" class="small">Now</button><span class="spacer"></span>
+        <button type="submit" class="small primary">Set the ribbons</button></div>
+    </form>
+  </div>
+</div>
+
 <div id="help" hidden>
   <div class="card">
     <h2>Book preview</h2>
@@ -69,6 +97,10 @@
       <li>The fixed parts of the hours are on the <b>Ordinary card</b>, resting at the right edge: click it (or press C) to take it out, click it again to turn it over, and click the outline "return card to side" (or Esc) to put it back.</li>
       <li><b>Shift-click</b> a page reference in the book (e.g. <b>P 1673, 1702</b> in an hour heading) to lay the matching ribbon there: P → ribbon 7 for the first psalm, 8 for a canticle or the next psalm; R → Readings (9); O → Ordinary (3). Other references go to the ribbon of the section they point into.</li>
     </ul>
+    <h3>Page arrangement table · Set the ribbons</h3>
+    <p>The two buttons at the top left: the table gives, for every hour of the coming months, the page each
+      ribbon marks (grey: the ribbon stays where it was). <b>Set the ribbons</b> lays them for now, or for any
+      day and hour, and opens the book where that hour begins.</p>
     <h3>Keys</h3>
     <table>
       <tr><td>← → · PgUp PgDn · Space</td><td>turn a leaf</td></tr>
