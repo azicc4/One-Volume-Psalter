@@ -90,6 +90,7 @@
 \newcommand{\objlabel}[1]{\phantomsection\label{#1}}
 \newcommand{\pgref}[1]{p.\,\pageref{#1}}
 \newcommand{\pg}[1]{\pageref{#1}}
+\newcommand{\tp}[1]{\ {\color{rubric}(T.P.}~#1{\color{rubric})}}   % the alleluia added in Eastertide
 \newcommand{\seepage}[1]{{\color{rubric}\footnotesize p.\,\pageref{#1}}}
 
 % ---------------------------------------------------------------- psalter
@@ -117,9 +118,18 @@
 \newcommand{\gloria}{\par\vspace{0.2\baselineskip}{\footnotesize\rubric{Glória Patri.}}\par}
 
 % hymns
-% hymns in two columns; a stanza is never split (between columns or pages)
-\newenvironment{hymn}{\par\vspace{2pt}\begin{multicols}{2}\raggedcolumns\interlinepenalty=10000
-  \leftskip=0.6em\parindent=0pt}{\end{multicols}\vspace{-2pt}}
+% a hymn among other texts: in two columns of its own; a stanza is never split (between columns or pages)
+% each verse is a paragraph (lh/render/latex.py hymn): ragged right, unhyphenated, a long verse wrapping under a
+% hanging indent; \par\nobreak between the verses of a stanza
+\newcommand{\hymnlines}{\raggedright\leftskip=0.6em\parindent=0pt\parskip=0pt\hyphenpenalty=10000
+  \exhyphenpenalty=10000\interlinepenalty=10000\everypar{\hangindent=1.2em\hangafter=1\relax}}
+\newenvironment{hymn}{\par\vspace{2pt}\begin{multicols}{2}\raggedcolumns\hymnlines}{\end{multicols}\vspace{-2pt}}
+% the Hymns section: each part set in two page-high columns (hymnflow), so a hymn runs down the left column to
+% the foot of the page and goes on at the top of the right one; its title stays with its first stanza
+\newenvironment{hymnflow}{\par\begingroup\hymnlines}{\par\endgroup}
+\newcommand{\hymntitle}[1]{\par\vspace{0.6\baselineskip}\penalty-100{\raggedright\hyphenpenalty=10000
+  \everypar{\hangindent=1.2em\hangafter=1\relax}\scshape\color{rubric}#1\par}%
+  \nobreak\vspace{1pt}\nobreak}
 \newcommand{\stanza}{\par\vspace{0.35\baselineskip}}
 
 % ---------------------------------------------------------------- propers grid: indentation shows the hierarchy

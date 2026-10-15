@@ -5,6 +5,7 @@ verification step reports), so the parse is lossless and auditable back to PDF p
 """
 from __future__ import annotations
 
+import collections
 import re
 from dataclasses import dataclass, field
 
@@ -47,6 +48,47 @@ def subvariant(text: str) -> str | None:
         return None
     v = m.group(1).strip()
     return v[:1].upper() + v[1:]
+
+
+def hymn_stanzas(lines: list[Line]) -> list[list[Line]]:
+    """A hymn's lines grouped in stanzas. The source sets a stanza gap (23.8 pt between baselines against 16.6 pt
+    between lines); a new PyMuPDF block alone is no stanza break, since an indented line (the short fourth line of
+    a sapphic stanza, "hortus adúnat.", PA 19) is a block of its own. At a page or column top the gap cannot be
+    seen: the stanza goes on when the one before is still short of the hymn's usual stanza length (or, when that
+    length is unknown, as in a one-stanza variant, when its last line does not end a sentence)."""
+    if not lines:
+        return []
+    steps = [b.y0 - a.y0 for a, b in zip(lines, lines[1:]) if a.page == b.page and b.y0 > a.y0]
+    pitch = min(steps) if steps else None
+    segs: list[list[Line]] = [[lines[0]]]
+    top: list[bool] = [False]
+    for a, b in zip(lines, lines[1:]):
+        at_top = b.page_top or b.page != a.page or b.y0 <= a.y0
+        if at_top:
+            new = b.block_start
+        elif pitch is not None:
+            new = b.y0 - a.y0 > 1.25 * pitch
+        else:
+            new = b.block_start
+        if new:
+            segs.append([])
+            top.append(at_top)
+        segs[-1].append(b)
+    whole = [len(s) for i, s in enumerate(segs) if not top[i] and not (i + 1 < len(segs) and top[i + 1])]
+    size = collections.Counter(whole).most_common(1)[0][0] if whole else None
+    out: list[list[Line]] = []
+    for i, s in enumerate(segs):
+        if out and top[i]:
+            prev = out[-1]
+            if size is not None:
+                cont = len(prev) < size
+            else:
+                cont = not prev[-1].text.rstrip().endswith((".", "!", "?", "»"))
+            if cont:
+                prev.extend(s)
+                continue
+        out.append(list(s))
+    return out
 
 
 def is_stanza_no(L: Line) -> bool:
@@ -219,12 +261,8 @@ def numbered(L: Line) -> str | None:
 
 
 def hymn_data(lines: list[Line]) -> dict:
-    """Stanzas (a stanza starts at a block start; page-top block starts are listed in page_breaks)."""
-    stanzas: list[list[str]] = []
-    for X in lines:
-        if X.block_start or not stanzas:
-            stanzas.append([])
-        stanzas[-1].append(markup(X))
+    """Stanzas (hymn_stanzas; page-top block starts are listed in page_breaks)."""
+    stanzas = [[markup(X) for X in seg] for seg in hymn_stanzas(lines)]
     return {"stanzas": stanzas, "page_breaks": [i for i, X in enumerate(
         [Y for Y in lines if Y.block_start]) if X.page_top and i > 0]}
 
@@ -907,13 +945,7 @@ class HourParser:
                 lines.append(X)
                 self.i += 1
                 lines += self.take_while(hymn_line)
-            stanzas: list[list[str]] = []
-            for n, X in enumerate(lines):
-                # a page break inside a stanza (the line before ends mid-sentence) does not start a new stanza
-                cont = X.page_top and n > 0 and lines[n - 1].text.rstrip().endswith((",", ";", ":"))
-                if (X.block_start and not cont) or not stanzas:
-                    stanzas.append([])
-                stanzas[-1].append(markup(X))
+            stanzas = [[markup(X) for X in seg] for seg in hymn_stanzas(lines)]
             breaks = ["page" if X.page_top else "block" for X in lines if X.block_start][1:] if lines else []
             self.emit("hymn", lines, "HYMN", {"stanzas": stanzas, "page_breaks": [i for i, X in enumerate(
                 [Y for Y in lines if Y.block_start]) if X.page_top and i > 0]})

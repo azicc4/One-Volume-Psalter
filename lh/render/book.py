@@ -15,6 +15,7 @@ from __future__ import annotations
 import collections
 import json
 import re
+import unicodedata
 
 from lh.config import BOOK, VARIANTS
 from lh.model.attribute import (COMMON_ORDER, HOURS, ORD_ORDER, PROPER_DAYS, WD, Order, content, day_section,
@@ -76,14 +77,15 @@ def hh_label(where: str, hour: str, mark: str = "") -> str:
 HOUR_ABBR = {"V1": "1st V.", "INV": "Inv.", "OR": "O.R.", "LAUDS": "Lauds", "MIDDAY": "Day", "VESPERS": "Vesp.",
              "V2": "2nd V.", "COMPLINE": "Compl.", "COMPLINE1": "Compl."}
 WD_ABBR = {"SUN": "Sun", "MON": "Mon", "TUE": "Tue", "WED": "Wed", "THU": "Thu", "FRI": "Fri", "SAT": "Sat"}
-FORM_ABBR = {"SAT1": "Sat (after 1st V.)", "SUN": "Sun", "MON": "Mon", "TUE": "Tue", "WED": "Wed", "THU": "Thu",
+FORM_ABBR = {"SAT1": "Sat", "SUN": "Sun", "MON": "Mon", "TUE": "Tue", "WED": "Wed", "THU": "Thu",
              "FRI": "Fri", "EASTER": "Easter Oct.", "CHRISTMAS": "Christmas Oct."}
 
 
 def form_heading(title: str, mark: str) -> str:
-    """A Compline form's heading, its footer mark inside the heading text: a mark on its own between a heading and
-    a two-column hymn is lost (multicol), one inside a line of text is kept."""
-    return r"\subsection[" + title + "][" + title + "]{" + hour_mark(mark) + title + "}"
+    """A Compline form's heading and its footer mark, set just after the heading (like a label): inside the heading
+    text the mark was written with the page before whenever the heading began a page. The heading starts a page
+    unless its hymn's first stanzas fit below it (a two-column hymn would otherwise leave it at the foot)."""
+    return r"\needspace{14\baselineskip}\subsection{" + title + "}" + hour_mark(mark)
 
 
 def hour_mark(text: str) -> str:
@@ -123,6 +125,31 @@ def copy_label(h) -> str:
     return cp
 
 
+# short texts the four-week cycle prints again when another day of the cycle has them (B-24)
+GRID_COPY = {"ant", "versicle", "oratio", "lectio_brevis", "resp_breve"}
+ALLELUIA = re.compile(r"all[eé]l[uú][ij]a", re.I)
+
+
+def _words(t: str) -> list[str]:
+    t = unicodedata.normalize("NFD", t.lower().replace("æ", "ae").replace("œ", "oe"))
+    return re.sub(r"[^a-z ]+", " ", "".join(c for c in t if not unicodedata.combining(c))).replace("j", "i").split()
+
+
+def tp_suffix(a: Obj, b: Obj) -> str | None:
+    """"Allelúia" when antiphon b is antiphon a with an alleluia (or more) added at the end, as in Eastertide."""
+    if a.type != "ant" or b.type != "ant":
+        return None
+    wa, wb = _words(a.payload.get("text", "")), _words(b.payload.get("text", ""))
+    n = len(wb) - len(wa)
+    if n < 1 or wb[:len(wa)] != wa or any(w != "alleluia" for w in wb[len(wa):]):
+        return None
+    tail = ALLELUIA.findall(b.payload["text"])[-n:]
+    if len(tail) != n:
+        return None
+    s = ", ".join(tail)
+    return s[0].upper() + s[1:]
+
+
 def incipit(o: Obj, n: int = 6) -> str:
     t = plain_text(o.type, o.payload)
     if o.type == "lectio_brevis" and o.payload.get("ref"):
@@ -156,6 +183,8 @@ class Book(PsalterWriter):
         self.compline_units = {}               # weekly form -> psalm units (for "as on Sunday" references)
         self.flushed: list[tuple] = []          # (location, object) printed by the end-of-hour fallback
         self.cp_labels: set[str] = set()        # labels of texts printed again in full (whole Compline)
+        self.tp_suffix: dict[str, str] = {}     # antiphon → the alleluia its Eastertide form adds ("(T.P. Allelúia)")
+        self.tp_forms: dict[str, list] = collections.defaultdict(list)    # antiphon → its Eastertide forms (aliases)
 
     # ================================================================== emit: print at home, refer elsewhere
     def anchor(self, o: Obj) -> str:
@@ -169,7 +198,8 @@ class Book(PsalterWriter):
         lab = f"\\objlabel{{{label(o.id)}}}"
         p = o.payload
         if o.type == "ant":
-            return lab + L.ant(p)
+            lab += "".join(f"\\objlabel{{{label(b)}}}" for b in self.tp_forms.get(o.id, []))
+            return lab + L.ant(p) + self.tp_tail(o.id)
         if o.type in ("psalm", "canticle"):
             head = psalm_unit_ref(p) if o.type == "psalm" else "Canticle " + canticle_ref(p)
             return lab + r"{\footnotesize\rubric{" + esc(head) + r"}}\par " + L.canticle_lines(p["lines"])
@@ -213,10 +243,62 @@ class Book(PsalterWriter):
             head = psalm_unit_ref(p) if o.type == "psalm" else "Canticle " + canticle_ref(p)
             return lab + r"{\footnotesize\rubric{" + esc(head) + r"}}\par " + L.canticle_lines(p["lines"]) + r"\gloria"
         if o.type == "ant":
-            return lab + L.ant(p)
+            return lab + L.ant(p) + self.tp_tail(o.id)
         if o.type == "hymn":
             return lab + L.hymn(p)
         return lab + L.render(o.type, p)
+
+    # ------------------------------------------------------------------ Eastertide alleluia (B-23)
+    def tp_tail(self, oid: str) -> str:
+        return r"\tp{" + tex(self.tp_suffix[oid], marks=False) + "}" if oid in self.tp_suffix else ""
+
+    def paschal(self, h) -> bool:
+        """A printing of Eastertide: the Eastertide volume of the Proper of Saints, the Eastertide copy of a Common,
+        or a day of Eastertide."""
+        d = self.days.get(h["day_key"])
+        return (h["source"] == "SP" or (h["source"] == "COM" and h["copy"] == "EAS")
+                or (d is not None and d["season"] == "EAS"))
+
+    def tp_merge(self, xs, ys, loc: str) -> bool:
+        """xs: a slot's texts outside Eastertide, ys: the same slot's texts in Eastertide, [(condition, object)].
+        When each Eastertide antiphon is the other with an alleluia added and both are printed here, print them
+        once: the antiphon with "(T.P. Allelúia)" at its end, the Eastertide form an alias of it. True when ys
+        need no line of their own."""
+        if len(xs) != len(ys) or list(xs) == list(ys):
+            return False
+        new = {}
+        for (c1, a), (c2, b) in zip(xs, ys):
+            if c1 != c2:
+                return False
+            if a == b or self.aliases.get(b) == a:
+                continue
+            A, B = self.objs[a], self.objs[b]
+            suf = tp_suffix(A, B)
+            if (not suf or not A.home_label or A.home_label != loc or B.home_label != loc
+                    or {a, b} & self.printed or a in self.aliases or b in self.aliases):
+                return False
+            new[b] = (a, suf)
+        for b, (a, suf) in new.items():
+            self.aliases[b] = a
+            self.tp_suffix[a] = suf
+            self.tp_forms[a].append(b)
+            self.stats["tp_merged"] += 1
+        return True
+
+    def tp_groups(self, groups: list, loc_of, label_of) -> list:
+        """Grid and Compline cells: fold an Eastertide group whose antiphons only add an alleluia into the group of
+        the other seasons (tp_merge). loc_of(group) → its print location; label_of(days) → its new label."""
+        out = list(groups)
+        for gj in [g for g in out if all(d["season"] == "EAS" for d in g.days)]:
+            for gi in out:
+                if gi is gj or any(d["season"] == "EAS" for d in gi.days) or loc_of(gi) != loc_of(gj):
+                    continue
+                if self.tp_merge(gi.items, gj.items, loc_of(gi)):
+                    gi.days = gi.days + gj.days
+                    gi.label = label_of(gi.days)
+                    out.remove(gj)
+                    break
+        return out
 
     def emit(self, oid: str, loc: str, hour_id=None, whole: bool = False) -> str:
         o = self.objs[oid]
@@ -268,9 +350,18 @@ class Book(PsalterWriter):
             name += f" ({SUB_TITLE[sub]})"
         return name
 
-    def item_lines(self, items, loc, hour_id, whole: bool = False) -> str:
-        return r"\par ".join((r"\condlabel{" + esc(c) + "}" if c else "") + self.emit(oid, loc, hour_id, whole)
+    def item_lines(self, items, loc, hour_id, whole=False) -> str:
+        """whole: print every text in full here (True), or those for which whole(object id) is true."""
+        return r"\par ".join((r"\condlabel{" + esc(c) + "}" if c else "")
+                             + self.emit(oid, loc, hour_id, whole(oid) if callable(whole) else whole)
                              for c, oid in items)
+
+    def other_grid_day(self, oid: str, here: str) -> bool:
+        """A short text of the four-week cycle printed under another day (here: "2.SUN"): printed again in full
+        rather than referred to, so the hour is read at one place of the cycle (ribbon 4, B-24)."""
+        o = self.objs[self.aliases.get(oid, oid)]
+        h = (o.home_label or "").split(":")
+        return (o.type in GRID_COPY and len(h) > 3 and h[0] == "time" and h[1] == "grid" and h[2] != here)
 
     def link_line(self, o) -> str | None:
         slot = o["slot"] or ""
@@ -372,14 +463,14 @@ class Book(PsalterWriter):
                 done_slots.update(keys)
                 block = [r"\slotname{Psalmody}{}"]
                 for k in keys:
-                    block += self.slot_lines(k, base_items[k], others, loc, bid, psalmody=True)
+                    block += self.slot_lines(k, base_items[k], others, loc, bid, psalmody=True, base=base)
                 out.append("\n".join(block))
                 continue
             items = base_items[key]
             cites = {L.citation(self.objs[oid].type, self.objs[oid].payload) for _, oid in items} - {""}
             cite = next(iter(cites)) if len(cites) == 1 else ""
             block = [r"\slotname{" + self.slot_title(slot, sub, hour) + "}{" + cite + "}"]
-            block += self.slot_lines(key, items, others, loc, bid)
+            block += self.slot_lines(key, items, others, loc, bid, base=base)
             out.append("\n".join(block))
         # slots printed only in another printing
         for lab_, h, its in others:
@@ -395,14 +486,25 @@ class Book(PsalterWriter):
         out += self.flush([loc])
         return out
 
-    def slot_lines(self, key, items, others, loc, bid, psalmody: bool = False) -> list[str]:
+    def slot_lines(self, key, items, others, loc, bid, psalmody: bool = False, base=None) -> list[str]:
         """The base printing's texts of one slot, then each other printing's when they differ."""
         slot = key[0]
         tag = ""
         if psalmody and slot.startswith("ANT"):
             tag = r"\rubric{Ant." + (r"\," + slot[3:] if slot[3:] else "") + r"}\enspace "
-        lines = [r"\variant{}{}{" + tag + self.item_lines(items, loc, bid) + "}"]
         seen_var = {tuple(items)}
+        # an Eastertide printing that only adds an alleluia: one text, "(T.P. Allelúia)" at its end (B-23)
+        if base is not None:
+            for lab_, h, its in others:
+                v = its.get(key)
+                if not v or tuple(v) in seen_var or self.paschal(h) == self.paschal(base):
+                    continue
+                if self.paschal(h) and self.tp_merge(items, v, loc):
+                    seen_var.add(tuple(v))
+                elif self.paschal(base) and self.tp_merge(v, items, loc):
+                    seen_var.add(tuple(v))
+                    items = v                           # the base printing is the Eastertide one: print the other
+        lines = [r"\variant{}{}{" + tag + self.item_lines(items, loc, bid) + "}"]
         for lab_, h, its in others:
             v = its.get(key)
             if v and tuple(v) not in seen_var:
@@ -653,6 +755,8 @@ class Book(PsalterWriter):
                 continue
             for g in groups:
                 g.label = self.season_label(g.days)
+            if slot != "GOSPEL_CANT":
+                groups = self.tp_groups(groups, lambda g: loc, self.season_label)
             name = self.slot_title(slot, "", hour)
             lines = []
             if slot == "GOSPEL_CANT":
@@ -680,7 +784,10 @@ class Book(PsalterWriter):
                r"that uses this psalter week are given side by side: \rubric{\scshape Per annum} (all weeks of "
                r"Ordinary Time on this psalter week), \rubric{\scshape Adv.}, \rubric{\scshape Lent}, "
                r"\rubric{\scshape Easter} with the week of the season. Where a season has its own text it is listed; "
-               r"otherwise the Per annum text serves. Each text is printed once; later uses give its page. Fixed parts "
+               r"otherwise the Per annum text serves. Each text is printed once and later uses give its page, except "
+               r"that the short texts an hour shares with another day of the cycle (antiphons, versicles, prayers, "
+               r"short readings and responsories) are printed again in full, so that the hour is read in one place "
+               r"(ribbon 4; ribbon 5 keeps the weeks of Ordinary Time and the seasons' days, after the cycle). Fixed parts "
                r"are in the Ordinary; Compline is in the Ordinary. The days with wholly proper offices (17–24 December, "
                r"Christmas Time, Ash Wednesday, Holy Week, the Triduum, the Easter Octave, Ascension, Pentecost and the "
                r"solemnities of the Lord) follow the four-week cycle.}"]
@@ -766,6 +873,10 @@ class Book(PsalterWriter):
                         weekly.append(g)
                         continue
                     kept.append((g, loc))
+                locs = {id(g): loc for g, loc in kept}
+                all_ot = {d["week"] for d in days if d["season"] == "OT"}
+                merged = self.tp_groups([g for g, _ in kept], lambda g: locs[id(g)], lambda ds: labels_for(ds, all_ot))
+                kept = [(g, locs[id(g)]) for g in merged]
                 lines = []
                 cites = {L.citation(self.objs[oid].type, self.objs[oid].payload) for g, _ in kept for _, oid in g.items}
                 cites.discard("")
@@ -778,6 +889,8 @@ class Book(PsalterWriter):
                     # variant "weekly" (B-17): the hymn and the psalms printed in full at the hour, as in the
                     # four-volume breviary; the Psalter in biblical order and the Hymns section stay as they are
                     whole = self.weekly_psalter and (slot == "HYMN" or re.fullmatch(r"PS\d", slot) is not None)
+                    if not whole:
+                        whole = lambda oid: self.other_grid_day(oid, f"{pw}.{wd}")   # noqa: E731
                     lines.append(r"\variant{" + esc(g.label) + "}{" + cite + "}{" + lead
                                  + self.item_lines(g.items, loc, hid, whole) + "}")
                 if weekly:
@@ -987,14 +1100,16 @@ class Book(PsalterWriter):
             groups[(g[0], g[2] if len(g) > 2 else 0, g[1])].append(o)
         self.hymn_index = []
         for gk in sorted(groups):
-            out.append(r"\section{" + esc(gk[2]) + "}")
+            # each part in two page-high columns: a hymn runs down the left column, then on in the right one
+            out.append(r"\begin{multicols}{2}[\section{" + esc(gk[2]) + r"}]\raggedcolumns")
             for o in sorted(groups[gk], key=lambda o: self.order.loc_rank(o.home_label[6:]) if o.home_label else ()):
                 first = tex(o.payload["stanzas"][0][0], marks=False)
-                out.append(r"\needspace{6\baselineskip}\par\vspace{0.5\baselineskip}{\scshape\color{rubric}"
-                           + first.rstrip(",.;:") + r"}\par" + f"\\objlabel{{{label(o.id)}}}")
-                out.append(L.hymn(o.payload))
+                # the label inside the title line: on a line of its own it would let the title part from the hymn
+                out.append(r"\hymntitle{" + f"\\objlabel{{{label(o.id)}}}" + first.rstrip(",.;:") + "}")
+                out.append(L.hymn(o.payload, env="hymnflow"))
                 self.printed.add(o.id)
                 self.hymn_index.append((plain(o.payload["stanzas"][0][0]), o.id))
+            out.append(r"\end{multicols}")
         return "\n".join(out)
 
     # ================================================================== 6-9. PSALTER

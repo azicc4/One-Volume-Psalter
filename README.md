@@ -8,7 +8,7 @@ with the **Ordinary card** (one sheet, front and back) for the fixed parts of th
 | 1 | **Proper of Saints** — the saint of the day |
 | 2 | **Commons** — the Common it refers to |
 | 3 | **Ordinary** — "Finding the Office", fixed texts (also on the card), Compline printed whole for each weekday, Daytime Prayer |
-| 4–5 | **Proper of Time** — the four-week cycle, every part of every hour with its seasonal variants side by side (4: the hour being said; 5: the texts of the week or the season's day); each hour heading gives the ribbon pages (P psalms · R readings · O Ordinary for Daytime Prayer) |
+| 4–5 | **Proper of Time** — the four-week cycle, every part of every hour with its seasonal variants side by side (4: the hour being said, in the four-week cycle; 5: after the cycle, the week of Ordinary Time or the season's day — so 5 always lies after 4); each hour heading gives the ribbon pages (P psalms · R readings · O Ordinary for Daytime Prayer) |
 | 6 | **Hymns** |
 | 7–8 | **Psalter** (+ Canticles) — all 150 psalms, Hebrew numbering (Vulgate in parentheses); the margin marks where each portion is prayed (`I Mon L.1` = Week I, Monday, Lauds, psalm 1) and, below a rule, every other use (feasts); unused verses in smaller type |
 | 9 | **Office of Readings readings** and responsories |

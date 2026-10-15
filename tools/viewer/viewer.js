@@ -10,8 +10,8 @@ const RIBBONS = [
   { id: 'S',  name: 'Saints',            color: '#b3261e', home: /saints/i },
   { id: 'C',  name: 'Commons',           color: '#d4a017', home: /^commons/i },
   { id: 'O',  name: 'Ordinary: Compline', color: '#efe6cf', home: /^compline$/i, deep: true },
-  { id: 'T1', name: 'Time: the hour',    color: '#2e7d32', home: /propers? of time/i },
-  { id: 'T3', name: 'Time: the week',    color: '#00897b', home: /proper to each week/i, deep: true },
+  { id: 'T1', name: 'Time: four-week cycle', color: '#2e7d32', home: /propers? of time/i },
+  { id: 'T3', name: 'Time: week, season', color: '#00897b', home: /proper to each week/i, deep: true },
   { id: 'H',  name: 'Hymns',             color: '#1e63b5', home: /^hymns/i },
   { id: 'P1', name: 'Psalter',           color: '#7b1fa2', home: /psalter/i },
   { id: 'P2', name: 'Psalter, Canticles', color: '#d81b60', home: /^canticles/i },
@@ -513,6 +513,11 @@ async function ribbonForLink(pageIdx, a, annots, dest) {
   }
   const sec = sectionOf(dest);
   const hit = sec && SECTION_RIBBON.find(([re]) => re.test(sec.title));
+  // the Proper of Time after the four-week cycle (the weeks of Ordinary Time, the seasons' days) → ribbon 5
+  if (hit && hit[1] === R.T1) {
+    const weeks = S.flat.find((x) => RIBBONS[R.T3].home.test(x.title));
+    if (weeks && weeks.index != null && dest >= weeks.index) return R.T3;
+  }
   return hit ? hit[1] : null;
 }
 

@@ -5,9 +5,11 @@ Written to book/out/<file>-ribbons.json (book-ribbons.json, book-weekly-ribbons.
 for a chosen day and hour from it ("Set the ribbons").
 
 A ribbon marks where the hour opens in its part of the book (lh/render/common.py RIBBONS, the nine ribbons by use):
-the first page of the hour in the Proper of Saints (1), the Commons (2), the Ordinary (3), the Proper of Time (4; a
-second place there, such as the week's collect, 5), the Hymns (6), the Psalter and Canticles (7; a second place, 8)
-and the Readings (9). The fixed parts on the Ordinary card need no ribbon.
+the first page of the hour in the Proper of Saints (1), the Commons (2), the Ordinary (3), the four-week cycle of
+the Proper of Time (4), the part of the Proper of Time after it (5: the week of Ordinary Time, the season's day),
+the Hymns (6), the Psalter and Canticles (7; a second place, 8) and the Readings (9). The four-week cycle comes
+before the rest of the Proper of Time, so ribbon 5 always lies after ribbon 4. The fixed parts on the Ordinary card
+need no ribbon.
 """
 from __future__ import annotations
 
@@ -20,7 +22,7 @@ HOUR_NAME = {"INV": "Invitatory", "OR": "Office of Readings", "LAUDS": "Lauds", 
              "VESPERS": "Vespers", "V1": "First Vespers", "V2": "Second Vespers", "COMPLINE": "Compline",
              "COMPLINE1": "Compline"}
 # part of the book → the ribbons that keep it (1-based), in the order places are met within an hour
-PART_RIBBONS = {"S": [1], "C": [2], "O": [3], "T": [4, 5], "H": [6], "P": [7, 8], "R": [9]}
+PART_RIBBONS = {"S": [1], "C": [2], "O": [3], "TG": [4], "TW": [5], "H": [6], "P": [7, 8], "R": [9]}
 
 
 def hour_ribbons(sim, steps) -> tuple[dict[int, int], int | None]:
@@ -31,6 +33,8 @@ def hour_ribbons(sim, steps) -> tuple[dict[int, int], int | None]:
     start = steps[0].page if steps else None
     for s in steps:
         part = L.role(s.page)
+        if part == "T":
+            part = L.time_part(s.page)
         free = PART_RIBBONS.get(part)
         if not free:
             continue

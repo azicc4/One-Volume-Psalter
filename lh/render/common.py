@@ -483,9 +483,9 @@ def sup_pairs(prs) -> str:
 RIBBONS = [("S", "Proper of Saints — the saint of the day"),
            ("C", "Commons — the Common it refers to"),
            ("O", "Ordinary — Compline (the form of the day) and Daytime Prayer"),
-           ("T", "Proper of Time — the hour being said"),
-           ("T", "Proper of Time — the texts of the week (Ordinary Time: Sunday antiphons and collect) or the "
-                 "season's day"),
+           ("T", "Proper of Time — the four-week cycle: the hour being said"),
+           ("T", "Proper of Time — after the four-week cycle: the week of Ordinary Time (Sunday antiphons and "
+                 "collect) or the season's day; so it always lies after the ribbon before it"),
            ("H", "Hymns"),
            ("P", "Psalter — the psalms of the hour"),
            ("P", "Psalter or Canticles — the canticle or the next psalm"),
@@ -511,7 +511,8 @@ def finding_the_office() -> str:
         r"\item \textbf{The psalter week.} Ordinary Time week $N$ uses psalter week $((N-1) \bmod 4)+1$; "
         r"Advent weeks 1–4 use I–IV; Lent: Ash Wednesday IV, weeks 1–5 I, II, III, IV, I; Holy Week II; "
         r"Easter weeks 2–7: II, III, IV, I, II, III.",
-        r"\item \textbf{The hour.} Open the Proper of Time at the day and hour (" + rib("T") + "). Say the hour "
+        r"\item \textbf{The hour.} Open the Proper of Time at the day and hour (" + rib("T") + ": the first in "
+        r"the four-week cycle, the second after it, at the week of Ordinary Time or the season's day). Say the hour "
         r"from its heading, with the \textbf{Ordinary card} in hand: the opening verses, the Invitatory psalm, the "
         r"Gospel canticles, the Pater noster, the dismissals, the Te Deum and the antiphons of Our Lady are on the "
         r"card (and in this Ordinary). Each hour heading gives the pages to mark: \rubric{P} the psalms and "
