@@ -16,7 +16,7 @@ import collections
 import json
 import re
 
-from lh.config import BOOK
+from lh.config import BOOK, VARIANTS
 from lh.model.attribute import (COMMON_ORDER, HOURS, ORD_ORDER, PROPER_DAYS, WD, Order, content, day_section,
                                  is_grid, location, ord_chapter, saint_date)
 from lh.model.canon import paragraphs, plain, plain_text, psalm_base
@@ -113,7 +113,9 @@ def incipit(o: Obj, n: int = 6) -> str:
 
 
 class Book(PsalterWriter):
-    def __init__(self):
+    def __init__(self, weekly_psalter: bool = False):
+        # weekly_psalter (variant "weekly", B-17): the four-week cycle prints each hour's hymn and psalms in full
+        self.weekly_psalter = weekly_psalter
         self.db = DB()
         self.objs = self.db.load_all()
         self.supp = load_supplement()
@@ -742,8 +744,11 @@ class Book(PsalterWriter):
                     cite = "" if shared or not cites else L.citation(first.type, first.payload)
                     lead = r"\par " if any(c for c, _ in g.items) else ""
                     hid = self.grid_hour_id(g.days[0], hour)
+                    # variant "weekly" (B-17): the hymn and the psalms printed in full at the hour, as in the
+                    # four-volume breviary; the Psalter in biblical order and the Hymns section stay as they are
+                    whole = self.weekly_psalter and (slot == "HYMN" or re.fullmatch(r"PS\d", slot) is not None)
                     lines.append(r"\variant{" + esc(g.label) + "}{" + cite + "}{" + lead
-                                 + self.item_lines(g.items, loc, hid) + "}")
+                                 + self.item_lines(g.items, loc, hid, whole) + "}")
                 if weekly:
                     lines.append(r"\variant{Per annum}{}{\rubr{Proper to each week of Ordinary Time,} \pgref{time:otweeks}.}")
                 out.append(r"\slotname{" + name + "}{" + shared + "}" + "\n".join(lines))
@@ -1219,10 +1224,18 @@ def reading_part(k: str) -> str:
     return "Proper of Saints"
 
 
-def write_book() -> tuple[str, Book]:
+def write_book(variant: str = "main") -> tuple[str, Book]:
+    """Write book/generated/<file>_body.tex for a variant of the book (lh/config.py VARIANTS), and its
+    <file>_variant.tex (the edition named on the title page)."""
+    v = VARIANTS[variant]
     out = BOOK / "generated"
     out.mkdir(parents=True, exist_ok=True)
-    b = Book()
+    b = Book(weekly_psalter=v.get("weekly_psalter", False))
     body = b.body()
-    (out / "book_body.tex").write_text(body, encoding="utf-8")
-    return str(out / "book_body.tex"), b
+    (out / f"{v['file']}_body.tex").write_text(body, encoding="utf-8")
+    note = out / f"{v['file']}_variant.tex"
+    if v.get("note"):
+        note.write_text(r"\newcommand{\variantnote}{" + esc(v["note"]) + "}\n", encoding="utf-8")
+    elif note.exists():
+        note.unlink()
+    return str(out / f"{v['file']}_body.tex"), b

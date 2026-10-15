@@ -9,9 +9,16 @@ import re
 from lh.config import BUILD, REPORTS
 from lh.model.canon import fold, plain_text
 
-SECTION_NAMES = {"saints": "1 Proper of Saints", "commons": "2 Commons (+ Office for the Dead, BVM on Saturday)",
-                 "ordinary": "3 Ordinary (incl. Compline cycle)", "time": "4 Proper of Time", "hymns": "5 Hymns",
-                 "psalter": "6–9 Psalter and Canticles", "readings": "10 Office of Readings readings",
+def _n(part: str) -> str:
+    """The ribbon number(s) of a part of the book ('7–8')."""
+    from lh.render.common import rib
+    return rib(part).split(" ", 1)[1]
+
+
+SECTION_NAMES = {"saints": f"{_n('S')} Proper of Saints", "commons": f"{_n('C')} Commons (+ Office for the Dead, BVM "
+                 "on Saturday)", "ordinary": f"{_n('O')} Ordinary (incl. Compline cycle)",
+                 "time": f"{_n('T')} Proper of Time", "hymns": f"{_n('H')} Hymns",
+                 "psalter": f"{_n('P')} Psalter and Canticles", "readings": f"{_n('R')} Office of Readings readings",
                  "other": "Other texts (fallback)", "indexes": "Indexes"}
 PART_NAMES = {"commons/commons": "the ten Commons with seasonal forms", "commons/additional":
               "Office for the Dead, Saturday memorial of the BVM", "time/grid": "four-week grid (28 days, all seasons)",
@@ -155,6 +162,7 @@ def write_budget(book, timings: dict, name: str = "book") -> str:
               f"bible paper. Without the readings the main volume would have {total - readings:,} pages.",
               "- Options above can be combined; the alleluia rule changes the text as printed (a rubric replaces "
               "printed variants) and needs a decision on how the rule is worded.", ""]
-    path = REPORTS / "page_budget.md"
+    # page_budget.md for the main book, page_budget-weekly.md for the variant book-weekly
+    path = REPORTS / (name.replace("book", "page_budget", 1) + ".md")
     path.write_text("\n".join(lines), encoding="utf-8")
     return str(path)

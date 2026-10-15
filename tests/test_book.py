@@ -7,7 +7,7 @@ import pytest
 
 from lh.config import BOOK
 
-BOOKS = [name for name in ("poc", "book")
+BOOKS = [name for name in ("poc", "book", "book-weekly")
          if (BOOK / "out" / f"{name}.pdf").exists() and (BOOK / "generated" / f"{name}_body.tex").exists()]
 pytestmark = pytest.mark.skipif(not BOOKS, reason="run `python -m lh book --poc` or `python -m lh book` first")
 

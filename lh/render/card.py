@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import re
 
-from lh.config import BOOK, BUILD
+from lh.config import BOOK, BUILD, VARIANTS
 from lh.render import latex as L
 from lh.model.attribute import content
 from lh.render.common import cant_key, load_supplement, sup_pairs
@@ -29,18 +29,18 @@ GLORIA = (r"\psl{}{Glória Patri et Fílio \mediant{}}\psk{et Spirítui Sancto.}
           r"\psc{Sicut erat in princípio et nunc et semper \mediant{}}\psk{et in sǽcula sæculórum. Amen.}")
 
 
-def book_pages() -> dict[str, str]:
+def book_pages(aux=AUX) -> dict[str, str]:
     """LaTeX label → printed page number in the last full build of the book."""
-    if not AUX.exists():
+    if not aux.exists():
         return {}
-    return dict(NEWLABEL.findall(AUX.read_text(encoding="utf-8", errors="replace")))
+    return dict(NEWLABEL.findall(aux.read_text(encoding="utf-8", errors="replace")))
 
 
 class Card:
-    def __init__(self, book):
+    def __init__(self, book, aux=AUX):
         self.b = book
         self.s = load_supplement()
-        self.pages = book_pages()
+        self.pages = book_pages(aux)
 
     def pg(self, lab: str) -> str:
         p = self.pages.get(lab)
@@ -143,8 +143,10 @@ class Card:
         return "\n".join(out)
 
 
-def write_card(book) -> str:
-    out = BOOK / "generated" / "card_body.tex"
+def write_card(book, variant: str = "main") -> str:
+    """book/generated/<card>_body.tex for a variant of the book (its own page numbers: build/latex/<file>.aux)."""
+    v = VARIANTS[variant]
+    out = BOOK / "generated" / f"{v['card']}_body.tex"
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(Card(book).body(), encoding="utf-8")
+    out.write_text(Card(book, BUILD / "latex" / f"{v['file']}.aux").body(), encoding="utf-8")
     return str(out)

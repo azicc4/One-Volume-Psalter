@@ -37,3 +37,14 @@ PDFS = {
 
 def pdf_path(key: str) -> Path:
     return PDF_DIR / PDFS[key]
+
+
+# Versions of the book built side by side from the same database (python -m lh book --variant NAME). Each has its
+# own PDF, card, page budget and simulation; the viewer switches between them (Main | Experiment).
+VARIANTS = {
+    "main": {"file": "book", "card": "card", "label": "Main"},
+    # B-17: the hymns and psalms of the four-week cycle printed in full at each hour, as in the four-volume
+    # breviary; the Psalter in biblical order and the Hymns section are kept
+    "weekly": {"file": "book-weekly", "card": "card-weekly", "label": "Experiment", "weekly_psalter": True,
+               "note": "Experimental edition: the psalms and hymns of the four-week cycle printed at each hour"},
+}

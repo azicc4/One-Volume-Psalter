@@ -1,4 +1,4 @@
-"""Local server for the book preview viewer (tools/viewer). Started by preview.bat; stdlib only.
+"""Local server for the book preview viewer (tools/viewer). Started by "preview main.bat" and "preview experiment.bat"; stdlib only.
 
 Serves, on 127.0.0.1 only:
   /                 → tools/viewer/index.html (and the viewer's own files)
@@ -147,7 +147,9 @@ def main(argv=None):
     if not (OUT / f"{args.pdf}.pdf").exists():
         have = ", ".join(p["name"] for p in pdf_list()) or "none"
         sys.exit(f"[viewer] book/out/{args.pdf}.pdf not found (available: {have}).\n"
-                 f"         Build it first:  .venv\\Scripts\\python -m lh book" + (" --poc" if args.pdf == "poc" else ""))
+                 f"         Build it first:  .venv\\Scripts\\python -m lh book"
+                 + (" --poc" if args.pdf == "poc" else f" --variant {args.pdf.split('-', 1)[1]}" if "-" in args.pdf
+                    else ""))
     for port in (args.port, 0):                                  # fall back to any free port
         try:
             httpd = Server(("127.0.0.1", port), Handler)
