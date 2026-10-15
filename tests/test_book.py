@@ -62,11 +62,21 @@ def test_no_strophe_gap_inside_a_couplet(name):
 
 @pytest.mark.parametrize("name", BOOKS)
 def test_hour_heads_carry_ribbon_refs(name):
-    """Every hour head in the four-week cycle gives the Ordinary page (O); all but Compline also give psalm pages (P)."""
+    """Every hour head in the four-week cycle gives its ribbon pages: psalm pages (P) for every hour but Compline and
+    the Invitatory (card 1), the Ordinary page (O) for Daytime Prayer and Compline (B-16)."""
     t = tex(name)
     start = t.index(r"\chapter{Propers of Time}" if name == "poc" else r"\chapter{Proper of Time}")
     end = t.index(r"\chapter{Hymns}") if name == "poc" else t.index(r"\section{Ordinary Time: proper to each week}")
     body = re.sub(r"\\objlabel\{hh:[^}]*\}", "", t[start:end])        # invisible hour labels (lh/sim)
     heads = re.findall(r"\\hourhead\{(.*?)\}\{(.*)", body)
-    assert heads and all(r"\ribbon{O}" in refs for _, refs in heads)
-    assert all(r"\ribbon{P}" in refs for title, refs in heads if not title.startswith("Compline"))
+    assert heads
+    if name == "poc":                                  # the proof of concept keeps the first ribbon scheme
+        assert all(r"\ribbon{O}" in refs for _, refs in heads)
+        return
+    for title, refs in heads:
+        if title.startswith("Invitatory"):
+            assert r"\cardref{1}" in refs
+        elif title.startswith("Compline") or title.startswith("Daytime"):
+            assert r"\ribbon{O}" in refs
+        if not title.startswith(("Compline", "Invitatory")):
+            assert r"\ribbon{P}" in refs, title

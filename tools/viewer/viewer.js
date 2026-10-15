@@ -3,24 +3,24 @@ import * as pdfjsLib from './vendor/pdfjs/pdf.min.mjs';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
 
-// The ten ribbons of the one-volume book, in book order (Saints, Commons, Ordinary, Proper of Time,
-// Hymns, Psalter ×4, Readings). `home` finds the ribbon's starting section among the PDF's top-level bookmarks.
+// The ten ribbons of the one-volume book, assigned by use (TODO B-16, reports/simulation.md; the book's
+// "Finding the Office"). `home` finds the ribbon's starting place among the PDF's bookmarks (`deep`: any level).
 const RIBBONS = [
-  { id: 'S',  name: 'Saints',         color: '#b3261e', home: /saints/i },
-  { id: 'C',  name: 'Commons',        color: '#d4a017', home: /^commons/i },
-  { id: 'O',  name: 'Ordinary',       color: '#efe6cf', home: /ordinary/i },
-  { id: 'T',  name: 'Proper of Time', color: '#2e7d32', home: /propers? of time/i },
-  { id: 'H',  name: 'Hymns',          color: '#1e63b5', home: /^hymns/i },
-  { id: 'P1', name: 'Psalter 1',      color: '#7b1fa2', home: /psalter/i },
-  { id: 'P2', name: 'Psalter 2',      color: '#d81b60', home: /psalter/i },
-  { id: 'P3', name: 'Psalter 3',      color: '#00897b', home: /psalter/i },
-  { id: 'P4', name: 'Psalter 4',      color: '#ef6c00', home: /psalter/i },
-  { id: 'R',  name: 'Readings',       color: '#795548', home: /readings/i },
+  { id: 'S',  name: 'Saints',            color: '#b3261e', home: /saints/i },
+  { id: 'C',  name: 'Commons',           color: '#d4a017', home: /^commons/i },
+  { id: 'O',  name: 'Ordinary: Compline', color: '#efe6cf', home: /^compline$/i, deep: true },
+  { id: 'T1', name: 'Time: the hour',    color: '#2e7d32', home: /propers? of time/i },
+  { id: 'T2', name: 'Time: next page',   color: '#7cb342', home: /propers? of time/i },
+  { id: 'T3', name: 'Time: the week',    color: '#00897b', home: /proper to each week/i, deep: true },
+  { id: 'H',  name: 'Hymns',             color: '#1e63b5', home: /^hymns/i },
+  { id: 'P1', name: 'Psalter',           color: '#7b1fa2', home: /psalter/i },
+  { id: 'P2', name: 'Psalter, Canticles', color: '#d81b60', home: /^canticles/i },
+  { id: 'R',  name: 'Readings',          color: '#795548', home: /readings/i },
 ];
 const R = Object.fromEntries(RIBBONS.map((r, i) => [r.id, i]));
 // which ribbon a reference into a section belongs to (shift-click on an ordinary page reference)
-const SECTION_RIBBON = [[/saints/i, R.S], [/^commons/i, R.C], [/ordinary/i, R.O], [/propers? of time/i, R.T],
-  [/^hymns/i, R.H], [/psalter|canticles/i, R.P1], [/readings/i, R.R]];
+const SECTION_RIBBON = [[/saints/i, R.S], [/^commons/i, R.C], [/ordinary/i, R.O], [/propers? of time/i, R.T1],
+  [/^hymns/i, R.H], [/psalter/i, R.P1], [/canticles/i, R.P2], [/readings/i, R.R]];
 
 const $ = (s) => document.querySelector(s);
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
@@ -42,7 +42,7 @@ const label = (i) => (i == null ? '–' : S.labels[i] || String(i + 1));
 const spreadLabel = (s) => { const [l, r] = pagesOf(s); return `${label(l)} | ${label(r)}`; };
 
 // ------------------------------------------------------------------------------------------ persistence
-const storeKey = () => `ovp-viewer:v1:${S.file}`;
+const storeKey = () => `ovp-viewer:v2:${S.file}`;          // v2: ribbons by use (B-16)
 function save() {
   try { localStorage.setItem(storeKey(), JSON.stringify({ ribbons: S.ribbons, spread: S.spread, n: S.n })); } catch {}
 }
@@ -469,7 +469,7 @@ function drawGutter() {
 
 function defaults() {
   return RIBBONS.map((r) => {
-    const sec = S.sections.find((x) => r.home.test(x.title));
+    const sec = (r.deep ? S.flat : S.sections).find((x) => r.home.test(x.title));
     return sec ? spreadOf(sec.index) : null;
   });
 }
@@ -506,8 +506,9 @@ async function ribbonForLink(pageIdx, a, annots, dest) {
     const k = kinds[at];
     if (k === 'O') return R.O;
     if (k === 'R') return R.R;
-    if (/invitator/i.test(words)) return R.P4;
-    return R.P1 + Math.min(2, kinds.slice(0, at).filter((x) => x === 'P').length);
+    // psalms: the first on ribbon 8; a canticle, or the next psalm, on ribbon 9
+    if (/canticles/i.test(sectionOf(dest)?.title || '')) return R.P2;
+    return kinds.slice(0, at).filter((x) => x === 'P').length ? R.P2 : R.P1;
   }
   const sec = sectionOf(dest);
   const hit = sec && SECTION_RIBBON.find(([re]) => re.test(sec.title));

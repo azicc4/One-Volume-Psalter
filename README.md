@@ -66,6 +66,18 @@ python -m lh book --poc                # book/out/poc.pdf (proof of concept, ~30
 python -m lh book                      # book/out/book.pdf: the full book (~8 min) + reports/page_budget.md
 ```
 
+### The Ordinary card
+
+`python -m lh book` also writes `book/out/card.pdf` (or `python -m lh book --card` alone): two 5.5 × 8.5 in cards,
+printed on both sides, that live in the book. They carry the fixed parts of the hours:
+- the Invitatory with Psalm 95, and the opening verses of the other hours;
+- the Benedictus, Magnificat and Nunc dimittis;
+- the Pater noster, prayer endings, dismissals and Compline blessing;
+- the Te Deum and the Marian antiphons.
+
+So each hour is said from its heading with the card in hand. The page numbers on the card come from the last book
+build.
+
 ### Simulating its use
 
 `python -m lh simulate` simulates someone praying every hour of every day of 28 liturgical years from the built

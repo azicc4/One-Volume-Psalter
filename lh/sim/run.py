@@ -24,6 +24,13 @@ OUT = BUILD / "sim"
 FULL_DAY = ("INV", "OR", "LAUDS", "MIDDAY", "VESPERS", "COMPLINE")
 
 
+def without_card(steps):
+    """The texts on the Ordinary card (book/out/card.pdf, B-14) are said from the card: no page to find.
+    In Compline the form prints them too, so they are read where the reader already is."""
+    from lh.sim.whatif import FULL
+    return [s for s in steps if s.slot not in FULL]
+
+
 class Sim:
     def __init__(self):
         t0 = time.time()
@@ -45,14 +52,17 @@ class Sim:
         return self.steps_cache[key]
 
     def run_days(self, dates, policy="roles", optional=False, hours=FULL_DAY, transform=None, log=None, tag="",
-                 ahead=True, split=False):
+                 ahead=True, split=False, card=True, scheme="by_use"):
         """Simulate consecutive days with one reader (ribbons carry over). Returns one summary per day.
-        ahead: the reader leaves ribbons where tomorrow needs them too; split: two ribbons for the Ordinary."""
-        reader = Reader(self.L, policy, split_ordinary=split)
+        ahead: the reader leaves ribbons where tomorrow needs them too; split: two ribbons for the Ordinary;
+        card: the Ordinary card is in hand (its texts need no page); scheme: which ribbon keeps which place."""
+        reader = Reader(self.L, policy, split_ordinary=split, scheme=scheme)
         rows = []
         for d in dates:
             cel, steps = self.steps(d, optional, hours)
             nxt = self.steps(d + dt.timedelta(days=1), optional, hours)[1] if ahead else []
+            if card:
+                steps, nxt = without_card(steps), without_card(nxt)
             if transform:
                 steps, nxt = transform(steps), transform(nxt)
             events = reader.day(steps, nxt)
@@ -108,20 +118,21 @@ def trial(sim: Sim, n=10, seed=1):
 
 
 EXPERIMENTS = [
-    # name, policy, split, what-if variants
-    ("book as printed — ribbons by section (baseline)", "roles", False, ()),
-    ("ribbons used freely (best case for 10 ribbons)", "free", False, ()),
-    ("two ribbons for the Ordinary (ribbon 9 → Pater/dismissal/Compline)", "roles", True, ()),
-    ("Ordinary card, short (opening, Pater, dismissals, blessing, Marian ant.)", "roles", False, ("card_short",)),
-    ("Ordinary card, full (+ Gospel canticles, Ps 95, Te Deum)", "roles", False, ("card_full",)),
-    ("Compline forms printed whole", "roles", False, ("compline",)),
-    ("hymns printed at each hour of the four-week cycle", "roles", False, ("hymn",)),
-    ("four-week cycle with its psalms printed in (weekly psalter)", "roles", False, ("psalmody",)),
-    ("full card + whole Compline", "roles", False, ("card_full", "compline")),
-    ("full card + whole Compline + two Ordinary ribbons", "roles", True, ("card_full", "compline")),
-    ("full card + Compline + hymns + weekly psalter", "roles", False, ("card_full", "compline", "hymn", "psalmody")),
-    ("full card + Compline + hymns + weekly psalter, ribbons used freely", "free", False,
-     ("card_full", "compline", "hymn", "psalmody")),
+    # the book as built now: Ordinary card (B-14), whole Compline (B-15), ribbons by use (B-16)
+    {"name": "book as printed: card, whole Compline, ribbons by use (baseline)"},
+    {"name": "the same, ribbons by section (the previous scheme)", "scheme": "by_section"},
+    {"name": "the same, ribbons used freely (best case for 10 ribbons)", "policy": "free"},
+    {"name": "the same, without the Ordinary card", "card": False},
+    {"name": "the same, no ribbons", "policy": "none"},
+    {"name": "without the card, ribbons by section (close to the book before B-14..B-16)", "card": False,
+     "scheme": "by_section"},
+    {"name": "+ psalms of the four-week cycle printed at each hour", "variants": ("psalmody",)},
+    {"name": "+ hymns of the four-week cycle printed at each hour", "variants": ("hymn",)},
+    {"name": "+ psalms and hymns printed at each hour (exp/weekly-psalter)", "variants": ("psalmody", "hymn")},
+    # proposals that only reorder what is printed (no text added): the Psalter in the order of the cycle
+    {"name": "+ Psalter in the order of the four-week cycle", "variants": ("cycle",)},
+    {"name": "+ psalmody blocks: cycle-order Psalter with each hour's antiphons", "variants": ("block",)},
+    {"name": "+ psalmody blocks and hymns printed at each hour", "variants": ("block", "hymn")},
 ]
 
 
@@ -132,12 +143,15 @@ def experiments(sim: Sim, years: int, first_year: int = 2026, deadline: float | 
     dates = [d for y in range(first_year, first_year + years) for d in liturgical_year(y)]
     results = []
     with (OUT / "experiments.jsonl").open("w", encoding="utf-8") as out:
-        for name, policy, split, variants in EXPERIMENTS:
+        for e in EXPERIMENTS:
+            name, variants = e["name"], tuple(e.get("variants", ()))
+            policy, scheme, card = e.get("policy", "roles"), e.get("scheme", "by_use"), e.get("card", True)
             t0 = time.time()
             rows = sim.run_days(dates, policy, transform=wi.transform(variants) if variants else None,
-                                tag=name, split=split)
-            res = {"name": name, "policy": policy, "split": split, "variants": list(variants), "days": len(rows),
-                   "seconds_run": time.time() - t0, "extra_pages": round(wi.extra_pages(variants)) if variants else 0}
+                                tag=name, scheme=scheme, card=card)
+            res = {"name": name, "policy": policy, "scheme": scheme, "card": card, "variants": list(variants),
+                   "days": len(rows), "seconds_run": time.time() - t0,
+                   "extra_pages": round(wi.extra_pages(variants)) if variants else 0}
             for k in ("steps", "moves", "turn", "ribbon", "search", "lay", "seconds"):
                 res[k] = statistics.mean(r[k] for r in rows)
             hours = collections.defaultdict(collections.Counter)
@@ -162,15 +176,15 @@ PROFILES = [("all hours (Invitatory, Office of Readings, Lauds, Sext, Vespers, C
 
 
 def profiles(sim: Sim, years: int, first_year: int = 2026):
-    """Phase 4: who prays which hours — the book as printed against the best cheap layout change."""
+    """Phase 4: who prays which hours — the book as printed against the weekly-psalter variant."""
     from lh.sim.whatif import WhatIf
     wi = WhatIf(sim.L)
     dates = [d for y in range(first_year, first_year + years) for d in liturgical_year(y)]
     out = []
     for pname, hours in PROFILES:
-        for lname, variants in (("as printed", ()), ("full card + whole Compline", ("card_full", "compline"))):
+        for lname, variants in (("as printed", ()), ("+ psalms and hymns at each hour", ("psalmody", "hymn"))):
             rows = sim.run_days(dates, "roles", hours=hours, transform=wi.transform(variants) if variants else None,
-                                tag=f"{pname} / {lname}")
+                                tag=f"{pname} / {lname}", scheme="by_use")
             r = {"profile": pname, "layout": lname, "days": len(rows)}
             for k in ("moves", "search", "ribbon", "lay", "seconds"):
                 r[k] = statistics.mean(x[k] for x in rows)
@@ -193,7 +207,7 @@ def main(budget_min: float = 90, seed: int = 1, first_year: int = 2026):
         print(f"   {r['date']} {r['office']:<40} moves {r['moves']:3}  searches {r['search']:3}  ribbon {r['ribbon']:3}"
               f"  laid {r['lay']:3}  ~{r['seconds'] / 60:.1f} min handling")
     # Phase 2: plan whole liturgical years within the budget. One year ≈ 365 days per (policy, variant).
-    variants = [("roles", False), ("free", False), ("none", False), ("roles", True)]
+    variants = [("roles", False), ("free", False), ("none", False), ("roles", True)]   # ribbons by use
     year_cost = 365 * per_day * len(variants) * 1.3          # cached steps make re-runs cheaper; keep a margin
     budget = budget_min * 60 - (time.time() - t_start)
     years = max(1, min(28, int(budget / year_cost)))

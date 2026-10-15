@@ -58,6 +58,14 @@ TIME_PARTS = [
 ]
 
 
+def card_line(gospel: str) -> str:
+    """After the Gospel canticle antiphon: the canticle and the Pater noster are on the Ordinary card (B-14), and in
+    the Ordinary at the pages given."""
+    card = "2" if gospel == "Magnificat" else "1"
+    return (r"\par{\footnotesize\rubric{" + gospel + r":} \cardref{" + card + r"}, \pgref{ord:" + gospel.lower()
+            + r"}; \rubric{Pater noster:} \cardref{1}, \pgref{ord:pater}.}\par")
+
+
 def hh_label(where: str, hour: str) -> str:
     """Invisible label at an hour heading (hh:<day key or grid:pw.DOW>:<hour>), so lh/sim can find where each hour
     starts. It sits inside the heading text, so it cannot move a line or page break."""
@@ -126,6 +134,7 @@ class Book(PsalterWriter):
         self.stats = collections.Counter()
         self.compline_units = {}               # weekly form -> psalm units (for "as on Sunday" references)
         self.flushed: list[tuple] = []          # (location, object) printed by the end-of-hour fallback
+        self.cp_labels: set[str] = set()        # labels of texts printed again in full (whole Compline)
 
     # ================================================================== emit: print at home, refer elsewhere
     def anchor(self, o: Obj) -> str:
@@ -171,10 +180,29 @@ class Book(PsalterWriter):
             return pre + "Te Deum" + pg
         return pre + r"{\small " + esc(incipit(o)) + "}" + pg
 
-    def emit(self, oid: str, loc: str, hour_id=None) -> str:
+    def copy(self, o: Obj, loc: str) -> str:
+        """A text printed again in full where it is said (whole Compline, B-15). Its home stays the one place
+        references point to; the copy carries only a cp: label, so lh/sim knows it is there."""
+        self.stats["copies"] += 1
+        p = o.payload
+        cp = f"cp:{loc}:{label(o.id)}"
+        lab = "" if cp in self.cp_labels else f"\\objlabel{{{cp}}}"
+        self.cp_labels.add(cp)
+        if o.type in ("psalm", "canticle"):
+            head = psalm_unit_ref(p) if o.type == "psalm" else "Canticle " + canticle_ref(p)
+            return lab + r"{\footnotesize\rubric{" + esc(head) + r"}}\par " + L.canticle_lines(p["lines"]) + r"\gloria"
+        if o.type == "ant":
+            return lab + L.ant(p)
+        if o.type == "hymn":
+            return lab + L.hymn(p)
+        return lab + L.render(o.type, p)
+
+    def emit(self, oid: str, loc: str, hour_id=None, whole: bool = False) -> str:
         o = self.objs[oid]
         if o.home_label == loc and oid not in self.printed and oid not in self.aliases:
             return self.full(o)
+        if whole:
+            return self.copy(self.objs[self.aliases.get(oid, oid)], loc)
         return self.ref(o, hour_id)
 
     def flush(self, locs, title: str = "") -> list[str]:
@@ -219,8 +247,8 @@ class Book(PsalterWriter):
             name += f" ({SUB_TITLE[sub]})"
         return name
 
-    def item_lines(self, items, loc, hour_id) -> str:
-        return r"\par ".join((r"\condlabel{" + esc(c) + "}" if c else "") + self.emit(oid, loc, hour_id)
+    def item_lines(self, items, loc, hour_id, whole: bool = False) -> str:
+        return r"\par ".join((r"\condlabel{" + esc(c) + "}" if c else "") + self.emit(oid, loc, hour_id, whole)
                              for c, oid in items)
 
     def link_line(self, o) -> str | None:
@@ -331,9 +359,7 @@ class Book(PsalterWriter):
                            + r"\variant{" + esc(lab_) + "}{}{" + self.item_lines(v, loc, h["id"]) + "}")
                 base_items[key] = v
         if hour in GOSPEL and hour not in ("COMPLINE", "COMPLINE1"):
-            g = GOSPEL[hour]
-            out.append(r"\par{\footnotesize\rubric{" + g + r",} \pgref{ord:" + g.lower() + r"}; "
-                       r"\rubric{Pater noster,} \pgref{ord:pater}.}\par")
+            out.append(card_line(GOSPEL[hour]))
         out += self.flush([loc])
         return out
 
@@ -353,12 +379,12 @@ class Book(PsalterWriter):
         return lines
 
     def hour_ribbons(self, day_key: str, hour: str, base) -> str:
-        anchor = {"INV": "ord:invitatory", "OR": "ord:or", "LAUDS": "ord:lauds", "MIDDAY": "ord:midday",
-                  "COMPLINE": "ord:compline", "COMPLINE1": "ord:compline", "APPX": "sec:finding"}.get(hour, "ord:vespers")
-        parts = [r"\ribbon{O}{\pg{" + anchor + "}}"]
+        # B-16: the fixed parts are on the Ordinary card; the Ordinary is marked (ribbon 3) for Daytime Prayer and
+        # Compline only
         if hour == "INV":
-            parts.append(r"\ribbon{P}{\pg{" + self.inv_label + "}}")
-            return r"\enspace ".join(parts)
+            return r"\cardref{1}"
+        anchor = {"MIDDAY": "ord:midday", "COMPLINE": "ord:compline", "COMPLINE1": "ord:compline"}.get(hour)
+        parts = [r"\ribbon{O}{\pg{" + anchor + "}}"] if anchor else []
         labs = []
         for o in content(self.db.occ(base["id"])):
             if re.fullmatch(r"PS\d", o["slot"] or ""):
@@ -484,7 +510,7 @@ class Book(PsalterWriter):
         for form in ("SAT1", "SUN", "MON", "TUE", "WED", "THU", "FRI"):
             out += self.compline_form(form)
         out += [r"\subsection{Compline in the Easter Octave}", r"\objlabel{ord:compline:EASTER}"]
-        out += self.ordinary_chapter("compline:EASTER", "", sub=True)
+        out += self.ordinary_chapter("compline:EASTER", "", sub=True, whole=True)
         out += self.flush(["ord:compline:EASTER"])
         out += [r"\subsection{Compline in the Christmas Octave}", r"\objlabel{ord:compline:CHRISTMAS}",
                 r"\rubr{From 26 to 31 December Compline is that of Sunday, after First or Second Vespers "
@@ -527,7 +553,7 @@ class Book(PsalterWriter):
             out.append(L.canticle_lines(p["lines"]))
         return "\n".join(out)
 
-    def ordinary_chapter(self, chap: str, title: str, sub: bool = False, hours=None) -> list[str]:
+    def ordinary_chapter(self, chap: str, title: str, sub: bool = False, hours=None, whole: bool = False) -> list[str]:
         """An Ordinary appendix chapter: rubrics and texts of the first printing, plus texts that only other
         volumes' printings have."""
         insts = [h for h in self.chapter_instances(chap) if hours is None or h["hour"] in hours]
@@ -562,7 +588,8 @@ class Book(PsalterWriter):
                 name = self.slot_title(o["slot"] or "", "", h["hour"]) if o["slot"] not in ("TEXT", "VR", "") else ""
                 if ob.type == "ant":
                     name = "Ant."
-                body = (r"\condlabel{" + esc(c) + "}" if c else "") + self.emit(oid, loc, h["id"])
+                body = (r"\condlabel{" + esc(c) + "}" if c else "") + self.emit(
+                    oid, loc, h["id"], whole and (o["slot"] or "") != "MARIAN")
                 if n > 0 and ob.home_label == loc:
                     name = (name + " · " if name else "") + SOURCE_SEASON.get(h["source"], h["source"])
                 out.append(r"\variant{" + esc(name) + "}{" + L.citation(ob.type, ob.payload) + "}{" + body + "}")
@@ -584,7 +611,10 @@ class Book(PsalterWriter):
             if h:
                 self.compline_units[form] = tuple(o["object_id"] for o in content(db.occ(h["id"]))
                                                   if re.fullmatch(r"PS\d", o["slot"] or ""))
-        for slot in SLOT_ORDER["COMPLINE"]:
+        # every text printed here in full (B-15): the psalms, hymns, shared responsory, antiphons, Nunc dimittis
+        order = list(SLOT_ORDER["COMPLINE"])
+        order.insert(order.index("GOSPEL_ANT") + 1, "GOSPEL_CANT")
+        for slot in order:
             groups = slot_groups(db, days, hour, slot, "")
             groups = [g for g in groups]
             if not groups:
@@ -593,12 +623,15 @@ class Book(PsalterWriter):
                 g.label = self.season_label(g.days)
             name = self.slot_title(slot, "", hour)
             lines = []
+            if slot == "GOSPEL_CANT":
+                groups = groups[:1]                     # the Nunc dimittis once, whatever the season
+                name = "Nunc dimittis"
             for g in groups:
                 lines.append(r"\variant{" + (esc(g.label) if len(groups) > 1 else "") + "}{}{"
-                             + self.item_lines(g.items, loc, None) + "}")
+                             + self.item_lines(g.items, loc, None, whole=slot != "MARIAN") + "}")
             out.append(r"\slotname{" + name + "}{}" + "\n".join(lines))
-        out.append(r"\par{\footnotesize\rubric{Antiphon of the Blessed Virgin Mary,} \pgref{ord:marian}"
-                   r"\rubric{; in Eastertide Regína cæli (above).}}\par")
+        out.append(r"\par{\footnotesize\rubric{Antiphon of the Blessed Virgin Mary:} card 2, or \pgref{ord:marian}"
+                   r"\rubric{; in Eastertide Regína cæli.}}\par")
         out += self.flush([loc])
         return out
 
@@ -726,11 +759,9 @@ class Book(PsalterWriter):
             if alt:
                 out.append(r"\variant{}{}{\condlabel{Ad libitum:}" + "; ".join(self.ref(self.objs[t]) for t in alt) + "}")
             if hour in ("LAUDS", "VESPERS", "V1", "V2"):
-                gname = GOSPEL[hour]
-                out.append(r"\par{\footnotesize\rubric{" + gname + r",} \pgref{ord:" + gname.lower() + r"}; "
-                           r"\rubric{Pater noster,} \pgref{ord:pater}.}\par")
+                out.append(card_line(GOSPEL[hour]))
             if hour == "OR" and wd == "SUN":
-                out.append(r"\par{\footnotesize\rubric{Te Deum} (except in Lent), \pgref{ord:tedeum}.}\par")
+                out.append(r"\par{\footnotesize\rubric{Te Deum} (except in Lent): \cardref{2}, \pgref{ord:tedeum}.}\par")
             out += self.flush([gloc])
         form = "SUN" if wd == "SUN" else wd
         if wd != "SAT":

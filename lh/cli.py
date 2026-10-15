@@ -49,6 +49,8 @@ def main(argv=None):
     p = sub.add_parser("book", help="L8: generate the full book (or --poc) from the database and build the PDF")
     p.add_argument("--poc", action="store_true", help="proof of concept (psalter week I, Sunday and Monday)")
     p.add_argument("--no-pdf", action="store_true", help="only write the generated .tex")
+    p.add_argument("--card", action="store_true", help="only the Ordinary card (book/out/card.pdf; uses the last "
+                                                       "full build for page numbers)")
 
     args = ap.parse_args(argv)
 
@@ -105,6 +107,13 @@ def main(argv=None):
             if not args.no_pdf:
                 print(f"[book] pdf -> {build_pdf('poc')}")
             return
+        from lh.render.card import write_card
+        if args.card:
+            from lh.render.book import Book
+            print(f"[book] wrote {write_card(Book())}")
+            if not args.no_pdf:
+                print(f"[book] card -> {build_pdf('card')}")
+            return
         import time
         from lh.render.book import write_book
         from lh.render.budget import write_budget
@@ -117,6 +126,8 @@ def main(argv=None):
             t2 = time.time()
             print(f"[book] LaTeX {t2 - t1:.0f}s; total {t2 - t0:.0f}s")
             print(f"[book] page budget -> {write_budget(book, {'generate': t1 - t0, 'latex': t2 - t1})}")
+            write_card(book)                         # after the book: the card quotes its page numbers
+            print(f"[book] card -> {build_pdf('card')}")
     elif args.cmd == "simulate":
         from lh.sim.run import main as simulate
         simulate(budget_min=args.budget_min, seed=args.seed)

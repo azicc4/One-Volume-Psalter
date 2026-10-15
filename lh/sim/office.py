@@ -185,10 +185,27 @@ class Offices:
         if hour == "INV" and steps and any(s.slot == "INV_ANT" for s in steps):
             ant = next(s for s in steps if s.slot == "INV_ANT")
             steps.append(Step(hour, "INV_ANT_R", ant.what, ant.page, ant.via, ant.source))
+        self.copies(steps, layers)
         for s in steps:
             if s.page is None:
                 self.missing[(s.slot, s.what)] += 1
         return [s for s in steps if s.page is not None]
+
+    def copies(self, steps, layers):
+        """A text printed again in full where it is said (whole Compline, B-15; the weekly psalter of
+        exp/weekly-psalter) carries a cp:<location>:<label> label: the reader says it there."""
+        from lh.model.attribute import location
+        from lh.render.latex import label
+        aliases = self.L.book.aliases
+        hours = dict(layers)
+        for s in steps:
+            d = self.days.get(s.source)
+            if d is None or s.slot == "HEAD":
+                continue
+            loc = location(d, hours.get(s.source, s.hour), s.slot)
+            p = self.L.page(f"cp:{loc}:{label(aliases.get(s.what, s.what))}")
+            if p is not None:
+                s.page = p
 
     # ------------------------------------------------------------------ a whole day
     def day(self, cel, tomorrow, hours=("INV", "OR", "LAUDS", "MIDDAY", "VESPERS", "COMPLINE")) -> list[Step]:
