@@ -18,7 +18,7 @@ PDF = BOOK / "out" / "book.pdf"
 VIRTUAL = 100_000                                       # page indexes of what-if pages that are not in the book
 NEWLABEL = re.compile(r"\\newlabel\{([^}]*)\}\{\{[^}]*\}\{([^}]*)\}")
 
-# section of the book (top-level bookmark) → the ribbon that keeps its place (lh/render: ten ribbons)
+# section of the book (top-level bookmark) → the ribbon that keeps its place (lh/render/common.py RIBBONS)
 SECTION_ROLE = [("Proper of Saints", "S"), ("Commons", "C"), ("The Ordinary", "O"), ("Proper of Time", "T"),
                 ("Hymns", "H"), ("The Psalter", "P"), ("Canticles", "P"), ("Readings of the Office of Readings", "R"),
                 ("Indexes", "X")]

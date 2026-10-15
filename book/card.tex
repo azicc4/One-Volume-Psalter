@@ -1,26 +1,27 @@
-% The Ordinary card: the fixed parts of the hours on two loose cards (5.5 x 8.5 in), printed on both sides.
+% The Ordinary card: the fixed parts of the hours on one card, 11 x 8.5 in landscape, printed on both sides; each
+% side in two panels (a faint fold line between them: folded, it fits inside the 6 x 9.25 in book).
 % Generated body: book/generated/card_body.tex.  Build: python -m lh book (after the book) or python -m lh book --card
 \input{preamble}
-\setstocksize{8.5in}{5.5in}
+\setstocksize{8.5in}{11in}
 \settrimmedsize{\stockheight}{\stockwidth}{*}
 \setlrmarginsandblock{0.42in}{0.42in}{*}
-\setulmarginsandblock{0.45in}{0.4in}{*}
-\setheadfoot{0pt}{0.25in}
+\setulmarginsandblock{0.3in}{0.3in}{*}
+\setheadfoot{0pt}{0pt}
 \setheaderspaces{*}{0pt}{*}
+\setcolsepandrule{0.84in}{0.3pt}
 \checkandfixthelayout
-\makepagestyle{card}
-\makeevenfoot{card}{}{\scriptsize\scshape\color{rubric}\cardname}{}
-\makeoddfoot{card}{}{\scriptsize\scshape\color{rubric}\cardname}{}
-\newcommand{\cardname}{}
-\newcommand{\cardface}[1]{\renewcommand{\cardname}{Liturgia Horarum · #1}\thispagestyle{card}}
+\renewcommand{\columnseprulecolor}{\color{black!18}}
+% \cardface{name}: a panel of the card
+\newcommand{\cardface}[1]{\noindent{\scriptsize\scshape\color{rubric}Liturgia Horarum · #1}\par\vspace{0.2\baselineskip}}
 % \cardhead{title}{when}: a part of the card
-\newcommand{\cardhead}[2]{\par\vspace{0.45\baselineskip}\noindent{\scshape\color{rubric}#1}%
+\newcommand{\cardhead}[2]{\par\vspace{0.3\baselineskip}\noindent{\scshape\color{rubric}#1}%
   \ifx&#2&\else\enspace{\footnotesize\itshape\color{rubric}\foreignlanguage{english}{#2}}\fi\par\vspace{0.1\baselineskip}}
 \newcommand{\cardant}[1]{\par\vspace{0.25\baselineskip}#1\par}
 \linespread{1.0}
 \begin{document}
 \selectlanguage{latin}
-\pagestyle{card}
+\pagestyle{empty}
+\twocolumn
 \small
 \input{generated/card_body}
 \end{document}

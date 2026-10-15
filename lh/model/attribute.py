@@ -15,7 +15,7 @@ where it is used. A location is an hour-sized place in the book:
   time:day:<DAY>:<hour>        wholly proper day of the Proper of Time (17-24 Dec, Christmas, Holy Week …)
   com:<DAY>:<hour>             Commons, Office of the Dead, Saturday memorial of the BVM
   sanct:<DAY>:<hour>           Proper of Saints
-  read:<DAY>                   Office of Readings readings (ribbon 10), in liturgical order
+  read:<DAY>                   Office of Readings readings (Readings ribbon), in liturgical order
 
 Results: object.home (section) and object.home_label (location); table `reference` for the printings replaced by a
 reference of a named kind (de_communi, de_feria, grid). `python -m lh build` runs this after the overrides; the book

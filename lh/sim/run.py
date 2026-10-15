@@ -120,8 +120,9 @@ def trial(sim: Sim, n=10, seed=1):
 EXPERIMENTS = [
     # the book as built now: Ordinary card (B-14), whole Compline (B-15), ribbons by use (B-16)
     {"name": "book as printed: card, whole Compline, ribbons by use (baseline)"},
-    {"name": "the same, ribbons by section (the previous scheme)", "scheme": "by_section"},
-    {"name": "the same, ribbons used freely (best case for 10 ribbons)", "policy": "free"},
+    {"name": "the same, ribbons by section (the first scheme)", "scheme": "by_section"},
+    {"name": "the same, a tenth ribbon for where the hour continues", "scheme": "by_use10"},
+    {"name": "the same, ribbons used freely (best case for these ribbons)", "policy": "free"},
     {"name": "the same, without the Ordinary card", "card": False},
     {"name": "the same, no ribbons", "policy": "none"},
     {"name": "without the card, ribbons by section (close to the book before B-14..B-16)", "card": False,

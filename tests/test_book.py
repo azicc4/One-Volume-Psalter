@@ -63,7 +63,7 @@ def test_no_strophe_gap_inside_a_couplet(name):
 @pytest.mark.parametrize("name", BOOKS)
 def test_hour_heads_carry_ribbon_refs(name):
     """Every hour head in the four-week cycle gives its ribbon pages: psalm pages (P) for every hour but Compline and
-    the Invitatory (card 1), the Ordinary page (O) for Daytime Prayer and Compline (B-16)."""
+    the Invitatory (card, front), the Ordinary page (O) for Daytime Prayer and Compline (B-16)."""
     t = tex(name)
     start = t.index(r"\chapter{Propers of Time}" if name == "poc" else r"\chapter{Proper of Time}")
     end = t.index(r"\chapter{Hymns}") if name == "poc" else t.index(r"\section{Ordinary Time: proper to each week}")
@@ -75,7 +75,7 @@ def test_hour_heads_carry_ribbon_refs(name):
         return
     for title, refs in heads:
         if title.startswith("Invitatory"):
-            assert r"\cardref{1}" in refs
+            assert r"\cardref{front}" in refs
         elif title.startswith("Compline") or title.startswith("Daytime"):
             assert r"\ribbon{O}" in refs
         if not title.startswith(("Compline", "Invitatory")):

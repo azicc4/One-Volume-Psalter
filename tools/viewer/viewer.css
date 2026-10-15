@@ -213,3 +213,31 @@ select { background: var(--panel-2); border: 1px solid var(--line); border-radiu
   #crumb { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .sheet.flash { animation: none; } }
+
+/* ------------------------------------------------------------ the Ordinary card (book/out/card.pdf) */
+/* at rest: tucked at the right edge of the stage, its left edge showing; out: in front of the book */
+#card {
+  position: absolute; left: 0; top: 0; z-index: 15; perspective: 2400px; cursor: pointer;
+  transition: transform .45s cubic-bezier(.3, .1, .25, 1);
+}
+#card[hidden], #cardSlot[hidden] { display: none; }
+#card .card-inner {
+  position: relative; width: 100%; height: 100%; transform-style: preserve-3d;
+  transition: transform .55s cubic-bezier(.4, .1, .3, 1);
+}
+#card.flipped .card-inner { transform: rotateY(180deg); }
+#card .face {
+  position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  background: #fffdf8; border-radius: 6px; overflow: hidden; box-shadow: 0 16px 44px rgba(0, 0, 0, .55);
+}
+#card .face canvas { display: block; width: 100%; height: 100%; }
+#card .back { transform: rotateY(180deg); }
+#card.aside .face { box-shadow: -5px 0 14px rgba(0, 0, 0, .5); }
+#card.aside:hover .face { box-shadow: -8px 0 18px rgba(0, 0, 0, .6); }
+#cardSlot {
+  position: absolute; z-index: 14; border: 1.5px dashed rgba(210, 210, 210, .35); border-radius: 6px;
+  color: rgba(225, 225, 225, .55); display: flex; align-items: center; justify-content: center;
+  writing-mode: vertical-rl; font-size: 12px; letter-spacing: .08em; cursor: pointer; user-select: none;
+}
+#cardSlot:hover { border-color: rgba(235, 235, 235, .7); color: rgba(245, 245, 245, .85); }
+@media (prefers-reduced-motion: reduce) { #card, #card .card-inner { transition: none; } }

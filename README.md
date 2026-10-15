@@ -1,16 +1,17 @@
 # One-Volume Psalter
 
-A single-volume *Liturgia Horarum* (Latin text, English rubrics), 6 × 9.25 in, ten ribbons:
+A single-volume *Liturgia Horarum* (Latin text, English rubrics), 6 × 9.25 in, nine ribbons assigned by use (B-16),
+with the **Ordinary card** (one sheet, front and back) for the fixed parts of the hours:
 
 | Ribbon | Section |
 |---|---|
-| 1 | **Proper of Saints** |
-| 2 | **Commons** |
-| 3 | **Ordinary** — "Finding the Office", fixed texts; each hour heading gives the pages of its fixed parts |
-| 4 | **Proper of Time** — the four-week cycle, every part of every hour with its seasonal variants side by side; each hour heading gives the ribbon pages (O Ordinary · P psalms · R readings) |
-| 5 | **Hymns** |
-| 6–9 | **Psalter** (+ Canticles) — all 150 psalms, Hebrew numbering (Vulgate in parentheses); the margin marks where each portion is prayed (`I Mon L.1` = Week I, Monday, Lauds, psalm 1) and, below a rule, every other use (feasts); unused verses in smaller type |
-| 10 | **Office of Readings readings** and responsories |
+| 1 | **Proper of Saints** — the saint of the day |
+| 2 | **Commons** — the Common it refers to |
+| 3 | **Ordinary** — "Finding the Office", fixed texts (also on the card), Compline printed whole for each weekday, Daytime Prayer |
+| 4–5 | **Proper of Time** — the four-week cycle, every part of every hour with its seasonal variants side by side (4: the hour being said; 5: the texts of the week or the season's day); each hour heading gives the ribbon pages (P psalms · R readings · O Ordinary for Daytime Prayer) |
+| 6 | **Hymns** |
+| 7–8 | **Psalter** (+ Canticles) — all 150 psalms, Hebrew numbering (Vulgate in parentheses); the margin marks where each portion is prayed (`I Mon L.1` = Week I, Monday, Lauds, psalm 1) and, below a rule, every other use (feasts); unused verses in smaller type |
+| 9 | **Office of Readings readings** and responsories |
 
 (Additional and votive offices follow the Commons once their sources are parsed — see `TODO.md`.)
 
@@ -68,8 +69,8 @@ python -m lh book                      # book/out/book.pdf: the full book (~8 mi
 
 ### The Ordinary card
 
-`python -m lh book` also writes `book/out/card.pdf` (or `python -m lh book --card` alone): two 5.5 × 8.5 in cards,
-printed on both sides, that live in the book. They carry the fixed parts of the hours:
+`python -m lh book` also writes `book/out/card.pdf` (or `python -m lh book --card` alone): one 11 × 8.5 in card,
+printed on both sides and folded once to live in the book. It carries the fixed parts of the hours:
 - the Invitatory with Psalm 95, and the opening verses of the other hours;
 - the Benedictus, Magnificat and Nunc dimittis;
 - the Pater noster, prayer endings, dismissals and Compline blessing;
@@ -86,14 +87,14 @@ book. It logs each page turn, page-number look-up and ribbon movement, then trie
 full log in `build/sim/`, and the code in `lh/sim/`.
 - **Where texts are:** every text's page is taken from the LaTeX labels of the last `lh book` build, including
   invisible labels at each hour heading.
-- **Ribbon models:** the ten ribbons used by section, as the book instructs; used freely (the best case); or not
+- **Ribbon models:** the ribbons used by use, as the book instructs (or by section, the first scheme); used freely (the best case); or not
   used at all.
 
 ### Previewing the book as a book
 
 Double-click `preview.bat` (or `preview.bat poc`) to open the built PDF in the browser in the form of a bound book.
 - Two-page spreads with page turning.
-- The ten ribbons in a bar at the top. Click a ribbon to turn to it. Click it again on its own pages to take it out
+- The nine ribbons in a bar at the top. Click a ribbon to turn to it. Click it again on its own pages to take it out
   ("loose"). Click a loose ribbon to lay it in the current pages.
 - Shift-click a page reference such as `O 675 · P 1673` in an hour heading to lay the matching ribbon there.
 - Ribbons on the open spread lie in the gutter, which widens to hold them, so they never cover text.

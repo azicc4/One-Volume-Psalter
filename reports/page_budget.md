@@ -41,7 +41,7 @@ Section title pages are counted in the section totals, not in the parts.
 
 ## Build time
 
-- Generating the LaTeX: 4 s; LuaLaTeX (latexmk, all passes): 139 s (2.3 min).
+- Generating the LaTeX: 3 s; LuaLaTeX (latexmk, all passes): 217 s (3.6 min).
 
 ## Compaction options (estimates, not applied)
 
@@ -52,7 +52,7 @@ Line estimate: ~72 characters per line, 44 lines per page (10 pt on the 4.15 × 
 | Easter alleluia variants as a rule ("in Eastertide add *allelúia*") instead of printing them in full | ≈ 29 pp | 490 printed texts differ from another printed text only by *allelúia* (Commons (+ Office for the Dead, BVM on Saturday) 226 ≈ 11 pp, Proper of Time 103 ≈ 5 pp, Proper of Saints 84 ≈ 5 pp, Office of Readings readings 74 ≈ 8 pp, Ordinary (incl. Compline cycle) 3 ≈ 0 pp). GILH 120: alleluia is added in Eastertide unless it conflicts with the sense. |
 | Smaller type for the readings (9 pt instead of 10 pt) | ≈ 209 pp | area scales with the square of the size: (9/10)² ≈ 0.81 of 1,100 pp |
 | Smaller type for the readings (8.5 pt) | ≈ 308 pp | (8.5/10)² ≈ 0.72 |
-| Companion volume for the Office of Readings readings (ribbon 10) | 1,100 pp | main volume 1,765 pp; R page references at the Office of Readings would point into the companion volume |
+| Companion volume for the Office of Readings readings (Readings ribbon) | 1,100 pp | main volume 1,765 pp; R page references at the Office of Readings would point into the companion volume |
 
 ## For the owner to decide (B-12)
 

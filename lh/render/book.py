@@ -24,8 +24,8 @@ from lh.model.days import DAY_NAMES
 from lh.render import latex as L
 from lh.render.common import (DB, GOSPEL, HOUR_TITLE, ROMAN, SEASON_LABEL, SEASON_ORDER, SLOT_NAME, SLOT_ORDER,
                               SUB_TITLE, Obj, PsalterWriter, canticle_ref, cant_key, cond_text, finding_the_office,
-                              labels_for, load_supplement, opening_block, psalm_unit_ref, ribbon_refs, slot_groups,
-                              unit_anchor)
+                              labels_for, load_supplement, opening_block, psalm_unit_ref, rib, ribbon_refs,
+                              slot_groups, unit_anchor)
 from lh.render.latex import esc, label, tex
 
 MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
@@ -61,9 +61,9 @@ TIME_PARTS = [
 def card_line(gospel: str) -> str:
     """After the Gospel canticle antiphon: the canticle and the Pater noster are on the Ordinary card (B-14), and in
     the Ordinary at the pages given."""
-    card = "2" if gospel == "Magnificat" else "1"
-    return (r"\par{\footnotesize\rubric{" + gospel + r":} \cardref{" + card + r"}, \pgref{ord:" + gospel.lower()
-            + r"}; \rubric{Pater noster:} \cardref{1}, \pgref{ord:pater}.}\par")
+    side = "back" if gospel == "Magnificat" else "front"
+    return (r"\par{\footnotesize\rubric{" + gospel + r":} \cardref{" + side + r"}, \pgref{ord:" + gospel.lower()
+            + r"}; \rubric{Pater noster:} \cardref{front}, \pgref{ord:pater}.}\par")
 
 
 def hh_label(where: str, hour: str) -> str:
@@ -379,10 +379,10 @@ class Book(PsalterWriter):
         return lines
 
     def hour_ribbons(self, day_key: str, hour: str, base) -> str:
-        # B-16: the fixed parts are on the Ordinary card; the Ordinary is marked (ribbon 3) for Daytime Prayer and
+        # B-16: the fixed parts are on the Ordinary card; the Ordinary is marked (its ribbon) for Daytime Prayer and
         # Compline only
         if hour == "INV":
-            return r"\cardref{1}"
+            return r"\cardref{front}"
         anchor = {"MIDDAY": "ord:midday", "COMPLINE": "ord:compline", "COMPLINE1": "ord:compline"}.get(hour)
         parts = [r"\ribbon{O}{\pg{" + anchor + "}}"] if anchor else []
         labs = []
@@ -630,7 +630,7 @@ class Book(PsalterWriter):
                 lines.append(r"\variant{" + (esc(g.label) if len(groups) > 1 else "") + "}{}{"
                              + self.item_lines(g.items, loc, None, whole=slot != "MARIAN") + "}")
             out.append(r"\slotname{" + name + "}{}" + "\n".join(lines))
-        out.append(r"\par{\footnotesize\rubric{Antiphon of the Blessed Virgin Mary:} card 2, or \pgref{ord:marian}"
+        out.append(r"\par{\footnotesize\rubric{Antiphon of the Blessed Virgin Mary:} \cardref{back}, or \pgref{ord:marian}"
                    r"\rubric{; in Eastertide Regína cæli.}}\par")
         out += self.flush([loc])
         return out
@@ -761,7 +761,7 @@ class Book(PsalterWriter):
             if hour in ("LAUDS", "VESPERS", "V1", "V2"):
                 out.append(card_line(GOSPEL[hour]))
             if hour == "OR" and wd == "SUN":
-                out.append(r"\par{\footnotesize\rubric{Te Deum} (except in Lent): \cardref{2}, \pgref{ord:tedeum}.}\par")
+                out.append(r"\par{\footnotesize\rubric{Te Deum} (except in Lent): \cardref{back}, \pgref{ord:tedeum}.}\par")
             out += self.flush([gloc])
         form = "SUN" if wd == "SUN" else wd
         if wd != "SAT":
@@ -783,7 +783,7 @@ class Book(PsalterWriter):
                 refs.append(f"{SEASON_LABEL[d['season']]} {d['week']} " + r"\pg{rd:" + d["key"] + "}")
         if not refs:
             return ""
-        return (r"\slotname{Readings}{}\variant{}{}{\footnotesize\rubric{Office of Readings (ribbon 10):} "
+        return (r"\slotname{Readings}{}\variant{}{}{\footnotesize\rubric{Office of Readings (" + rib("R") + "):} "
                 + " · ".join(refs) + "}")
 
     def ot_week(self, wk: int) -> list[str]:
@@ -1123,20 +1123,20 @@ class Book(PsalterWriter):
 
 SECTIONS_PRINTED = {"ordinary", "psalter", "hymns", "time", "commons", "saints", "readings"}
 PART_PAGE = {
-    "saints": r"\partpage{Proprium de Sanctis}{Proper of Saints · ribbon 1}",
-    "commons": r"\partpage{Commune Sanctorum}{Commons, Office for the Dead · ribbon 2}",
-    "ordinary": r"\partpage{Ordinarium}{The Ordinary · ribbon 3}",
-    "time": r"\partpage{Proprium de Tempore}{Proper of Time · ribbon 4}",
-    "hymns": r"\partpage{Hymni}{Hymns · ribbon 5}",
-    "psalter": r"\partpage{Psalterium}{Psalter and Canticles · ribbons 6–9}",
-    "readings": r"\partpage{Lectiones}{Readings of the Office of Readings · ribbon 10}",
+    "saints": r"\partpage{Proprium de Sanctis}{Proper of Saints · " + rib("S") + "}",
+    "commons": r"\partpage{Commune Sanctorum}{Commons, Office for the Dead · " + rib("C") + "}",
+    "ordinary": r"\partpage{Ordinarium}{The Ordinary · " + rib("O") + "}",
+    "time": r"\partpage{Proprium de Tempore}{Proper of Time · " + rib("T") + "}",
+    "hymns": r"\partpage{Hymni}{Hymns · " + rib("H") + "}",
+    "psalter": r"\partpage{Psalterium}{Psalter and Canticles · " + rib("P") + "}",
+    "readings": r"\partpage{Lectiones}{Readings of the Office of Readings · " + rib("R") + "}",
 }
 FORM_NAME = {"SAT1": "Saturday (after First Vespers of Sunday)", "SUN": "Sunday (after Second Vespers)",
              "MON": "Monday", "TUE": "Tuesday", "WED": "Wednesday", "THU": "Thursday", "FRI": "Friday",
              "EASTER": "Easter Octave", "CHRISTMAS": "Christmas Octave"}
 ORD_STEPS = {
     "OR": ["Opening (\\pgref{ord:opening})", "Hymn", "Psalmody (three psalms with antiphons)", "Versicle",
-           "First reading and responsory; second reading and responsory (ribbon 10)",
+           "First reading and responsory; second reading and responsory (" + rib("R") + ")",
            r"Te Deum on Sundays (outside Lent), solemnities and feasts, \pgref{ord:tedeum}", "Concluding prayer"],
     "LAUDS": ["Opening", "Hymn", "Psalmody: morning psalm, Old Testament canticle, psalm of praise",
               "Short reading and short responsory", "Benedictus with its antiphon (below)",

@@ -77,7 +77,7 @@ def write_report(sim, trial_rows, rows, exp, prof, timing) -> str:
            "- *by use* and *by section*: each ribbon keeps a part of the book. The reader moves a part's ribbon "
            "to a new place only if that place will be needed again, today or tomorrow, before the place it marks "
            "now.",
-           "- *free*: any ribbon goes anywhere, by the best possible rule (Belady). This is the best ten ribbons "
+           "- *free*: any ribbon goes anywhere, by the best possible rule (Belady). This is the best these ribbons "
            "can do.",
            "- *none*: no ribbons at all.",
            "",
@@ -110,7 +110,7 @@ def write_report(sim, trial_rows, rows, exp, prof, timing) -> str:
     for r in rows:
         if r["tag"] != "trial":
             by[r["tag"]].append(r)
-    tag_name = {"roles": "ribbons by use (the book's scheme)", "free": "free (best case for 10 ribbons)",
+    tag_name = {"roles": "ribbons by use (the book's scheme)", "free": "free (best case for these ribbons)",
                 "none": "no ribbons", "roles+optional": "ribbons by use, optional memorials kept"}
     md += ["## The book as printed", "", "### Per day, by ribbon policy", ""]
     md += table(["Ribbon policy", "Days", "Moves", "Look-ups", "Ribbon jumps", "Turns", "Ribbons laid",
