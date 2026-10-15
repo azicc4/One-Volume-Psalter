@@ -58,6 +58,10 @@ TIME_PARTS = [
 ]
 
 
+# B-17 experiment (branch exp/weekly-psalter): the four-week cycle prints each hour's hymn and psalms in full
+WEEKLY_PSALTER = True
+
+
 def card_line(gospel: str) -> str:
     """After the Gospel canticle antiphon: the canticle and the Pater noster are on the Ordinary card (B-14), and in
     the Ordinary at the pages given."""
@@ -742,8 +746,11 @@ class Book(PsalterWriter):
                     cite = "" if shared or not cites else L.citation(first.type, first.payload)
                     lead = r"\par " if any(c for c, _ in g.items) else ""
                     hid = self.grid_hour_id(g.days[0], hour)
+                    # B-17 (exp/weekly-psalter): the hymn and the psalms printed in full at the hour, as in the
+                    # four-volume breviary; the Psalter in biblical order and the Hymns section stay as they are
+                    whole = WEEKLY_PSALTER and (slot == "HYMN" or re.fullmatch(r"PS\d", slot) is not None)
                     lines.append(r"\variant{" + esc(g.label) + "}{" + cite + "}{" + lead
-                                 + self.item_lines(g.items, loc, hid) + "}")
+                                 + self.item_lines(g.items, loc, hid, whole) + "}")
                 if weekly:
                     lines.append(r"\variant{Per annum}{}{\rubr{Proper to each week of Ordinary Time,} \pgref{time:otweeks}.}")
                 out.append(r"\slotname{" + name + "}{" + shared + "}" + "\n".join(lines))
