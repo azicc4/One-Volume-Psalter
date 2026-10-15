@@ -45,6 +45,10 @@ Order: WS0 first (lead), then WS1–WS5 in parallel (one git worktree + PR each)
 | B-11 | [ ] | | Front matter: title page, calendar tables (Easter dates, psalter week per Sunday), how-to-use |
 | B-12 | [?] | owner | Page budget: decide after WS6's report whether the Office of Readings readings become a companion volume — see `reports/page_budget.md` (WS6) |
 | B-13 | [ ] | | Superscription of Ps 9 prints NV's `*` ("Mut labben *"); render NV titles without pointing marks |
+| B-14 | [?] | owner | Usability (`reports/simulation.md`, `python -m lh simulate`): an **Ordinary card** (opening verses, Benedictus, Magnificat, Nunc dimittis, Ps 95, Pater noster, dismissals, blessing, Te Deum) as a loose card or on the endpapers — the largest saving, no pages |
+| B-15 | [?] | owner | Usability: print each weekly **Compline** form whole (its psalm and the shared responsory, Gospel canticle, prayer) — ~+24 pages |
+| B-16 | [?] | owner | Usability: ribbons by use rather than by section (8–9 Psalter 3–4, 2 Commons, 5 Hymns are rarely used; a second ribbon for the Ordinary or the week's propers) — rewrite "Finding the Office" accordingly |
+| B-17 | [?] | owner | Usability trade-off: print the psalms (~+207 pp) and hymns (~+245 pp) of the four-week cycle at each hour, as the four-volume breviary does — conflicts with the one-volume page budget (B-12) |
 
 ## 3. Data review (needs evidence; resolve via `data/overrides/` or a "no change" note)
 

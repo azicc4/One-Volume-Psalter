@@ -58,6 +58,12 @@ TIME_PARTS = [
 ]
 
 
+def hh_label(where: str, hour: str) -> str:
+    """Invisible label at an hour heading (hh:<day key or grid:pw.DOW>:<hour>), so lh/sim can find where each hour
+    starts. It sits inside the heading text, so it cannot move a line or page break."""
+    return r"\objlabel{hh:" + where + ":" + hour + "}"
+
+
 def hour_title(hour: str) -> str:
     return HOUR_TITLE.get(hour) or "Texts"
 
@@ -242,7 +248,8 @@ class Book(PsalterWriter):
             return []
         base = insts[0]
         bid = base["id"]
-        out = [r"\hourhead{" + hour_title(hour) + extra_head + "}{" + self.hour_ribbons(day_key, hour, base) + "}"]
+        out = [r"\hourhead{" + hh_label(day_key, hour) + hour_title(hour) + extra_head + "}{"
+               + self.hour_ribbons(day_key, hour, base) + "}"]
         if hour in ("COMPLINE", "COMPLINE1") and not any(
                 oid not in self.printed and self.objs[oid].home_label == loc
                 for h in insts for _, its in self.items_by_slot(h).items() for _, oid in its):
@@ -375,7 +382,8 @@ class Book(PsalterWriter):
             if loc.startswith("ord:compline:"):
                 insts = self.db.instances(day_key, hour)
                 form = loc.split(":")[2]
-                out.append(r"\hourhead{" + hour_title(hour) + r"}{\ribbon{O}{\pg{ord:compline:" + form + "}}}")
+                out.append(r"\hourhead{" + hh_label(day_key, hour) + hour_title(hour)
+                           + r"}{\ribbon{O}{\pg{ord:compline:" + form + "}}}")
                 out.append(r"{\footnotesize\rubric{As in the Ordinary:} " + FORM_NAME.get(form, form)
                            + r", \pgref{ord:compline:" + form + r"}.\par}")
                 continue
@@ -657,7 +665,8 @@ class Book(PsalterWriter):
                        key=HOURS.index)
         for hour in hours:
             ht = r"First Vespers \rubric{\footnotesize (Saturday evening)}" if hour == "V1" else HOUR_TITLE[hour]
-            out.append(r"\hourhead{" + ht + "}{" + ribbon_refs(db, days, hour, self.inv_label, self.anchor) + "}")
+            out.append(r"\hourhead{" + hh_label(f"grid:{pw}.{wd}", hour) + ht + "}{"
+                       + ribbon_refs(db, days, hour, self.inv_label, self.anchor) + "}")
             gloc = f"time:grid:{pw}.{wd}:{hour}"
             slots = list(SLOT_ORDER.get("VESPERS" if hour in ("V1", "V2") else hour, []))
             extra = []
@@ -725,7 +734,8 @@ class Book(PsalterWriter):
             out += self.flush([gloc])
         form = "SUN" if wd == "SUN" else wd
         if wd != "SAT":
-            out.append(r"\hourhead{Compline}{\ribbon{O}{\pg{ord:compline:" + form + "}}}")
+            out.append(r"\hourhead{" + hh_label(f"grid:{pw}.{wd}", "COMPLINE") + r"Compline}{\ribbon{O}{\pg{ord:compline:"
+                       + form + "}}}")
         if wd == "SUN":
             out.append(r"{\footnotesize After First Vespers: \pgref{ord:compline:SAT1}; after Second Vespers: "
                        r"\pgref{ord:compline:SUN}.\par}")

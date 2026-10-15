@@ -34,6 +34,11 @@ def main(argv=None):
     p = sub.add_parser("fetch", help="download the web reference sources (Felix Just, Nova Vulgata) into sources/web/")
     p.add_argument("--force", action="store_true")
 
+    p = sub.add_parser("simulate", help="simulate praying the hours from the full book: page turns and ribbon "
+                                        "movement, layout experiments -> reports/simulation.md (needs `lh book`)")
+    p.add_argument("--budget-min", type=float, default=90, help="time budget in minutes (default 90)")
+    p.add_argument("--seed", type=int, default=1)
+
     p = sub.add_parser("all", help="run the whole pipeline: build, verify, psalter, export, catalog, book --poc")
     p.add_argument("keys", nargs="*", default=["PA", "LQP", "ADV", "COM", "SPA", "SP", "SQ", "SADV"])
 
@@ -112,6 +117,9 @@ def main(argv=None):
             t2 = time.time()
             print(f"[book] LaTeX {t2 - t1:.0f}s; total {t2 - t0:.0f}s")
             print(f"[book] page budget -> {write_budget(book, {'generate': t1 - t0, 'latex': t2 - t1})}")
+    elif args.cmd == "simulate":
+        from lh.sim.run import main as simulate
+        simulate(budget_min=args.budget_min, seed=args.seed)
     elif args.cmd == "catalog":
         from lh.catalog.build import build_catalog
         print(f"[catalog] {build_catalog()}")
